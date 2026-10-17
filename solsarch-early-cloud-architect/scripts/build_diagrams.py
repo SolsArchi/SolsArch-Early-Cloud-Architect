@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diagram_sanitizer  # noqa: E402
+import structure_diagrams  # noqa: E402
 
 PALETTE = Path(__file__).resolve().parent.parent / "assets" / "cloud-vendor-palette.json"
 BACKEND = ("FastAPI", "Django", "Flask", "Express", "NestJS", "Ruby on Rails", "Spring Boot", "Laravel", "Gin", "Fastify", "Sinatra", "Axum", "Actix Web")
@@ -451,7 +452,8 @@ def build(plan, scan):
     for d in plan["decisions"]:
         d.setdefault("reason", d["why"])
     diagrams = []
-    for maker in (infrastructure, c4_context, c4_container, c4_component, sequence_auth, sequence_core,
+    for maker in (infrastructure, c4_context, c4_container, c4_component, structure_diagrams.frontend_structure,
+                  structure_diagrams.backend_structure, structure_diagrams.data_schema, sequence_auth, sequence_core,
                   sequence_async, topology):
         result = maker(ctx)
         if result is None:

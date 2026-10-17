@@ -20,6 +20,9 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import structure_scanner  # noqa: E402
+
 SCANNER_VERSION = "1.0.0"
 DEFAULT_MAX_FILES = 6000
 MAX_FILE_BYTES = 1_000_000
@@ -933,6 +936,7 @@ def scan(root, max_files=DEFAULT_MAX_FILES):
         "provider_hints": dict(sorted(collector.provider_hits.items())),
         "findings": build_findings(collector),
         "advisories": collector.advisories,
+        "structure": structure_scanner.scan_structure(root),
     }
 
 

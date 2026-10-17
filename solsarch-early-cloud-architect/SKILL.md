@@ -1,6 +1,6 @@
 ---
 name: solsarch-early-cloud-architect
-description: Designs cloud architecture for a local codebase. Asks which cloud (AWS, Azure or GCP) and whether the app should run on servers or serverless, scans the repo for evidence, picks services with fixed rules, checks them against current vendor documentation by web search, draws Mermaid diagrams (infrastructure, C4, sequence, code map) plus icon pictures, flags five pre-deployment security blockers, verifies the report against the evidence, writes a report explaining every diagram and service choice, and bundles everything into one zip with an HTML viewer. Use when the user asks to design cloud architecture, choose cloud services, draw a C4 or architecture diagram, review an architecture, check deployment blockers, plan a first deployment, or decide between AWS, Azure and GCP for a repo. Do not use for writing application features, detailed Terraform modules, or live billing questions.
+description: Designs cloud architecture for a local codebase. Asks which cloud (AWS, Azure or GCP) and whether the app should run on servers or serverless, scans the repo for evidence, picks services with fixed rules, checks them against current vendor documentation by web search, draws Mermaid diagrams (infrastructure, C4, frontend routes, backend endpoints, database schema ER, sequence, code map) plus icon pictures, flags five pre-deployment security blockers, verifies the report against the evidence, writes a report explaining every diagram and service choice, and bundles everything into one zip with an HTML viewer. Use when the user asks to design cloud architecture, choose cloud services, draw a C4 or architecture diagram, review an architecture, check deployment blockers, plan a first deployment, or decide between AWS, Azure and GCP for a repo. Do not use for writing application features, detailed Terraform modules, or live billing questions.
 compatibility: Needs Python 3.8 or newer with the standard library only. Web search is used when the agent has it. Works in Claude Code, Codex and ChatGPT agents that can run local scripts.
 license: MIT OR Apache-2.0
 metadata:
@@ -125,7 +125,8 @@ Reply with:
 
 ## What the report contains
 
-Verdict, summary, the user's choices, what the scan found, why each service was chosen (evidence,
+Up to eleven diagrams, including the frontend structure, the backend API structure and a database schema ER diagram
+when the scan finds routes, endpoints or models. Verdict, summary, the user's choices, what the scan found, why each service was chosen (evidence,
 alternatives not chosen, web check), every diagram with what it shows and why its services were
 chosen, the security gate, the web check table, cost drivers, open questions, and coverage. The
 diagrams section opens with the icon pictures; the icons are generic service-type glyphs in the cloud's

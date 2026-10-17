@@ -82,9 +82,12 @@ python solsarch-early-cloud-architect/scripts/solsarch.py finish    --repo REPO 
 ```
 
 `finish` runs `evidence`, writes the report and diagrams, runs `verify`, and only then writes the zip. A failed
-verification stops it unless you pass `--force`. Up to eight Mermaid diagrams are drawn (infrastructure, C4 context,
-container and component, sign-in sequence, core request sequence, background-job sequence, code-to-cloud map); a
-diagram is skipped when the repository has nothing to show for it, for example no queue means no job sequence.
+verification stops it unless you pass `--force`. Up to eleven Mermaid diagrams are drawn: infrastructure, C4 context, container and component, **frontend structure**
+(routes, components, API calls), **backend API structure** (endpoints by service and file), **database schema** (an ER
+diagram of tables, columns and foreign keys), sign-in sequence, core request sequence, background-job sequence and the
+code-to-cloud map. A diagram is skipped when the repository has nothing to show for it, for example no queue means no job sequence.
+Front ends: Next.js, React Router, Vue Router. Back ends: FastAPI, Flask, Django, Express/Fastify, NestJS, Spring, Go, Rails, Laravel, Axum.
+Schemas: SQL, Prisma, SQLAlchemy, Django models, TypeORM, Mongoose.
 
 `--icon-dir` takes a folder of official vendor icon SVGs (AWS, Azure, Google Cloud). They are not bundled because of
 their licence terms. Name files after the service (`amazon-aurora-postgresql.svg`), its category (`relational-database.svg`) or the glyph (`database.svg`); unmatched services keep the built-in glyph.
@@ -116,6 +119,8 @@ solsarch-early-cloud-architect/
   scripts/
     solsarch.py                    the one command the agent uses
     ast_scanner.py                 repository evidence and findings (deep catalogue, generated/gitignored dirs skipped)
+    structure_scanner.py           front-end routes, back-end endpoints and database schemas
+    structure_diagrams.py          the frontend, backend and schema diagrams
     evidence_bridge.py             numbers the evidence E001, E002, ... for the verifier and placement engine
     recommend.py                   scan + cloud + compute model -> plan
     place_services.py              rule-based placement with confidence and caveats (modular route)
