@@ -1,0 +1,13 @@
+[project]
+name = "solsarch-early-cloud-architect"
+version = "1.0.0"
+description = "Agent Skill that designs cloud architecture for a local codebase, with verified reports and diagrams."
+requires-python = ">=3.8"
+license = { text = "MIT OR Apache-2.0" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+line-length = 120

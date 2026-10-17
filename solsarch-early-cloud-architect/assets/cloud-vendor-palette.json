@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "note": "Approximate brand colours for diagram styling. Use for fills and strokes only. Official icon packs are not bundled; download them from each vendor if the user wants icons.",
+  "providers": {
+    "aws": {"fill": "#FF9900", "stroke": "#232F3E", "text": "#232F3E"},
+    "azure": {"fill": "#0078D4", "stroke": "#003A6C", "text": "#FFFFFF"},
+    "gcp": {"fill": "#4285F4", "stroke": "#174EA6", "text": "#FFFFFF"},
+    "cloudflare": {"fill": "#F38020", "stroke": "#7A3E00", "text": "#1F1F1F"},
+    "vercel": {"fill": "#000000", "stroke": "#444444", "text": "#FFFFFF"},
+    "supabase": {"fill": "#3ECF8E", "stroke": "#1B6B49", "text": "#10241B"},
+    "databricks": {"fill": "#FF3621", "stroke": "#8F1D12", "text": "#FFFFFF"},
+    "snowflake": {"fill": "#29B5E8", "stroke": "#0C5A78", "text": "#0B2A36"}
+  },
+  "roles": {
+    "data": {"fill": "#E8F0FE", "stroke": "#3C4043", "text": "#202124"},
+    "user": {"fill": "#FFFFFF", "stroke": "#5F6368", "text": "#202124"},
+    "external": {"fill": "#F1F3F4", "stroke": "#80868B", "text": "#202124"},
+    "risk": {"fill": "#FDE7E9", "stroke": "#A3262A", "text": "#A3262A"}
+  },
+  "mermaid_classdefs": [
+    "classDef aws fill:#FF9900,stroke:#232F3E,color:#232F3E",
+    "classDef azure fill:#0078D4,stroke:#003A6C,color:#FFFFFF",
+    "classDef gcp fill:#4285F4,stroke:#174EA6,color:#FFFFFF",
+    "classDef cloudflare fill:#F38020,stroke:#7A3E00,color:#1F1F1F",
+    "classDef data fill:#E8F0FE,stroke:#3C4043,color:#202124",
+    "classDef user fill:#FFFFFF,stroke:#5F6368,color:#202124",
+    "classDef external fill:#F1F3F4,stroke:#80868B,color:#202124",
+    "classDef risk fill:#FDE7E9,stroke:#A3262A,color:#A3262A"
+  ]
+}

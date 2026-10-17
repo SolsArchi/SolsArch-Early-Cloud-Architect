@@ -1,0 +1,747 @@
+{
+  "version": 1,
+  "last_verified": "2026-10-17",
+  "note": "Fixed evidence-to-service rules. place_services.py applies these identically for every model, so two agents given the same repo, cloud and compute model produce the same placements.",
+  "api_frameworks": [
+    "FastAPI",
+    "Flask",
+    "Django",
+    "Express",
+    "Fastify",
+    "NestJS",
+    "Rails",
+    "Sinatra",
+    "Gin",
+    "Axum",
+    "Actix Web",
+    "Spring Boot",
+    "Laravel"
+  ],
+  "cloud_names": {
+    "aws": "AWS",
+    "azure": "Microsoft Azure",
+    "gcp": "Google Cloud"
+  },
+  "rules": [
+    {
+      "id": "R-COMPUTE-API",
+      "category": "Backend compute",
+      "when": [
+        {
+          "kind": "framework",
+          "names": [
+            "FastAPI",
+            "Flask",
+            "Django",
+            "Express",
+            "Fastify",
+            "NestJS",
+            "Rails",
+            "Sinatra",
+            "Gin",
+            "Axum",
+            "Actix Web",
+            "Spring Boot",
+            "Laravel"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "confirmed_when": [
+        {
+          "kind": "container"
+        }
+      ],
+      "services": {
+        "aws": {
+          "server": "Amazon ECS on AWS Fargate",
+          "serverless": "AWS Lambda behind Amazon API Gateway"
+        },
+        "azure": {
+          "server": "Azure Container Apps (minimum one replica)",
+          "serverless": "Azure Functions"
+        },
+        "gcp": {
+          "server": "Cloud Run (minimum one instance)",
+          "serverless": "Cloud Functions"
+        }
+      },
+      "alternative": {
+        "server": "the serverless option for spiky traffic and short requests",
+        "serverless": "an always-on container service for long requests, WebSockets and background work"
+      },
+      "why": "The codebase runs a web API ({evidence_names}). On this cloud, {service} runs that process without you managing servers, matching your {model} choice."
+    },
+    {
+      "id": "R-COMPUTE-CONTAINER",
+      "category": "Application compute",
+      "when": [
+        {
+          "kind": "container"
+        }
+      ],
+      "unless": [
+        {
+          "kind": "framework",
+          "names": [
+            "FastAPI",
+            "Flask",
+            "Django",
+            "Express",
+            "Fastify",
+            "NestJS",
+            "Rails",
+            "Sinatra",
+            "Gin",
+            "Axum",
+            "Actix Web",
+            "Spring Boot",
+            "Laravel",
+            "Next.js"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon ECS on AWS Fargate",
+          "serverless": "AWS Lambda (container image)"
+        },
+        "azure": {
+          "server": "Azure Container Apps (minimum one replica)",
+          "serverless": "Azure Container Apps (scale to zero)"
+        },
+        "gcp": {
+          "server": "Cloud Run (minimum one instance)",
+          "serverless": "Cloud Run (scale to zero)"
+        }
+      },
+      "alternative": {
+        "server": "scale-to-zero containers if traffic is occasional",
+        "serverless": "an always-on container if cold starts hurt"
+      },
+      "why": "The repository ships container build files ({evidence_names}) but no recognised web framework, so the container itself is the unit to deploy with {service}."
+    },
+    {
+      "id": "R-COMPUTE-WEB",
+      "category": "Frontend compute",
+      "when": [
+        {
+          "kind": "framework",
+          "names": [
+            "Next.js"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon ECS on AWS Fargate",
+          "serverless": "AWS Lambda via AWS Amplify Hosting"
+        },
+        "azure": {
+          "server": "Azure Container Apps (minimum one replica)",
+          "serverless": "Azure Static Web Apps (hybrid Next.js)"
+        },
+        "gcp": {
+          "server": "Cloud Run (minimum one instance)",
+          "serverless": "Cloud Run (scale to zero)"
+        }
+      },
+      "alternative": {
+        "server": "a managed frontend host such as Vercel",
+        "serverless": "an always-on container for steady traffic"
+      },
+      "why": "{evidence_names} needs a Node.js runtime for server rendering, so it cannot be hosted as plain static files. {service} provides that runtime."
+    },
+    {
+      "id": "R-STATIC-WEB",
+      "category": "Static frontend hosting",
+      "when": [
+        {
+          "kind": "framework",
+          "names": [
+            "React"
+          ]
+        }
+      ],
+      "unless": [
+        {
+          "kind": "framework",
+          "names": [
+            "Next.js"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon S3 with Amazon CloudFront",
+          "serverless": "Amazon S3 with Amazon CloudFront"
+        },
+        "azure": {
+          "server": "Azure Blob Storage static website with Azure Front Door",
+          "serverless": "Azure Blob Storage static website with Azure Front Door"
+        },
+        "gcp": {
+          "server": "Cloud Storage with Cloud CDN",
+          "serverless": "Cloud Storage with Cloud CDN"
+        }
+      },
+      "alternative": {
+        "server": "a managed static host such as Vercel or Netlify",
+        "serverless": "a managed static host such as Vercel or Netlify"
+      },
+      "why": "React ({evidence_names}) with no server-rendering framework builds to static files, which {service} serves without any servers."
+    },
+    {
+      "id": "R-ENTRY",
+      "category": "Public entry point",
+      "when": [
+        {
+          "kind": "framework",
+          "names": [
+            "FastAPI",
+            "Flask",
+            "Django",
+            "Express",
+            "Fastify",
+            "NestJS",
+            "Rails",
+            "Sinatra",
+            "Gin",
+            "Axum",
+            "Actix Web",
+            "Spring Boot",
+            "Laravel",
+            "Next.js"
+          ]
+        },
+        {
+          "kind": "container"
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Application Load Balancer",
+          "serverless": "Amazon API Gateway"
+        },
+        "azure": {
+          "server": "Azure Application Gateway",
+          "serverless": "Azure API Management"
+        },
+        "gcp": {
+          "server": "Cloud Load Balancing",
+          "serverless": "API Gateway"
+        }
+      },
+      "alternative": {
+        "server": "an API gateway if you need per-route auth and throttling",
+        "serverless": "a load balancer if you move to always-on containers"
+      },
+      "why": "Internet traffic must reach private compute through a managed entry point, never directly (SEC-001). {service} does this for the services found in {evidence_names}."
+    },
+    {
+      "id": "R-DB-POSTGRES",
+      "category": "Relational database",
+      "when": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "postgres",
+            "sqlite"
+          ]
+        },
+        {
+          "kind": "orm"
+        }
+      ],
+      "unless": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "mysql",
+            "mongodb"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "confirmed_when": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "postgres"
+          ]
+        }
+      ],
+      "services": {
+        "aws": {
+          "server": "Amazon Aurora PostgreSQL",
+          "serverless": "Amazon Aurora Serverless v2 (PostgreSQL)"
+        },
+        "azure": {
+          "server": "Azure Database for PostgreSQL Flexible Server",
+          "serverless": "Azure Database for PostgreSQL Flexible Server (burstable, stop when idle)"
+        },
+        "gcp": {
+          "server": "Cloud SQL for PostgreSQL",
+          "serverless": "Cloud SQL for PostgreSQL"
+        }
+      },
+      "alternative": {
+        "server": "a serverless database tier for uneven load",
+        "serverless": "a fixed-size database for steady load"
+      },
+      "why": "The codebase stores relational data ({evidence_names}). A managed PostgreSQL gives backups, failover and shared access for several app instances, which a local file or self-run database cannot."
+    },
+    {
+      "id": "R-DB-MYSQL",
+      "category": "Relational database",
+      "when": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "mysql"
+          ]
+        }
+      ],
+      "unless": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "postgres"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon Aurora MySQL",
+          "serverless": "Amazon Aurora Serverless v2 (MySQL)"
+        },
+        "azure": {
+          "server": "Azure Database for MySQL Flexible Server",
+          "serverless": "Azure Database for MySQL Flexible Server (burstable)"
+        },
+        "gcp": {
+          "server": "Cloud SQL for MySQL",
+          "serverless": "Cloud SQL for MySQL"
+        }
+      },
+      "alternative": {
+        "server": "a serverless tier",
+        "serverless": "a fixed-size instance"
+      },
+      "why": "The codebase uses MySQL ({evidence_names}); {service} is the managed equivalent, so no application change is needed."
+    },
+    {
+      "id": "R-DB-DOCUMENT",
+      "category": "Document database",
+      "when": [
+        {
+          "kind": "datastore",
+          "signals": [
+            "mongodb"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon DocumentDB",
+          "serverless": "Amazon DocumentDB Elastic Clusters"
+        },
+        "azure": {
+          "server": "Azure Cosmos DB for MongoDB",
+          "serverless": "Azure Cosmos DB for MongoDB (serverless)"
+        },
+        "gcp": {
+          "server": "MongoDB Atlas on Google Cloud",
+          "serverless": "MongoDB Atlas on Google Cloud (serverless instance)"
+        }
+      },
+      "alternative": {
+        "server": "MongoDB Atlas on any cloud",
+        "serverless": "MongoDB Atlas on any cloud"
+      },
+      "why": "The codebase uses MongoDB ({evidence_names}); {service} keeps the same driver and data model."
+    },
+    {
+      "id": "R-VECTOR",
+      "category": "Vector store",
+      "when": [
+        {
+          "kind": "ai",
+          "signals": [
+            "vector"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon Aurora PostgreSQL with pgvector",
+          "serverless": "Amazon Aurora Serverless v2 with pgvector"
+        },
+        "azure": {
+          "server": "Azure Database for PostgreSQL with pgvector",
+          "serverless": "Azure Database for PostgreSQL with pgvector"
+        },
+        "gcp": {
+          "server": "Cloud SQL for PostgreSQL with pgvector",
+          "serverless": "Cloud SQL for PostgreSQL with pgvector"
+        }
+      },
+      "alternative": {
+        "server": "a dedicated vector database such as Qdrant Cloud when the corpus is large",
+        "serverless": "a dedicated vector database such as Qdrant Cloud when the corpus is large"
+      },
+      "why": "The codebase uses a vector library ({evidence_names}). For small and medium corpora, pgvector inside {service} avoids running one more data system. The corpus size is not visible in the repo."
+    },
+    {
+      "id": "R-CACHE",
+      "category": "Cache",
+      "when": [
+        {
+          "kind": "cache",
+          "signals": [
+            "redis"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon ElastiCache for Redis",
+          "serverless": "Amazon ElastiCache Serverless"
+        },
+        "azure": {
+          "server": "Azure Cache for Redis",
+          "serverless": "Azure Cache for Redis"
+        },
+        "gcp": {
+          "server": "Memorystore for Redis",
+          "serverless": "Memorystore for Redis"
+        }
+      },
+      "alternative": {
+        "server": "a serverless cache tier",
+        "serverless": "a fixed-size cache for steady load"
+      },
+      "why": "The codebase uses Redis ({evidence_names}); {service} is the managed Redis on this cloud."
+    },
+    {
+      "id": "R-WORKER",
+      "category": "Background worker compute",
+      "when": [
+        {
+          "kind": "queue",
+          "names": [
+            "Celery",
+            "BullMQ",
+            "Bull",
+            "Sidekiq",
+            "RQ"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon ECS on AWS Fargate (separate worker service)",
+          "serverless": "AWS Lambda consuming Amazon SQS"
+        },
+        "azure": {
+          "server": "Azure Container Apps (separate worker app)",
+          "serverless": "Azure Functions with queue trigger"
+        },
+        "gcp": {
+          "server": "Cloud Run (separate worker service)",
+          "serverless": "Cloud Functions with Pub/Sub trigger"
+        }
+      },
+      "alternative": {
+        "server": "queue-triggered functions for short jobs",
+        "serverless": "an always-on worker for long jobs"
+      },
+      "why": "The codebase runs background jobs ({evidence_names}). Workers scale independently from the API, so they get their own deployment on {service}."
+    },
+    {
+      "id": "R-BROKER",
+      "category": "Message broker",
+      "when": [
+        {
+          "kind": "queue",
+          "names": [
+            "RabbitMQ"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon MQ for RabbitMQ",
+          "serverless": "Amazon SQS"
+        },
+        "azure": {
+          "server": "Azure Service Bus",
+          "serverless": "Azure Service Bus"
+        },
+        "gcp": {
+          "server": "Pub/Sub",
+          "serverless": "Pub/Sub"
+        }
+      },
+      "alternative": {
+        "server": "running RabbitMQ yourself on containers",
+        "serverless": "Amazon MQ if you need AMQP features"
+      },
+      "why": "The codebase uses RabbitMQ ({evidence_names}); {service} replaces a self-run broker with a managed one."
+    },
+    {
+      "id": "R-STREAM",
+      "category": "Event streaming",
+      "when": [
+        {
+          "kind": "queue",
+          "signals": [
+            "stream"
+          ]
+        }
+      ],
+      "confidence": "Confirmed",
+      "services": {
+        "aws": {
+          "server": "Amazon MSK",
+          "serverless": "Amazon MSK Serverless"
+        },
+        "azure": {
+          "server": "Azure Event Hubs (Kafka endpoint)",
+          "serverless": "Azure Event Hubs (Kafka endpoint)"
+        },
+        "gcp": {
+          "server": "Google Cloud Managed Service for Apache Kafka",
+          "serverless": "Pub/Sub"
+        }
+      },
+      "alternative": {
+        "server": "a serverless streaming tier",
+        "serverless": "managed Kafka if you need Kafka protocol features"
+      },
+      "why": "The codebase uses Kafka ({evidence_names}); {service} is the managed equivalent."
+    },
+    {
+      "id": "R-OBJECT-STORAGE",
+      "category": "Object storage",
+      "when": [
+        {
+          "kind": "storage"
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon S3",
+          "serverless": "Amazon S3"
+        },
+        "azure": {
+          "server": "Azure Blob Storage",
+          "serverless": "Azure Blob Storage"
+        },
+        "gcp": {
+          "server": "Cloud Storage",
+          "serverless": "Cloud Storage"
+        }
+      },
+      "alternative": {
+        "server": "network file storage if the app needs a shared filesystem",
+        "serverless": "network file storage if the app needs a shared filesystem"
+      },
+      "why": "The codebase handles stored files ({evidence_names}). Containers and functions lose local disk, so {service} holds files durably and is shared by every instance."
+    },
+    {
+      "id": "R-SECRETS",
+      "category": "Secrets management",
+      "when": [
+        {
+          "kind": "ai",
+          "signals": [
+            "llm"
+          ]
+        },
+        {
+          "kind": "secret"
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "AWS Secrets Manager",
+          "serverless": "AWS Secrets Manager"
+        },
+        "azure": {
+          "server": "Azure Key Vault",
+          "serverless": "Azure Key Vault"
+        },
+        "gcp": {
+          "server": "Secret Manager",
+          "serverless": "Secret Manager"
+        }
+      },
+      "alternative": {
+        "server": "parameter store for non-rotating values",
+        "serverless": "parameter store for non-rotating values"
+      },
+      "why": "The codebase calls third-party APIs that need keys ({evidence_names}). Keys belong in {service}, injected at runtime, never in code or images (SEC-005)."
+    },
+    {
+      "id": "R-EGRESS",
+      "category": "Outbound internet access",
+      "when": [
+        {
+          "kind": "ai",
+          "signals": [
+            "llm"
+          ]
+        }
+      ],
+      "models": [
+        "server"
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "NAT Gateway",
+          "serverless": "NAT Gateway"
+        },
+        "azure": {
+          "server": "Azure NAT Gateway",
+          "serverless": "Azure NAT Gateway"
+        },
+        "gcp": {
+          "server": "Cloud NAT",
+          "serverless": "Cloud NAT"
+        }
+      },
+      "alternative": {
+        "server": "private endpoints where the provider offers them",
+        "serverless": "private endpoints where the provider offers them"
+      },
+      "why": "Compute in private subnets still needs outbound HTTPS to the LLM provider seen in {evidence_names}. {service} provides that without exposing the compute."
+    },
+    {
+      "id": "R-GPU",
+      "category": "GPU compute",
+      "when": [
+        {
+          "kind": "ai",
+          "signals": [
+            "gpu"
+          ]
+        }
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon EC2 GPU instances",
+          "serverless": "Amazon SageMaker Serverless Inference (CPU) or Amazon EC2 GPU instances"
+        },
+        "azure": {
+          "server": "Azure N-series virtual machines",
+          "serverless": "Azure Machine Learning managed online endpoints"
+        },
+        "gcp": {
+          "server": "Compute Engine GPU instances",
+          "serverless": "Cloud Run with GPU"
+        }
+      },
+      "alternative": {
+        "server": "a hosted inference API instead of self-hosting models",
+        "serverless": "a hosted inference API instead of self-hosting models"
+      },
+      "why": "The codebase loads local model libraries ({evidence_names}), which need GPU-capable machines such as {service} for acceptable speed."
+    },
+    {
+      "id": "R-REALTIME-SERVERLESS",
+      "category": "Realtime connections",
+      "when": [
+        {
+          "kind": "realtime",
+          "signals": [
+            "streaming",
+            "websocket"
+          ]
+        }
+      ],
+      "models": [
+        "serverless"
+      ],
+      "confidence": "Inferred",
+      "services": {
+        "aws": {
+          "server": "Amazon API Gateway WebSocket APIs",
+          "serverless": "Amazon API Gateway WebSocket APIs"
+        },
+        "azure": {
+          "server": "Azure Web PubSub",
+          "serverless": "Azure Web PubSub"
+        },
+        "gcp": {
+          "server": "Cloud Run (WebSocket support)",
+          "serverless": "Cloud Run (WebSocket support)"
+        }
+      },
+      "alternative": {
+        "server": "an always-on container service",
+        "serverless": "an always-on container service"
+      },
+      "why": "The codebase serves streaming or WebSocket traffic ({evidence_names}). Plain functions have request time limits, so {service} is used to hold the connections."
+    }
+  ],
+  "caveats": [
+    {
+      "if_signal": "streaming",
+      "models": [
+        "serverless"
+      ],
+      "text": "Streaming or WebSocket responses run into function time limits; confirm the limits in the vendor documentation before relying on this design."
+    },
+    {
+      "if_signal": "websocket",
+      "models": [
+        "serverless"
+      ],
+      "text": "WebSocket connections need a service that holds connections; plain functions cannot."
+    },
+    {
+      "if_signal": "streaming",
+      "models": [
+        "server"
+      ],
+      "text": "Raise the load balancer idle timeout and disable response buffering on the streaming route (SEC-004)."
+    },
+    {
+      "if_signal": "websocket",
+      "models": [
+        "server"
+      ],
+      "text": "Raise the load balancer idle timeout so long-lived WebSocket connections are not dropped (SEC-004)."
+    },
+    {
+      "if_signal": "sqlite",
+      "models": [
+        "server",
+        "serverless"
+      ],
+      "text": "The code uses a local SQLite file. It cannot be shared by several instances and is lost on managed compute without a mounted volume (SEC-003); migrate the data to the managed database."
+    },
+    {
+      "if_signal": "queue",
+      "models": [
+        "serverless"
+      ],
+      "text": "Queue consumers on functions have execution time limits; long jobs may need an always-on worker."
+    }
+  ]
+}

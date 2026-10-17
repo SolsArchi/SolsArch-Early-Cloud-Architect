@@ -1,0 +1,17 @@
+{
+  "skill_name": "solsarch-early-cloud-architect",
+  "version": "1.2.0",
+  "targets": {
+    "trigger_rate_on_relevant": 0.9,
+    "false_trigger_rate_on_irrelevant": 0.0,
+    "uncited_services": 0,
+    "diagram_sanitizer_pass_rate": 1.0,
+    "memory_recall_across_sessions": true
+  },
+  "how_to_run": "Use the skill-creator eval loop: for each trigger case ask the agent with the skill installed and record whether it loaded; for each functional case run the prompt against the fixture and grade the assertions. Deterministic parts (scanner, sanitizer, memory) are covered by pytest in tests/.",
+  "counts": {
+    "trigger_should": 15,
+    "trigger_should_not": 10,
+    "functional": 12
+  }
+}

@@ -1,0 +1,6 @@
+fastapi==0.110.0
+uvicorn
+sqlalchemy
+psycopg2-binary
+redis
+boto3

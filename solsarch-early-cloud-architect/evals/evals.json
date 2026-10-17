@@ -1,0 +1,135 @@
+{
+  "skill": "solsarch-early-cloud-architect",
+  "version": 2,
+  "how_to_run": "Trigger queries need a live agent: ask each query in a fresh session with the skill installed and record whether it loaded. Functional cases are run by an agent against the described fixture repo (tests/helpers.py builds them), then checked against the assertions. The scripts themselves, including determinism, are covered by the unit tests in tests/ and need no agent.",
+  "targets": {
+    "trigger_rate_on_positive": 0.9,
+    "false_trigger_rate_on_negative": 0.0,
+    "questions_asked": "exactly 2 (cloud, compute model)",
+    "same_plan_fingerprint_across_models": true,
+    "diagram_parse_pass_rate": 1.0,
+    "uncited_services": 0,
+    "blockers_found_on_seeded_fixtures": "5 of 5"
+  },
+  "trigger_queries": {
+    "should_trigger": [
+      "Design the cloud architecture for this project",
+      "Which cloud services should I use to deploy this repo?",
+      "Draw a C4 diagram of this codebase",
+      "Review my architecture before we go to production",
+      "Are there any deployment blockers in this project?",
+      "AWS or GCP for this app?",
+      "Create an architecture diagram showing how this maps to the cloud",
+      "How should I host this FastAPI and Postgres app?",
+      "Help me plan the first production deployment of this repository",
+      "Generate a sequence diagram for the login flow and cloud layout",
+      "What would a cloud architect change in this repo?",
+      "I need an architecture review for our SOC 2 audit",
+      "Map our folders to cloud services",
+      "Is this safe to put on ECS?",
+      "Pick a database and queue for this service and justify the choice",
+      "Make a cloud design for this RAG app with diagrams",
+      "Remind me what architecture decisions we made last time",
+      "Design the infrastructure for this Next.js app on Azure",
+      "Where should the Redis and workers run for this project?",
+      "Give me a report explaining why each cloud service was chosen for this codebase"
+    ],
+    "should_not_trigger": [
+      "What is the weather in Paris?",
+      "Write a Python function that parses a CSV file",
+      "Fix this TypeScript compile error",
+      "Explain how React hooks work",
+      "Write a full Terraform module for an S3 bucket",
+      "What did our AWS bill come to last month?",
+      "Refactor this class to use dependency injection",
+      "Summarize this PDF",
+      "Add a dark mode toggle to the settings page",
+      "Write unit tests for the payment service"
+    ]
+  },
+  "functional_cases": [
+    {
+      "id": "A-aws-server",
+      "repo": "FastAPI + Next.js + SQLite + ChromaDB + OpenAI + Dockerfile + nginx (tests/helpers.py build_demo)",
+      "prompt": "Design the cloud architecture for this repo.",
+      "user_answers": {"cloud": "AWS", "compute": "Server-based"},
+      "assertions": [
+        "Asks exactly two questions (cloud, then server-based or serverless) and nothing about region, budget or compliance",
+        "Runs scan, plan, the web check and finish in that order using scripts/solsarch.py",
+        "Plan contains ECS Fargate for web and api, Aurora PostgreSQL, pgvector, ALB, CloudFront + WAF, NAT Gateway, Secrets Manager, ECR, CloudWatch",
+        "Web check searches use exactly the queries from the queue and every recorded source is on the vendor's own domain",
+        "docs/solsarch-report.md explains every service and every diagram; docs/solsarch-output.zip exists",
+        "Verdict line is reported unchanged: Not ready for production, SEC-003 and SEC-005",
+        "The agent does not print the AWS key and does not edit generated files"
+      ]
+    },
+    {
+      "id": "B-azure-serverless",
+      "repo": "same as A",
+      "prompt": "Design the cloud architecture for this repo.",
+      "user_answers": {"cloud": "Azure", "compute": "Serverless"},
+      "assertions": [
+        "Plan uses Azure Functions, API Management, PostgreSQL Flexible Server and Front Door + WAF",
+        "Compute decisions carry the streaming caveat",
+        "ECR-style registry decision is absent in serverless mode"
+      ]
+    },
+    {
+      "id": "C-same-result-any-model",
+      "repo": "same as A",
+      "prompt": "Run the skill with two different models and the same two answers.",
+      "assertions": [
+        ".solsarch/plan.json is byte-identical between the runs",
+        "docs/solsarch-architecture.md is byte-identical between the runs",
+        "Only the web-check dates and the report timestamp can differ"
+      ]
+    },
+    {
+      "id": "D-no-web-search",
+      "repo": "same as A",
+      "prompt": "Design the cloud architecture for this repo. (agent has no web search tool)",
+      "assertions": [
+        "Agent runs facts skip with a reason instead of inventing sources",
+        "Report states that the web check was skipped and marks every service Not verified"
+      ]
+    },
+    {
+      "id": "E-rejected-source",
+      "repo": "same as A",
+      "prompt": "Record this source for the database: https://example.com/aurora",
+      "assertions": [
+        "facts add rejects the record because the host is not a vendor domain",
+        "The agent fixes the record with an official page instead of bypassing the check"
+      ]
+    },
+    {
+      "id": "F-terraform-risk",
+      "repo": "Terraform with CloudFront to ECS, open database security group, wildcard IAM (tests/helpers.py build_terraform)",
+      "prompt": "Review this infrastructure before we apply it.",
+      "assertions": [
+        "Report lists SEC-001, SEC-002 (critical) and SEC-005 with fixes",
+        "The reply says production is blocked until critical and high findings are fixed",
+        "No application services are invented because no application code was found"
+      ]
+    },
+    {
+      "id": "G-memory-recall",
+      "repo": "Any repo previously analysed",
+      "prompt": "Continue the architecture work from last time.",
+      "assertions": [
+        "First lines restate the cloud, compute model and number of recorded decisions",
+        "Does not re-ask questions whose answers were confirmed",
+        "Re-asks the cloud and compute questions if the earlier answers were assumed"
+      ]
+    },
+    {
+      "id": "H-empty-repo",
+      "repo": "Directory with only a README",
+      "prompt": "Design the cloud architecture for this project.",
+      "assertions": [
+        "States that the scan found no components and asks the user to describe the system",
+        "Does not invent services"
+      ]
+    }
+  ]
+}
