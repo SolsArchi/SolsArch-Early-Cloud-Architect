@@ -5,6 +5,9 @@
     solsarch.py scan --repo REPO             read the code, write .solsarch/scan.json
     solsarch.py plan --repo REPO --cloud aws --compute server [--assumed]
                                              choose services, write .solsarch/plan.json, save decisions
+    solsarch.py run --repo REPO [--cloud C --compute M]
+                                             the whole workflow in one command (scan, plan, evidence, report, verify, zip)
+    solsarch.py guide                        the workflow as JSON, for agents that cannot load a skill
     solsarch.py compare --repo REPO [--compute server|serverless]
                                              the same scan placed on AWS, Azure and GCP side by side (no plan is saved)
     solsarch.py facts queue|add|skip|list --repo REPO ...
@@ -161,6 +164,82 @@ def cmd_facts(args):
     return facts_store.main(args.rest)
 
 
+GUIDE = {
+    "name": "solsarch-early-cloud-architect",
+    "summary": "Designs cloud architecture for a local repository: scan, plan, verify, diagrams, report, zip.",
+    "run_from": "the folder that holds scripts/solsarch.py; use python, python3 or py",
+    "rules": [
+        "Ask the user only two questions: which cloud (aws, azure, gcp) and server or serverless.",
+        "Never choose, rename or remove services yourself and never edit the generated report or diagrams.",
+        "Never print a secret value and never state a price.",
+        "If the user cannot be asked, use the defaults and mark the answers as assumed.",
+    ],
+    "steps": [
+        {"id": "questions", "command": "solsarch.py questions --repo REPO",
+         "do": "Ask exactly the questions listed in 'ask'. Skip any already answered."},
+        {"id": "scan", "command": "solsarch.py scan --repo REPO",
+         "do": "Reads the code. If components is empty, ask the user to describe the system and stop."},
+        {"id": "compare", "command": "solsarch.py compare --repo REPO --compute server", "optional": True,
+         "do": "Only when the user asks which cloud fits best: AWS, Azure and GCP side by side."},
+        {"id": "plan", "command": "solsarch.py plan --repo REPO --cloud aws|azure|gcp --compute server|serverless [--assumed]",
+         "do": "Chooses services with fixed rules. Show the user the decisions."},
+        {"id": "facts", "command": "solsarch.py facts queue --repo REPO", "optional": True,
+         "do": "With a web search tool: search each query, then record one official sentence with 'facts add'. "
+               "Without one: solsarch.py facts skip --repo REPO --reason \"no web search tool\"."},
+        {"id": "finish", "command": "solsarch.py finish --repo REPO",
+         "do": "Writes evidence, report, diagrams, runs the verification gate, then the zip. Fix errors, never use --force unless asked."},
+        {"id": "tell", "do": "Reply with the verdict, a short summary, any blocker, services marked changed or "
+                              "unavailable, assumed answers, and the paths of the zip and the report."},
+    ],
+    "shortcut": "solsarch.py run --repo REPO --cloud aws --compute server  (does scan, plan, facts skip and finish in one call)",
+}
+
+
+def cmd_guide(args):
+    return emit(GUIDE)
+
+
+def cmd_run(args):
+    """Scan, plan, skip the web check and finish in one call. For agents that cannot drive the steps one by one."""
+    repo = str(args.repo)
+    steps = {}
+    code, out = capture(main, ["scan", "--repo", repo])
+    steps["scan"] = {"status": out.get("status"), "components": out.get("components", [])}
+    if code != 0:
+        return emit({"status": "error", "step": "scan", "detail": out}, code)
+    if not out.get("components"):
+        return emit({"status": "needs_input", "step": "scan", "steps": steps,
+                     "message": "No known components were found. Ask the user to describe the system; do not guess services."}, 3)
+    assumed = False
+    memory, _ = mh.load(repo)
+    memory = memory or {}
+    cloud = args.cloud or (memory.get("primary_cloud") if "primary_cloud" not in (memory.get("assumed_fields") or []) else None)
+    compute = args.compute or (memory.get("compute_model") if "compute_model" not in (memory.get("assumed_fields") or []) else None)
+    if not cloud:
+        hints = out.get("suggested_cloud")
+        cloud, assumed = hints or "aws", True
+    if not compute:
+        compute, assumed = "server", True
+    plan_args = ["plan", "--repo", repo, "--cloud", cloud, "--compute", compute] + (["--assumed"] if assumed else [])
+    code, plan = capture(main, plan_args)
+    steps["plan"] = {"status": plan.get("status"), "cloud": cloud, "compute": compute, "assumed": assumed}
+    if code != 0:
+        return emit({"status": "error", "step": "plan", "detail": plan}, code)
+    data = facts_store.load_facts(repo)
+    if not data.get("facts") and not data.get("skipped"):
+        capture(facts_store.main, ["skip", "--repo", repo, "--reason", "web verification not performed by the run command"])
+        steps["facts"] = "skipped: no web search was done; the report says services are not verified"
+    finish_args = ["finish", "--repo", repo] + (["--icon-dir", args.icon_dir] if args.icon_dir else []) + (["--force"] if args.force else [])
+    code, done = capture(main, finish_args)
+    if code != 0:
+        return emit({"status": "error", "step": "finish", "steps": steps, "detail": done}, code)
+    done["steps"] = steps
+    done["assumed_answers"] = assumed
+    done["next"] = ("If you can search the web, run 'facts queue', record the sources, then 'finish' again. "
+                    "If the answers were assumed, ask the user and rerun with --cloud and --compute.")
+    return emit(done)
+
+
 def cmd_compare(args):
     """Place the same scan on all three clouds and write one side-by-side table. Does not change the saved plan."""
     scan = read_json(state_dir(args.repo) / "scan.json")
@@ -289,6 +368,13 @@ def main(argv=None):
         if name == "finish":
             p.add_argument("--narrative", help="Optional markdown notes to include in the report")
             p.add_argument("--force", action="store_true", help="Package even if verification found errors")
+    p = sub.add_parser("run")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--cloud", choices=("aws", "azure", "gcp"))
+    p.add_argument("--compute", choices=("server", "serverless"))
+    p.add_argument("--icon-dir")
+    p.add_argument("--force", action="store_true")
+    sub.add_parser("guide")
     p = sub.add_parser("compare")
     p.add_argument("--repo", default=".")
     p.add_argument("--compute", choices=("server", "serverless"), default="server")
@@ -301,7 +387,8 @@ def main(argv=None):
     p.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
-               "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare}
+               "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
+               "run": cmd_run, "guide": cmd_guide}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

@@ -143,6 +143,17 @@ run `python scripts/solsarch.py compare --repo REPO --compute server` after Step
 continue with the cloud the user picks. Each SVG diagram carries the SolsArch mark in its bottom-right corner;
 do not remove it.
 
+## If you cannot follow the steps
+
+Any agent, with or without skill support, can use these instead:
+
+- `python scripts/solsarch.py run --repo REPO --cloud aws --compute server` does Steps 2, 3 and 5 in one call (the web
+  check is skipped and the report says so). Without `--cloud` and `--compute` the answers are assumed and marked.
+  Exit code 3 means the scan found nothing: ask the user to describe the system.
+- `python scripts/solsarch.py guide` prints this workflow as JSON.
+- `scripts/mcp_server.py` exposes the same commands as MCP tools; `scripts/agent_tools.py` prints function-calling
+  schemas (`schema --format openai|anthropic|mcp`) and runs a tool from JSON (`call NAME '{"repo": "."}'`).
+
 ## Modular tools
 
 Each stage also runs alone: `ast_scanner.py` (scan), `evidence_bridge.py` (E-numbered evidence),

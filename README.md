@@ -12,21 +12,53 @@ An Agent Skill that turns a code repository into a cloud architecture. Ask your 
 6. **verify** the report against the scan (no invented evidence ids, no leaked secrets, no broken or unexplained diagrams);
 7. write a report that explains every diagram and why each service was chosen, and put everything in **one zip** with an interactive `report.html`.
 
-This is the merged edition: Folder 1's automated pipeline and deep scanner, plus an anti-hallucination verification gate, official-icon support, an interactive HTML report and ADR tracking. It reads one repository and does not touch your cloud account. See "Limits" below.
+It reads one repository (or a monorepo, or a folder of repositories), checks its own report against the scan so nothing is invented, and does not touch your cloud account. See "Limits" below.
 
-Works with agents that read the open Agent Skills format: Claude Code, Codex, and ChatGPT agents that can run local scripts. It needs Python 3.8 or newer and nothing else.
+It works the same in **Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Windsurf, any MCP-capable agent, and custom agents**. The decisions come from scripts, not from the model, so every agent produces the same plan. It needs Python 3.8 or newer and nothing else.
 
 ## Install
 
+Clone this repository, then run the line for your agent from the folder you want to design:
+
+| Agent | Command | What it does |
+| :--- | :--- | :--- |
+| Claude Code | `python install.py` (or `--target project`) | Copies the skill to `~/.claude/skills` (or `./.claude/skills`) |
+| Codex | `python install.py --agent codex` (or `--target project`) | Copies the skill to `~/.agents/skills` (or `./.agents/skills`) |
+| Cursor | `python install.py --agent cursor` | Skill in `./.agents/skills` and a rule in `.cursor/rules/solsarch.mdc` |
+| Gemini CLI | `python install.py --agent gemini` | Skill in `./.agents/skills` and a block in `GEMINI.md` |
+| GitHub Copilot | `python install.py --agent copilot` | Skill in `./.agents/skills` and a block in `.github/copilot-instructions.md` |
+| Windsurf | `python install.py --agent windsurf` | Skill in `./.agents/skills` and a rule in `.windsurf/rules/solsarch.md` |
+| Any other agent | `python install.py --agent generic` | Skill in `./.agents/skills` and a block in `AGENTS.md` |
+| Claude.ai | `python install.py --zip dist/solsarch.zip` | Zip to upload under Settings, Capabilities, Skills |
+| MCP client | register `scripts/mcp_server.py` (see below) | Tools over the Model Context Protocol |
+| Custom agent | `scripts/agent_tools.py schema --format openai` | Function-calling schemas and a JSON dispatcher |
+
+An existing instruction file is extended, never replaced, and running the installer twice changes nothing. An existing
+skill install is only replaced with `--force`. `python install.py --list-agents` shows every target. Start a new agent
+session afterwards.
+
+### MCP server (any MCP-capable agent)
+
 ```bash
-python install.py                 # Claude Code, all projects  (~/.claude/skills)
-python install.py --target project   # Claude Code, this project only (./.claude/skills)
-python install.py --dest PATH     # any other agent: PATH is its skills folder
-python install.py --zip dist/solsarch-early-cloud-architect.zip   # for Claude.ai upload
+claude mcp add solsarch -- python /path/to/solsarch-early-cloud-architect/scripts/mcp_server.py   # Claude Code
 ```
 
-An existing install is only replaced if you add `--force`. After installing, start a new agent session.
-For Claude.ai, upload the zip under Settings, Capabilities, Skills.
+Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`.
+Tools: `solsarch_run` (everything in one call), `solsarch_questions`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`,
+`solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_guide`.
+
+### Custom agents and scripts
+
+```bash
+python solsarch-early-cloud-architect/scripts/solsarch.py run --repo . --cloud aws --compute server   # one command, JSON out
+python solsarch-early-cloud-architect/scripts/solsarch.py guide                                       # the workflow as JSON
+python solsarch-early-cloud-architect/scripts/agent_tools.py schema --format openai|anthropic|mcp     # tool definitions
+python solsarch-early-cloud-architect/scripts/agent_tools.py call solsarch_run '{"repo": "."}'        # call a tool
+```
+
+`run` leaves the cloud and compute answers marked as assumed unless you pass them, writes the report with services
+labelled "not verified", and tells the agent what to do next. Exit codes: 0 done, 1 failed, 2 earlier step missing or bad
+input, 3 needs the user to describe the system.
 
 ## Use
 
@@ -117,7 +149,8 @@ solsarch-early-cloud-architect/
     capacity-sizing.md             baseline sizing heuristics
     security-blocker-rules.md, c4-diagram-standards.md, sequence-flow-patterns.md, cloud-catalog-matrix.md
   scripts/
-    solsarch.py                    the one command the agent uses
+    solsarch.py                    the one command the agent uses (questions, scan, plan, compare, facts, finish, run, guide)
+    agent_tools.py, mcp_server.py  function-calling schemas, JSON dispatcher and MCP server over the same commands
     ast_scanner.py                 repository evidence and findings (deep catalogue, generated/gitignored dirs skipped)
     structure_scanner.py           front-end routes, back-end endpoints and database schemas
     structure_diagrams.py          the frontend, backend and schema diagrams
@@ -139,7 +172,8 @@ assets/branding/                   full-size logos (repository only, never insta
 tests/                             unit, accuracy, determinism and end-to-end tests with fixture repositories
 examples/                          two real outputs (RAG on Google Cloud, a full-stack repo on AWS)
 tools/                             install_skill.py, package_skill.py
-install.py                         installer and zip builder
+install.py                         installer for every agent, and the zip builder
+AGENTS.md, CLAUDE.md               instructions for any agent working in or with this repository
 ```
 
 ## Develop
