@@ -112,7 +112,7 @@ def hosting_providers(catalog):
     return [pid for pid, info in catalog["clouds"].items() if info.get("kind", "cloud") != "enterprise"]
 
 
-def build_plan(scan_data, catalog, cloud, mode, also=()):
+def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
     if cloud not in catalog["clouds"]:
         raise ValueError("cloud must be one of: " + ", ".join(hosting_providers(catalog)))
     registry = catalog.get("providers", {})
@@ -130,6 +130,8 @@ def build_plan(scan_data, catalog, cloud, mode, also=()):
                              % (pid, ", ".join(sorted(k for k, v in registry.items() if v["kind"] != "enterprise" and v.get("overlay")))))
         overlays.append(pid)
     scan = Scan(scan_data)
+    profile = profile or {}
+    lean = profile.get("account_type") == "free_trial"
     cloud_info = catalog["clouds"][cloud]
     decisions, external, questions, gaps = [], [], [], []
     keys = set()
@@ -350,9 +352,14 @@ def build_plan(scan_data, catalog, cloud, mode, also=()):
         add("ingress", "ingress", "Ingress", "Public entry point", "ingress",
             rule_evidence("Design requirement: public traffic reaches private compute only through a managed front door (SEC-001)"),
             "Your design has public web traffic reaching application compute.", confidence="inferred")
-        add("edge", "edge", "Edge", "Content delivery and firewall", "edge",
-            rule_evidence("Design requirement: internet traffic is filtered before it reaches the application (SEC-001)"),
-            "The application is reachable from the internet.", confidence="inferred")
+        if lean:
+            gaps.append({"key": "edge", "need": "edge", "role": "Content delivery and firewall",
+                         "message": "Deferred for the lean design (free-trial account). Add a CDN and web application firewall "
+                                    "before production traffic arrives."})
+        else:
+            add("edge", "edge", "Edge", "Content delivery and firewall", "edge",
+                rule_evidence("Design requirement: internet traffic is filtered before it reaches the application (SEC-001)"),
+                "The application is reachable from the internet.", confidence="inferred")
     auth = [n for n in AUTH_LIBS if scan.has(n)]
     if auth and not scan.has("Clerk"):
         add("identity", "identity", "Identity", "Managed sign-in (optional)", "support",
@@ -421,6 +428,10 @@ def build_plan(scan_data, catalog, cloud, mode, also=()):
         "compute_model": mode, "compute_label": catalog["modes"][mode], "decisions": decisions,
         "gaps": gaps, "external_services": external, "open_questions": questions, "cost_drivers": costs,
         "verify_queue": queue,
+        "profile": {"traffic_tier": profile.get("traffic_tier") or "prototype",
+                    "account_type": profile.get("account_type") or "standard",
+                    "high_availability": "single_az" if lean else (profile.get("high_availability") or "multi_az"),
+                    "compliance": list(profile.get("compliance") or []), "region": profile.get("region")},
     }
     plan["fingerprint"] = hashlib.sha256(json.dumps(plan, sort_keys=True).encode("utf-8")).hexdigest()[:12]
     return plan

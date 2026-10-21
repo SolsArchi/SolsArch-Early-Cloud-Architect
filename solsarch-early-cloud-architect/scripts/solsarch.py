@@ -8,6 +8,11 @@
     solsarch.py run --repo REPO [--cloud C --compute M]
                                              the whole workflow in one command (scan, plan, evidence, report, verify, zip)
     solsarch.py guide                        the workflow as JSON, for agents that cannot load a skill
+    solsarch.py costs --repo REPO [--refresh] [--offline] [--prices FILE]
+                                             live vendor prices -> docs/solsarch-costs.md; `costs add` records a supplied price
+    solsarch.py profile --repo REPO [--set traffic_tier=growth --set compliance=hipaa]
+                                             optional answers that shape sizing, compliance and the design
+    solsarch.py design --repo REPO           the principal-architect review: archetype, units, rules DR-01..DR-11, capacity
     solsarch.py compare --repo REPO [--compute server|serverless]
                                              the same scan placed on AWS, Azure and GCP side by side (no plan is saved)
     solsarch.py facts queue|add|skip|list --repo REPO ...
@@ -31,7 +36,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import ast_scanner  # noqa: E402
+import architect  # noqa: E402
 import build_report  # noqa: E402
+import costs as costs_engine  # noqa: E402
 import evidence_bridge  # noqa: E402
 import facts as facts_store  # noqa: E402
 import memory_harness as mh  # noqa: E402
@@ -130,7 +137,8 @@ def cmd_plan(args):
     if not scan or "components" not in scan:
         return emit({"status": "error", "message": "No scan found. Run the scan step first."}, 2)
     try:
-        plan = recommend.build_plan(scan, recommend.load_catalog(), args.cloud, args.compute, split_also(args.also))
+        plan = recommend.build_plan(scan, recommend.load_catalog(), args.cloud, args.compute, split_also(args.also),
+                                    architect.load_profile(args.repo))
     except ValueError as error:
         return emit({"status": "error", "message": str(error)}, 1)
     target = state_dir(args.repo) / "plan.json"
@@ -171,6 +179,102 @@ def cmd_plan(args):
     if warning or sync_warning:
         payload["warning"] = warning or sync_warning
     return emit(payload)
+
+
+def cmd_profile(args):
+    """Record the user's optional answers (traffic tier, account type, compliance, region...) for the design."""
+    profile = architect.load_profile(args.repo)
+    changed = []
+    for item in args.set or []:
+        key, sep, value = item.partition("=")
+        if not sep:
+            return emit({"status": "error", "message": "use KEY=VALUE, for example traffic_tier=growth"}, 2)
+        try:
+            profile[key.strip()] = architect.validate_profile_value(key.strip(), value)
+        except ValueError as error:
+            return emit({"status": "error", "message": str(error)}, 2)
+        changed.append(key.strip())
+    if changed:
+        state_dir(args.repo).mkdir(parents=True, exist_ok=True)
+        architect.save_profile(args.repo, profile)
+    return emit({"status": "updated" if changed else "ok", "changed": changed, "profile": profile,
+                 "note": "Optional. Defaults are used for anything not set, and the report labels them as assumptions. "
+                         "Run plan again after changing the account type.",
+                 "fields": {"traffic_tier": list(architect.TRAFFIC_TIERS), "account_type": list(architect.ACCOUNT_TYPES),
+                            "high_availability": list(architect.HA_MODES), "compliance": list(architect.COMPLIANCE_FRAMEWORKS),
+                            "risk_appetite": list(architect.RISK_APPETITES),
+                            "other": ["region", "monthly_budget", "business_driver", "existing_cicd", "rto_minutes",
+                                      "rpo_minutes", "daily_requests", "peak_concurrent_users"]}})
+
+
+def cmd_design(args):
+    scan = read_json(state_dir(args.repo) / "scan.json")
+    plan = read_json(state_dir(args.repo) / "plan.json")
+    if not scan or not plan:
+        return emit({"status": "error", "message": "No scan or plan found. Run the scan and plan steps first."}, 2)
+    return emit(dict(architect.review(args.repo, scan, plan, architect.load_profile(args.repo)), status="ok"))
+
+
+def build_costs(repo, online=True, refresh=False):
+    """Write costs.json and the cost report. Never raises: a failure is recorded and the rest of the run continues."""
+    plan = read_json(state_dir(repo) / "plan.json")
+    design = read_json(state_dir(repo) / "design.json")
+    if not plan or not design:
+        return {"status": "error", "message": "No plan or design found. Run the scan, plan and evidence steps first."}
+    try:
+        result = costs_engine.build(plan, design, architect.load_profile(repo), state_dir(repo) / costs_engine.BOOK_FILE,
+                                    online=online, refresh=refresh, registry=providers.registry())
+    except Exception as error:  # a pricing failure must not stop the architecture work
+        result = {"schema": 1, "pricing_status": "error", "error": "%s: %s" % (type(error).__name__, error), "lines": [], "unpriced": [],
+                  "totals": {"monthly": 0, "annual": 0, "priced_lines": 0, "unpriced_lines": 0, "live_share": 0.0}}
+        write_json(state_dir(repo) / "costs.json", result)
+        return {"status": "error", "message": result["error"]}
+    write_json(state_dir(repo) / "costs.json", result)
+    target = Path(repo) / "docs" / "solsarch-costs.md"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(costs_engine.render_markdown(result).encode("utf-8"))
+    return {"status": "written", "file": str(target), "pricing_status": result["pricing_status"], "region": result["region"],
+            "monthly": result["totals"]["monthly"], "priced_lines": result["totals"]["priced_lines"],
+            "unpriced_lines": result["totals"]["unpriced_lines"], "live_share": result["totals"]["live_share"],
+            "range": result["range"] and {k: result["range"][k] for k in ("p10", "p50", "p90")}}
+
+
+def cmd_costs(args):
+    book = state_dir(args.repo) / costs_engine.BOOK_FILE
+    if args.action == "add":
+        missing = [n for n in ("provider", "meter", "unit_price", "url", "quote") if getattr(args, n) in (None, "")]
+        if missing:
+            return emit({"status": "error", "message": "costs add needs --%s" % ", --".join(m.replace("_", "-") for m in missing)}, 2)
+        try:
+            item = costs_engine.add_supplied(book, args.provider, args.meter, args.unit_price, args.unit or "unit", args.url, args.quote,
+                                             args.region or "global")
+        except costs_engine.ps.PriceError as error:
+            return emit({"status": "error", "message": str(error)}, 2)
+        return emit({"status": "recorded", "price": item, "next": "Run solsarch.py costs --repo REPO to apply it."})
+    if args.prices:
+        try:
+            added = costs_engine.load_prices_file(book, args.prices)
+        except (OSError, ValueError, costs_engine.ps.PriceError) as error:
+            return emit({"status": "error", "message": str(error)}, 2)
+        emit_note = {"prices_loaded": len(added)}
+    else:
+        emit_note = {}
+    if not (state_dir(args.repo) / "design.json").exists():
+        code = build_evidence_safe(args.repo)
+        if code:
+            return emit({"status": "error", "message": "Run the scan and plan steps first."}, 2)
+    result = build_costs(args.repo, online=not args.offline, refresh=args.refresh)
+    if result["status"] == "error":
+        return emit(result, 1)
+    return emit(dict(result, **emit_note))
+
+
+def build_evidence_safe(repo):
+    try:
+        build_evidence(repo)
+        return 0
+    except ValueError:
+        return 2
 
 
 def cmd_facts(args):
@@ -308,6 +412,12 @@ def build_evidence(repo, icon_dir=None):
     evidence = evidence_bridge.flatten(scan)
     write_json(state_dir(repo) / "evidence.json", evidence)
     summary = {"evidence_count": len(evidence["evidence"])}
+    if plan and plan.get("decisions"):
+        design = architect.review(repo, scan, plan, architect.load_profile(repo))
+        write_json(state_dir(repo) / "design.json", design)
+        summary["design_rules"] = design["rule_counts"]
+        summary["archetype"] = design["archetype"]["name"]
+        summary["units"] = len(design["units"])
     if plan and plan.get("cloud") and plan.get("compute_model"):
         import icon_diagram
         placements = evidence_bridge.placements_from_plan(plan, evidence)
@@ -395,6 +505,24 @@ def main(argv=None):
     p.add_argument("--icon-dir")
     p.add_argument("--force", action="store_true")
     sub.add_parser("guide")
+    p = sub.add_parser("costs")
+    p.add_argument("action", nargs="?", choices=("run", "add"), default="run")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--refresh", action="store_true", help="Read fresh vendor prices instead of the price book")
+    p.add_argument("--offline", action="store_true", help="Use the price book only; never the network")
+    p.add_argument("--prices", metavar="FILE", help="JSON file of supplied prices: [{provider, meter, price, unit, source, quote}]")
+    p.add_argument("--provider")
+    p.add_argument("--meter")
+    p.add_argument("--unit-price", type=float)
+    p.add_argument("--unit")
+    p.add_argument("--url")
+    p.add_argument("--quote")
+    p.add_argument("--region")
+    p = sub.add_parser("profile")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--set", action="append", metavar="KEY=VALUE", help="Set a profile field; repeat for several")
+    p = sub.add_parser("design")
+    p.add_argument("--repo", default=".")
     p = sub.add_parser("compare")
     p.add_argument("--clouds", default="aws,azure,gcp", help="Comma-separated provider ids, or 'all'")
     p.add_argument("--repo", default=".")
@@ -410,7 +538,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
-               "run": cmd_run, "guide": cmd_guide}
+               "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:
