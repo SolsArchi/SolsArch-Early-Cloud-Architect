@@ -59,7 +59,7 @@ def test_scanner_output_is_json_serialisable_and_ascii():
 
 def test_every_shipped_mermaid_block_is_clean():
     refs = os.path.join(SKILL, "references")
-    for fname in os.listdir(refs):
+    for fname in sorted(f for f in os.listdir(refs) if os.path.isfile(os.path.join(refs, f))):
         path = os.path.join(refs, fname)
         with open(path, encoding="utf-8") as fh:
             text = fh.read()

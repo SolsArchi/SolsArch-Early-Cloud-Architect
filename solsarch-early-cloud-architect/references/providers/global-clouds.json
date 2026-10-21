@@ -1,0 +1,167 @@
+{
+  "group": "global-clouds",
+  "note": "Service names as authored on 2026-10-21. Vendors rename products; the web check (facts) compares them with official pages at run time. Each service is [service, short name, why]; an optional fourth object adds caveat, partner, builtin or selfmanaged.",
+  "providers": {
+    "aws": {
+      "name": "AWS", "kind": "cloud", "brand": {"fill": "#FF9900", "stroke": "#232F3E", "text": "#232F3E"},
+      "domains": ["aws.amazon.com", "docs.aws.amazon.com"], "pricing_page": "https://aws.amazon.com/pricing/",
+      "services": {}
+    },
+    "azure": {
+      "name": "Azure", "kind": "cloud", "brand": {"fill": "#0078D4", "stroke": "#003A6C", "text": "#FFFFFF"},
+      "domains": ["learn.microsoft.com", "azure.microsoft.com"], "pricing_page": "https://azure.microsoft.com/pricing/",
+      "services": {}
+    },
+    "gcp": {
+      "name": "Google Cloud", "kind": "cloud", "brand": {"fill": "#4285F4", "stroke": "#174EA6", "text": "#FFFFFF"},
+      "domains": ["cloud.google.com"], "pricing_page": "https://cloud.google.com/pricing",
+      "services": {}
+    },
+    "alibaba": {
+      "name": "Alibaba Cloud", "kind": "cloud", "brand": {"fill": "#FF6A00", "stroke": "#8A3A00", "text": "#1F1F1F"},
+      "domains": ["alibabacloud.com", "www.alibabacloud.com", "help.aliyun.com"], "pricing_page": "https://www.alibabacloud.com/pricing",
+      "services": {
+        "compute": {
+          "server": ["Alibaba Cloud Serverless App Engine (SAE)", "SAE", "Runs your containers with built-in scaling and load balancing, without managing servers or Kubernetes."],
+          "serverless": ["Alibaba Cloud Function Compute", "Function Compute", "Runs your code per request and scales automatically, so you pay for use.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+        },
+        "ingress": {"any": ["Application Load Balancer (ALB)", "ALB", "Receives HTTPS traffic and forwards it to your application by URL path."]},
+        "edge": {"any": ["Alibaba Cloud CDN with Web Application Firewall (WAF)", "CDN + WAF", "Serves cached content close to users and filters malicious requests."]},
+        "network": {"any": ["Alibaba Cloud Virtual Private Cloud (VPC)", "VPC", "Puts databases and caches on private subnets with no route from the internet."]},
+        "egress": {"any": ["Alibaba Cloud NAT Gateway", "NAT Gateway", "Lets private compute call outside services without being reachable from the internet."]},
+        "db_postgres": {"any": ["ApsaraDB RDS for PostgreSQL", "RDS PostgreSQL", "A managed PostgreSQL with automatic backups and high-availability options."]},
+        "db_mysql": {"any": ["ApsaraDB RDS for MySQL", "RDS MySQL", "A managed MySQL with automatic backups and high-availability options."]},
+        "db_mongo": {"any": ["ApsaraDB for MongoDB", "ApsaraDB MongoDB", "A managed MongoDB-compatible document database."]},
+        "cache": {"any": ["ApsaraDB for Redis (Tair)", "Redis (Tair)", "A managed Redis-compatible in-memory store used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["Alibaba Cloud Message Queue for Apache Kafka", "Kafka", "A managed Apache Kafka for event streaming."]},
+        "queue_rabbitmq": {"any": ["Alibaba Cloud Message Queue for RabbitMQ", "RabbitMQ", "A managed RabbitMQ broker."]},
+        "search": {"any": ["Alibaba Cloud Elasticsearch", "Elasticsearch", "A managed Elasticsearch cluster for full-text search."]},
+        "storage": {"any": ["Alibaba Cloud Object Storage Service (OSS)", "OSS", "Durable object storage for files, uploads and backups."]},
+        "static_site": {"any": ["Object Storage Service (OSS) with CDN", "OSS + CDN", "Hosts built static files and serves them from the CDN."]},
+        "identity": {"any": ["Alibaba Cloud Identity as a Service (IDaaS)", "IDaaS", "Managed sign-in for your application's users."]},
+        "secrets": {"any": ["Alibaba Cloud Key Management Service (KMS) Secrets Manager", "KMS Secrets", "Stores credentials and hands them to the application at run time."]},
+        "registry": {"any": ["Alibaba Cloud Container Registry (ACR)", "ACR", "Stores your container images."]},
+        "observability": {"any": ["Simple Log Service (SLS) and CloudMonitor", "SLS + CloudMonitor", "Collects logs and metrics and raises alarms."]},
+        "gpu": {"any": ["Alibaba Cloud GPU-accelerated Elastic Compute Service", "GPU ECS", "GPU machines for hosting your own models."]},
+        "managed_ai": {"any": ["Alibaba Cloud Model Studio", "Model Studio", "Hosted foundation models behind an API."]},
+        "warehouse": {"any": ["MaxCompute", "MaxCompute", "A managed data warehouse for large-scale analytics."]}
+      }
+    },
+    "huawei": {
+      "name": "Huawei Cloud", "kind": "cloud", "brand": {"fill": "#CF0A2C", "stroke": "#7A0618", "text": "#FFFFFF"},
+      "domains": ["huaweicloud.com", "support.huaweicloud.com", "www.huaweicloud.com"], "pricing_page": "https://www.huaweicloud.com/intl/en-us/pricing/",
+      "services": {
+        "compute": {
+          "server": ["Huawei Cloud Container Instance (CCI)", "CCI", "Runs your containers without managing servers or Kubernetes."],
+          "serverless": ["Huawei Cloud FunctionGraph", "FunctionGraph", "Runs your code per event or request and scales automatically.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+        },
+        "ingress": {"any": ["Elastic Load Balance (ELB)", "ELB", "Receives HTTPS traffic and forwards it to your application."]},
+        "edge": {"any": ["Huawei Cloud CDN with Web Application Firewall (WAF)", "CDN + WAF", "Serves cached content close to users and filters malicious requests."]},
+        "network": {"any": ["Huawei Cloud Virtual Private Cloud (VPC)", "VPC", "Puts databases and caches on private subnets with no route from the internet."]},
+        "egress": {"any": ["Huawei Cloud NAT Gateway", "NAT Gateway", "Lets private compute call outside services without being reachable from the internet."]},
+        "db_postgres": {"any": ["Relational Database Service (RDS) for PostgreSQL", "RDS PostgreSQL", "A managed PostgreSQL with automatic backups."]},
+        "db_mysql": {"any": ["Relational Database Service (RDS) for MySQL", "RDS MySQL", "A managed MySQL with automatic backups."]},
+        "db_mongo": {"any": ["Document Database Service (DDS)", "DDS", "A managed MongoDB-compatible document database."]},
+        "cache": {"any": ["Distributed Cache Service (DCS) for Redis", "DCS Redis", "A managed Redis used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["Distributed Message Service (DMS) for Kafka", "DMS Kafka", "A managed Apache Kafka."]},
+        "queue_rabbitmq": {"any": ["Distributed Message Service (DMS) for RabbitMQ", "DMS RabbitMQ", "A managed RabbitMQ broker."]},
+        "search": {"any": ["Cloud Search Service (CSS)", "CSS", "A managed Elasticsearch-compatible search service."]},
+        "storage": {"any": ["Object Storage Service (OBS)", "OBS", "Durable object storage for files, uploads and backups."]},
+        "static_site": {"any": ["Object Storage Service (OBS) with CDN", "OBS + CDN", "Hosts built static files and serves them from the CDN."]},
+        "secrets": {"any": ["Cloud Secret Management Service (CSMS)", "CSMS", "Stores credentials and hands them to the application at run time."]},
+        "registry": {"any": ["SoftWare Repository for Container (SWR)", "SWR", "Stores your container images."]},
+        "observability": {"any": ["Application Operations Management (AOM)", "AOM", "Collects logs and metrics and raises alarms."]},
+        "gpu": {"any": ["GPU-accelerated Elastic Cloud Server (ECS)", "GPU ECS", "GPU machines for hosting your own models."]},
+        "managed_ai": {"any": ["ModelArts", "ModelArts", "Hosted model training and inference."]},
+        "warehouse": {"any": ["Data Warehouse Service (DWS)", "DWS", "A managed data warehouse for analytics."]}
+      },
+      "gaps": {"identity": "Use a managed sign-in service from a partner, or keep your library."}
+    },
+    "ibm": {
+      "name": "IBM Cloud", "kind": "cloud", "brand": {"fill": "#0F62FE", "stroke": "#002D9C", "text": "#FFFFFF"},
+      "domains": ["cloud.ibm.com", "www.ibm.com"], "pricing_page": "https://www.ibm.com/cloud/pricing",
+      "services": {
+        "compute": {"any": ["IBM Cloud Code Engine", "Code Engine", "Runs your containers and functions, scaling to zero when idle, without managing servers.", {"caveat": "Check request time limits before relying on long streaming responses."}]},
+        "ingress": {"any": ["IBM Cloud Application Load Balancer for VPC", "Load Balancer", "Receives HTTPS traffic in public subnets and forwards it to private compute."]},
+        "edge": {"any": ["IBM Cloud Internet Services (CIS)", "Internet Services", "CDN, DDoS protection and web application firewall in front of your application."]},
+        "network": {"any": ["IBM Cloud Virtual Private Cloud (VPC)", "VPC", "Puts databases and caches on private subnets with no route from the internet."]},
+        "egress": {"any": ["IBM Cloud Public Gateway", "Public Gateway", "Lets private compute call outside services without being reachable from the internet."]},
+        "db_postgres": {"any": ["IBM Cloud Databases for PostgreSQL", "Databases for PostgreSQL", "A managed PostgreSQL with backups and high availability."]},
+        "db_mysql": {"any": ["IBM Cloud Databases for MySQL", "Databases for MySQL", "A managed MySQL with backups and high availability."]},
+        "db_mongo": {"any": ["IBM Cloud Databases for MongoDB", "Databases for MongoDB", "A managed MongoDB."]},
+        "cache": {"any": ["IBM Cloud Databases for Redis", "Databases for Redis", "A managed Redis used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["IBM Event Streams", "Event Streams", "A managed Apache Kafka."]},
+        "search": {"any": ["IBM Cloud Databases for Elasticsearch", "Databases for Elasticsearch", "A managed Elasticsearch cluster."]},
+        "storage": {"any": ["IBM Cloud Object Storage", "Object Storage", "Durable object storage for files, uploads and backups."]},
+        "static_site": {"any": ["IBM Cloud Object Storage with Internet Services", "Object Storage + CIS", "Hosts built static files behind a CDN."]},
+        "identity": {"any": ["IBM Cloud App ID", "App ID", "Managed sign-in for your application's users."]},
+        "secrets": {"any": ["IBM Cloud Secrets Manager", "Secrets Manager", "Stores credentials and hands them to the application at run time."]},
+        "registry": {"any": ["IBM Cloud Container Registry", "Container Registry", "Stores your container images."]},
+        "observability": {"any": ["IBM Cloud Logs and IBM Cloud Monitoring", "Logs + Monitoring", "Collects logs and metrics and raises alarms."]},
+        "gpu": {"any": ["IBM Cloud GPU virtual servers", "GPU servers", "GPU machines for hosting your own models."]},
+        "managed_ai": {"any": ["watsonx.ai", "watsonx.ai", "Hosted foundation models behind an API."]},
+        "warehouse": {"any": ["IBM Db2 Warehouse", "Db2 Warehouse", "A managed data warehouse for analytics."]}
+      },
+      "gaps": {"queue_rabbitmq": "Run RabbitMQ in a container on Code Engine or a VPC server, or use a partner broker."}
+    },
+    "oci": {
+      "name": "Oracle Cloud Infrastructure (OCI)", "kind": "cloud", "brand": {"fill": "#C74634", "stroke": "#6E241B", "text": "#FFFFFF"},
+      "domains": ["oracle.com", "docs.oracle.com", "www.oracle.com"], "pricing_page": "https://www.oracle.com/cloud/pricing/",
+      "services": {
+        "compute": {
+          "server": ["OCI Container Instances", "Container Instances", "Runs your containers without managing servers or Kubernetes."],
+          "serverless": ["OCI Functions", "Functions", "Runs your code per request and scales automatically.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+        },
+        "ingress": {"any": ["OCI Load Balancer", "Load Balancer", "Receives HTTPS traffic in public subnets and forwards it to private compute."]},
+        "edge": {"any": ["OCI Web Application Firewall (WAF)", "WAF", "Filters malicious requests before they reach your application.", {"caveat": "OCI WAF does not include a first-party CDN; add a CDN from a partner if you need caching."}]},
+        "network": {"any": ["OCI Virtual Cloud Network (VCN)", "VCN", "Puts databases and caches on private subnets with no route from the internet."]},
+        "egress": {"any": ["OCI NAT Gateway", "NAT Gateway", "Lets private compute call outside services without being reachable from the internet."]},
+        "db_postgres": {"any": ["OCI Database with PostgreSQL", "PostgreSQL", "A managed PostgreSQL with backups and high availability."]},
+        "db_mysql": {"any": ["MySQL HeatWave on OCI", "MySQL HeatWave", "A managed MySQL with backups and high availability."]},
+        "db_mongo": {"any": ["Oracle Autonomous JSON Database (MongoDB API)", "Autonomous JSON DB", "A managed document database with a MongoDB-compatible API."]},
+        "cache": {"any": ["OCI Cache with Redis", "Cache with Redis", "A managed Redis used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["OCI Streaming (Kafka compatible)", "Streaming", "A managed event stream with a Kafka-compatible API."]},
+        "search": {"any": ["OCI Search Service with OpenSearch", "OpenSearch", "A managed OpenSearch cluster."]},
+        "storage": {"any": ["OCI Object Storage", "Object Storage", "Durable object storage for files, uploads and backups."]},
+        "static_site": {"any": ["OCI Object Storage static website", "Object Storage site", "Hosts built static files from a bucket."]},
+        "identity": {"any": ["OCI IAM identity domains", "Identity domains", "Managed sign-in for your application's users."]},
+        "secrets": {"any": ["OCI Vault", "Vault", "Stores credentials and hands them to the application at run time."]},
+        "registry": {"any": ["OCI Container Registry (OCIR)", "Container Registry", "Stores your container images."]},
+        "observability": {"any": ["OCI Logging and OCI Monitoring", "Logging + Monitoring", "Collects logs and metrics and raises alarms."]},
+        "gpu": {"any": ["OCI GPU compute shapes", "GPU shapes", "GPU machines for hosting your own models."]},
+        "managed_ai": {"any": ["OCI Generative AI", "Generative AI", "Hosted foundation models behind an API."]},
+        "warehouse": {"any": ["Oracle Autonomous Data Warehouse", "Autonomous Data Warehouse", "A managed data warehouse for analytics."]}
+      }
+    },
+    "tencent": {
+      "name": "Tencent Cloud", "kind": "cloud", "brand": {"fill": "#006EFF", "stroke": "#0039A6", "text": "#FFFFFF"},
+      "domains": ["tencentcloud.com", "www.tencentcloud.com", "cloud.tencent.com"], "pricing_page": "https://www.tencentcloud.com/pricing",
+      "services": {
+        "compute": {
+          "server": ["Tencent Kubernetes Engine (TKE)", "TKE", "Runs your containers on managed Kubernetes.", {"caveat": "Adds Kubernetes you would have to operate; use the serverless node option to reduce that."}],
+          "serverless": ["Tencent Cloud Serverless Cloud Function (SCF)", "SCF", "Runs your code per event or request and scales automatically.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+        },
+        "ingress": {"any": ["Cloud Load Balancer (CLB)", "CLB", "Receives HTTPS traffic and forwards it to your application."]},
+        "edge": {"any": ["Tencent Cloud EdgeOne", "EdgeOne", "CDN, DDoS protection and web application firewall in front of your application."]},
+        "network": {"any": ["Tencent Cloud Virtual Private Cloud (VPC)", "VPC", "Puts databases and caches on private subnets with no route from the internet."]},
+        "egress": {"any": ["Tencent Cloud NAT Gateway", "NAT Gateway", "Lets private compute call outside services without being reachable from the internet."]},
+        "db_postgres": {"any": ["TencentDB for PostgreSQL", "TencentDB PostgreSQL", "A managed PostgreSQL with backups and high availability."]},
+        "db_mysql": {"any": ["TencentDB for MySQL", "TencentDB MySQL", "A managed MySQL with backups and high availability."]},
+        "db_mongo": {"any": ["TencentDB for MongoDB", "TencentDB MongoDB", "A managed MongoDB."]},
+        "cache": {"any": ["TencentDB for Redis", "TencentDB Redis", "A managed Redis used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["Tencent Cloud CKafka", "CKafka", "A managed Apache Kafka."]},
+        "queue_rabbitmq": {"any": ["Tencent Cloud Distributed Message Queue (TDMQ) for RabbitMQ", "TDMQ RabbitMQ", "A managed RabbitMQ broker."]},
+        "search": {"any": ["Tencent Cloud Elasticsearch Service (ES)", "Elasticsearch", "A managed Elasticsearch cluster."]},
+        "storage": {"any": ["Tencent Cloud Object Storage (COS)", "COS", "Durable object storage for files, uploads and backups."]},
+        "static_site": {"any": ["Cloud Object Storage (COS) with CDN", "COS + CDN", "Hosts built static files and serves them from the CDN."]},
+        "secrets": {"any": ["Tencent Cloud Secrets Manager (SSM)", "SSM", "Stores credentials and hands them to the application at run time."]},
+        "registry": {"any": ["Tencent Container Registry (TCR)", "TCR", "Stores your container images."]},
+        "observability": {"any": ["Tencent Cloud Monitor and Cloud Log Service (CLS)", "Monitor + CLS", "Collects logs and metrics and raises alarms."]},
+        "gpu": {"any": ["Tencent Cloud GPU Cloud Virtual Machine", "GPU CVM", "GPU machines for hosting your own models."]},
+        "managed_ai": {"any": ["Tencent Hunyuan", "Hunyuan", "Hosted foundation models behind an API."]},
+        "warehouse": {"any": ["Tencent Cloud Data Warehouse (TCHouse)", "TCHouse", "A managed data warehouse for analytics."]}
+      },
+      "gaps": {"identity": "Use a managed sign-in service from a partner, or keep your library."}
+    }
+  }
+}

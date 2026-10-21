@@ -1,0 +1,150 @@
+{
+  "group": "enterprise",
+  "note": "Enterprise platforms are not hosting targets. SolsArch reads their project structure (metadata, configuration and source files) and draws them as the systems your code integrates with. It never opens data exports, record files or databases, and never prints a value from them. Markers are patterns for finding these projects in a repository.",
+  "providers": {
+    "sap": {
+      "name": "SAP", "kind": "enterprise", "brand": {"fill": "#0070F2", "stroke": "#002A86", "text": "#FFFFFF"},
+      "domains": ["sap.com", "help.sap.com", "developers.sap.com", "api.sap.com"], "pricing_page": "https://www.sap.com/products/technology-platform/pricing.html",
+      "description": "SAP Business Technology Platform, CAP, UI5 and ABAP projects.",
+      "markers": {
+        "files": ["mta.yaml", "mtad.yaml", "xs-security.json", "xs-app.json", "ui5.yaml", "ui5-deploy.yaml", "neo-app.json", ".abapgit.xml", "manifest.yml.sap"],
+        "suffixes": [".cds", ".abap", ".hdbtable", ".hdbcds", ".hdbview", ".hdbprocedure", ".hdbcalculationview"],
+        "dependencies": ["@sap/cds", "@sap/xsenv", "@sap/approuter", "@sap-cloud-sdk/http-client", "@sap-cloud-sdk/odata-v4", "@ui5/cli", "pyrfc", "node-rfc", "hdbcli", "@sap/hana-client", "generative-ai-hub-sdk"],
+        "content": [{"suffix": ".yaml", "regex": "^_schema-version:|\\bmodules:\\s*$"}]
+      },
+      "artifacts": [
+        {"label": "CAP data models (.cds)", "suffix": ".cds"},
+        {"label": "ABAP source files", "suffix": ".abap"},
+        {"label": "SAP HANA design-time objects", "suffix": ".hdbtable"},
+        {"label": "SAP HANA calculation views", "suffix": ".hdbcalculationview"},
+        {"label": "MTA descriptors", "file": "mta.yaml"},
+        {"label": "XSUAA security descriptors", "file": "xs-security.json"}
+      ],
+      "structure": {"cds_entities": true},
+      "integration": [{"suffix": ".json", "regex": "\"destination\"\\s*:\\s*\"([A-Za-z0-9_.-]+)\"", "label": "BTP destination"},
+                      {"suffix": ".yaml", "regex": "^\\s*-\\s*name:\\s*([A-Za-z0-9_.-]+-(?:destination|xsuaa|hana|hdi|connectivity)[A-Za-z0-9_.-]*)\\s*$", "label": "BTP service instance"}]
+    },
+    "salesforce": {
+      "name": "Salesforce", "kind": "enterprise", "brand": {"fill": "#00A1E0", "stroke": "#005C80", "text": "#FFFFFF"},
+      "domains": ["salesforce.com", "developer.salesforce.com", "help.salesforce.com"], "pricing_page": "https://www.salesforce.com/pricing/",
+      "description": "Salesforce DX projects: Apex, Lightning Web Components, objects, flows and metadata.",
+      "markers": {
+        "files": ["sfdx-project.json", ".forceignore", "package.xml.salesforce", "project-scratch-def.json"],
+        "suffixes": [".cls", ".trigger", ".cls-meta.xml", ".object-meta.xml", ".flow-meta.xml", ".namedCredential-meta.xml", ".remoteSite-meta.xml", ".permissionset-meta.xml", ".field-meta.xml", ".app-meta.xml"],
+        "dirs": ["force-app"],
+        "dependencies": ["jsforce", "simple-salesforce", "@salesforce/core", "@salesforce/sf-plugins-core", "salesforce-bulk-api", "simple_salesforce", "salesforce-oauth-request"],
+        "content": []
+      },
+      "artifacts": [
+        {"label": "Apex classes", "suffix": ".cls"},
+        {"label": "Apex triggers", "suffix": ".trigger"},
+        {"label": "Custom objects", "suffix": ".object-meta.xml"},
+        {"label": "Custom fields", "suffix": ".field-meta.xml"},
+        {"label": "Flows", "suffix": ".flow-meta.xml"},
+        {"label": "Permission sets", "suffix": ".permissionset-meta.xml"},
+        {"label": "Named credentials", "suffix": ".namedCredential-meta.xml"},
+        {"label": "Remote site settings", "suffix": ".remoteSite-meta.xml"},
+        {"label": "Lightning Web Components", "dir_child": "lwc"}
+      ],
+      "structure": {"object_names": true},
+      "integration": [{"suffix": ".namedCredential-meta.xml", "regex": "<endpoint>\\s*([^<\\s]+)\\s*</endpoint>", "label": "Named credential endpoint"},
+                      {"suffix": ".remoteSite-meta.xml", "regex": "<url>\\s*([^<\\s]+)\\s*</url>", "label": "Remote site"}]
+    },
+    "servicenow": {
+      "name": "ServiceNow", "kind": "enterprise", "brand": {"fill": "#62D84E", "stroke": "#1F6B14", "text": "#0B2A07"},
+      "domains": ["servicenow.com", "docs.servicenow.com", "developer.servicenow.com"], "pricing_page": "https://www.servicenow.com/pricing.html",
+      "description": "ServiceNow SDK (Fluent) applications, update sets and scoped app sources.",
+      "markers": {
+        "files": ["now.config.json", "sys_app.xml", "update_set.xml"],
+        "suffixes": [".now.ts", ".now.js"],
+        "dirs": ["sys_update_xml"],
+        "dependencies": ["@servicenow/sdk", "@servicenow/glide", "pysnow", "servicenow-rest-api", "pysnc", "ServiceNow.Net"],
+        "content": [{"suffix": ".xml", "regex": "<sys_update_xml|<unload\\b.*sys_app|<sys_script_include"}]
+      },
+      "artifacts": [
+        {"label": "Fluent source files", "suffix": ".now.ts"},
+        {"label": "Update set records (.xml)", "dir_child": "update"},
+        {"label": "Application configuration", "file": "now.config.json"}
+      ],
+      "structure": {},
+      "integration": [{"suffix": ".xml", "regex": "<endpoint>\\s*(https?://[^<\\s]+)\\s*</endpoint>", "label": "REST message endpoint"}]
+    },
+    "pega": {
+      "name": "Pega", "kind": "enterprise", "brand": {"fill": "#00A3E0", "stroke": "#005C80", "text": "#FFFFFF"},
+      "domains": ["pega.com", "docs.pega.com", "support.pega.com"], "pricing_page": "https://www.pega.com/pricing",
+      "description": "Pega Platform deployments: containers, Helm charts, configuration and exported rule files.",
+      "markers": {
+        "files": ["prconfig.xml", "prlog4j2.xml", "prweb.war", "prpc_j2ee14_weblogic.ear"],
+        "suffixes": [],
+        "dirs": ["pega-helm-charts", "pega"],
+        "images": ["pegasystems/pega", "pegasystems/search-n-reporting-service", "pegasystems/clustering-service"],
+        "dependencies": ["pega-client", "pegasystems", "pega-dx-component-builder-sdk", "@pega/constellationjs"],
+        "content": [{"suffix": ".xml", "regex": "<pega:|pxObjClass|Rule-Obj-"}]
+      },
+      "artifacts": [
+        {"label": "Pega configuration files", "file": "prconfig.xml"},
+        {"label": "Exported rule files", "suffix": ".rule.xml"}
+      ],
+      "structure": {},
+      "integration": [{"suffix": ".xml", "regex": "<(?:DataSource|jndi-name)>\\s*([^<\\s]+)\\s*</", "label": "Data source reference"}]
+    },
+    "mulesoft": {
+      "name": "MuleSoft", "kind": "enterprise", "brand": {"fill": "#00A1DF", "stroke": "#00577A", "text": "#FFFFFF"},
+      "domains": ["mulesoft.com", "docs.mulesoft.com", "anypoint.mulesoft.com"], "pricing_page": "https://www.mulesoft.com/pricing",
+      "description": "Mule applications and APIkit projects: flows, connectors and API specifications.",
+      "markers": {
+        "files": ["mule-artifact.json", "mule-project.xml", "exchange.json", "mule-app.properties"],
+        "suffixes": [],
+        "dirs": [],
+        "dependencies": ["mule-maven-plugin", "mule-http-connector", "mule-apikit-module"],
+        "content": [{"suffix": ".xml", "regex": "xmlns=\"http://www\\.mulesoft\\.org/schema/mule/core\"|<mule\\b[^>]*xmlns"}]
+      },
+      "artifacts": [
+        {"label": "Mule configuration files", "dir_child": "mule"},
+        {"label": "Mule application descriptors", "file": "mule-artifact.json"}
+      ],
+      "structure": {"mule_flows": true},
+      "integration": [{"suffix": ".xml", "regex": "<http:request-config[^>]*>\\s*<http:request-connection[^>]*host=\"([^\"]+)\"", "label": "HTTP request host"},
+                      {"suffix": ".xml", "regex": "<(db|salesforce|sap|jms|kafka|ftp|sftp|file|s3|sqs|vm|email):config\\b", "label": "Connector"}]
+    },
+    "workday": {
+      "name": "Workday", "kind": "enterprise", "brand": {"fill": "#005CB9", "stroke": "#002E5C", "text": "#FFFFFF"},
+      "domains": ["workday.com", "doc.workday.com", "community.workday.com"], "pricing_page": "https://www.workday.com/",
+      "description": "Workday Extend applications and Workday Studio integrations.",
+      "markers": {
+        "files": ["app.amd", "workday-extend.json"],
+        "suffixes": [".pmd", ".amd", ".smd", ".xtl", ".assemblyxml"],
+        "dirs": [],
+        "dependencies": ["workday-sdk", "workday-api", "@workday/canvas-kit-react"],
+        "content": [{"suffix": ".xml", "regex": "xmlns:wd=\"urn:com\\.workday|<wd:"}]
+      },
+      "artifacts": [
+        {"label": "Extend pages (.pmd)", "suffix": ".pmd"},
+        {"label": "Extend application definitions (.amd)", "suffix": ".amd"},
+        {"label": "Studio assemblies", "suffix": ".assemblyxml"}
+      ],
+      "structure": {},
+      "integration": [{"suffix": ".xml", "regex": "https://[A-Za-z0-9.-]*workday\\.com/ccx/service/[A-Za-z0-9_/.-]+", "label": "Workday web service"}]
+    },
+    "oraclefusion": {
+      "name": "Oracle Fusion", "kind": "enterprise", "brand": {"fill": "#C74634", "stroke": "#6E241B", "text": "#FFFFFF"},
+      "domains": ["oracle.com", "docs.oracle.com", "cloud.oracle.com"], "pricing_page": "https://www.oracle.com/applications/fusion-cloud-applications/",
+      "description": "Oracle Fusion Applications extensions, Visual Builder applications and Integration Cloud archives.",
+      "markers": {
+        "files": ["visual-application.json", "adf-config.xml", "weblogic-application.xml"],
+        "suffixes": [".iar", ".jpr", ".jws", ".jsff"],
+        "dirs": [],
+        "dependencies": ["@oracle/oraclejet", "oracle-cloud-sdk"],
+        "content": [{"suffix": ".json", "regex": "fscmRestApi|hcmRestApi|crmRestApi|oraclecloud\\.com/fscm"}]
+      },
+      "artifacts": [
+        {"label": "Integration Cloud archives", "suffix": ".iar"},
+        {"label": "JDeveloper projects", "suffix": ".jpr"},
+        {"label": "ADF page fragments", "suffix": ".jsff"},
+        {"label": "Visual Builder applications", "file": "visual-application.json"}
+      ],
+      "structure": {},
+      "integration": [{"suffix": ".json", "regex": "(https://[A-Za-z0-9.-]+\\.oraclecloud\\.com/(?:fscmRestApi|hcmRestApi|crmRestApi)[A-Za-z0-9_/.-]*)", "label": "Fusion REST API"}]
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "group": "ai-gpu",
+  "note": "AI and GPU clouds. They host models and GPU workloads, not whole applications. Pick one as a primary provider to design a model-serving system, or add one next to another provider with --also.",
+  "providers": {
+    "coreweave": {
+      "name": "CoreWeave", "kind": "gpu", "brand": {"fill": "#5B8DEF", "stroke": "#2A4A94", "text": "#0B1530"},
+      "domains": ["coreweave.com", "docs.coreweave.com", "www.coreweave.com"], "pricing_page": "https://www.coreweave.com/pricing",
+      "overlay": ["gpu"],
+      "services": {
+        "compute": {"any": ["CoreWeave Kubernetes Service (CKS)", "CKS", "Runs your containers on Kubernetes close to GPU capacity.", {"caveat": "Adds Kubernetes you would have to operate."}]},
+        "gpu": {"any": ["CoreWeave GPU instances on CKS", "GPU on CKS", "GPU nodes in a Kubernetes cluster for model training and serving."]},
+        "storage": {"any": ["CoreWeave AI Object Storage", "AI Object Storage", "S3-compatible object storage next to the GPUs."]},
+        "network": {"any": ["CoreWeave VPC", "VPC", "A private network for your cluster.", {"caveat": "Check current VPC availability and regions in the CoreWeave documentation."}]}
+      },
+      "gaps": {"serverless": "Use the server-based model on CKS.", "db_postgres": "Use a managed PostgreSQL from another provider, or run one on CKS.", "cache": "Run Redis on CKS or use a managed Redis elsewhere.", "ingress": "Use an ingress controller on CKS.", "observability": "CoreWeave provides cluster metrics; add your own logging stack.", "managed_ai": "Run open models yourself on the GPUs."}
+    },
+    "lambdalabs": {
+      "name": "Lambda", "kind": "gpu", "brand": {"fill": "#1A1AFF", "stroke": "#0A0A80", "text": "#FFFFFF"},
+      "domains": ["lambda.ai", "lambdalabs.com", "docs.lambda.ai", "docs.lambdalabs.com"], "pricing_page": "https://lambda.ai/pricing",
+      "overlay": ["gpu"],
+      "services": {
+        "compute": {"any": ["Lambda Cloud GPU instances", "GPU instances", "GPU virtual machines you run your containers and models on.", {"selfmanaged": true, "caveat": "You run and patch the machines yourself."}]},
+        "gpu": {"any": ["Lambda Cloud GPU instances", "GPU instances", "GPU virtual machines for model training and serving."]},
+        "storage": {"any": ["Lambda filesystems", "Filesystems", "Persistent storage attached to your GPU instances."]},
+        "managed_ai": {"any": ["Lambda Inference API", "Inference API", "Hosted open models behind an API."]}
+      },
+      "gaps": {"serverless": "Use the server-based model on a GPU instance.", "db_postgres": "Use a managed PostgreSQL from another provider.", "cache": "Run Redis on the instance or use a managed Redis elsewhere.", "ingress": "Run a reverse proxy on the instance.", "network": "Use the instance firewall settings.", "observability": "Run Prometheus and Grafana yourself."}
+    },
+    "runpod": {
+      "name": "RunPod", "kind": "gpu", "brand": {"fill": "#673AB7", "stroke": "#341D5C", "text": "#FFFFFF"},
+      "domains": ["runpod.io", "docs.runpod.io", "www.runpod.io"], "pricing_page": "https://www.runpod.io/pricing",
+      "overlay": ["gpu"],
+      "services": {
+        "compute": {
+          "server": ["RunPod GPU Pods", "GPU Pods", "GPU containers that run as long as you keep them on."],
+          "serverless": ["RunPod Serverless endpoints", "Serverless endpoints", "GPU workers that scale with requests, including to zero.", {"caveat": "Cold starts load the model again; keep active workers if latency matters."}]
+        },
+        "gpu": {"any": ["RunPod GPU Pods", "GPU Pods", "GPU containers for model training and serving."]},
+        "storage": {"any": ["RunPod Network Volumes", "Network Volumes", "Persistent storage you can attach to pods and workers."]},
+        "managed_ai": {"any": ["RunPod Public Endpoints", "Public Endpoints", "Hosted models behind an API."]}
+      },
+      "gaps": {"db_postgres": "Use a managed PostgreSQL from another provider.", "cache": "Use a managed Redis from another provider.", "ingress": "RunPod exposes HTTPS proxies for pods and endpoints.", "observability": "RunPod shows logs and metrics for pods and workers in its console.", "network": "Use RunPod's built-in isolation; there is no VPC to configure."}
+    },
+    "togetherai": {
+      "name": "Together AI", "kind": "gpu", "brand": {"fill": "#0F6FFF", "stroke": "#073A85", "text": "#FFFFFF"},
+      "domains": ["together.ai", "docs.together.ai", "www.together.ai"], "pricing_page": "https://www.together.ai/pricing",
+      "overlay": ["gpu", "managed_ai"],
+      "services": {
+        "gpu": {"any": ["Together GPU Clusters", "GPU Clusters", "Reserved GPU clusters for training and serving."]},
+        "managed_ai": {"any": ["Together AI Inference API", "Inference API", "Hosted open models behind an API, serverless or on dedicated endpoints."]},
+        "compute": {"any": ["Together AI Dedicated Endpoints", "Dedicated Endpoints", "Model endpoints on GPUs reserved for you.", {"caveat": "Together AI hosts models, not general applications; run the app elsewhere."}]}
+      },
+      "gaps": {"serverless": "The Inference API is serverless for models; applications need another provider.", "db_postgres": "Use a managed PostgreSQL from another provider.", "storage": "Use object storage from another provider.", "ingress": "Together AI serves its own API endpoints.", "observability": "Use the usage and logs views in the Together AI console."}
+    }
+  }
+}

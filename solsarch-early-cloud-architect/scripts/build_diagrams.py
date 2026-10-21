@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import diagram_sanitizer  # noqa: E402
+import providers  # noqa: E402
 import structure_diagrams  # noqa: E402
 
 PALETTE = Path(__file__).resolve().parent.parent / "assets" / "cloud-vendor-palette.json"
@@ -65,7 +66,7 @@ class Ctx:
 
 
 def node(ctx, key, cls=None, role=None):
-    return '%s["%s"]:::%s' % (ctx.nid(key), ctx.label(key, role), cls or ctx.cloud)
+    return '%s["%s"]:::%s' % (ctx.nid(key), ctx.label(key, role), cls or ctx.d(key).get("provider") or ctx.cloud)
 
 
 def ext_node(x):
@@ -443,7 +444,9 @@ def classdefs(text):
     try:
         defs = json.loads(PALETTE.read_text(encoding="utf-8"))["mermaid_classdefs"]
     except (OSError, ValueError, KeyError):
-        return []
+        defs = []
+    known = {line.split()[1] for line in defs}
+    defs = defs + [line for line in providers.mermaid_classdefs() if line.split()[1] not in known]
     return [line for line in defs if line.split()[1] in wanted]
 
 

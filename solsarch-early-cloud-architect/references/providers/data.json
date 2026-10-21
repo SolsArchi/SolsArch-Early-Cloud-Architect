@@ -1,0 +1,98 @@
+{
+  "group": "data",
+  "note": "Data platforms. Use one as a primary provider to design a data-centred system, or add one next to your compute provider with --also (for example --cloud aws --also neon).",
+  "providers": {
+    "databricks": {
+      "name": "Databricks", "kind": "data", "brand": {"fill": "#FF3621", "stroke": "#8F1D12", "text": "#FFFFFF"},
+      "domains": ["databricks.com", "docs.databricks.com", "www.databricks.com"], "pricing_page": "https://www.databricks.com/product/pricing",
+      "overlay": ["warehouse", "vector_service", "managed_ai"],
+      "services": {
+        "compute": {"any": ["Databricks Apps", "Databricks Apps", "Runs Python data and AI web apps next to your lakehouse data.", {"caveat": "Databricks Apps suit data and AI applications, not general-purpose web back ends."}]},
+        "warehouse": {"any": ["Databricks Data Intelligence Platform (lakehouse with Databricks SQL)", "Lakehouse + SQL", "A lakehouse for analytics, SQL warehousing and machine learning over open table formats."]},
+        "vector_service": {"any": ["Databricks Mosaic AI Vector Search", "Vector Search", "A managed vector index kept in sync with lakehouse tables."]},
+        "managed_ai": {"any": ["Databricks Mosaic AI Model Serving", "Model Serving", "Serves your own and foundation models behind an API."]},
+        "storage": {"any": ["Databricks Unity Catalog volumes", "Unity Catalog volumes", "Governed file storage in your lakehouse."]},
+        "db_postgres": {"any": ["Databricks Lakebase (managed PostgreSQL)", "Lakebase", "A managed PostgreSQL for application data next to the lakehouse.", {"caveat": "Lakebase is newer than the rest of the platform; check its availability and regions."}]},
+        "observability": {"any": ["Databricks system tables and audit logs", "System tables", "Usage, lineage and audit data as queryable tables.", {"builtin": true}]},
+        "identity": {"any": ["Databricks identity and access management (Unity Catalog)", "Unity Catalog access", "Controls who can reach data and models inside the platform.", {"builtin": true, "caveat": "This governs platform users, not your application's end users."}]}
+      },
+      "gaps": {"ingress": "Databricks serves its own endpoints.", "edge": "Put your own CDN and firewall in front of any public app.", "network": "Use your cloud's private networking for the Databricks workspace.", "cache": "Use a managed Redis from your cloud.", "secrets": "Use Databricks secret scopes or your cloud's secrets manager."}
+    },
+    "firebase": {
+      "name": "Firebase", "kind": "data", "brand": {"fill": "#FFCA28", "stroke": "#8A6A00", "text": "#1F1700"},
+      "domains": ["firebase.google.com", "cloud.google.com"], "pricing_page": "https://firebase.google.com/pricing",
+      "overlay": ["identity", "db_mongo", "storage"],
+      "services": {
+        "compute": {
+          "server": ["Firebase App Hosting", "App Hosting", "Builds and runs full-stack web apps on Google Cloud, with a CDN in front."],
+          "serverless": ["Cloud Functions for Firebase", "Cloud Functions", "Runs your server-side code per event or request and scales automatically.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+        },
+        "static_site": {"any": ["Firebase Hosting", "Hosting", "Serves your front end from Google's CDN.", {"builtin": true}]},
+        "ingress": {"any": ["Firebase Hosting rewrites", "Hosting rewrites", "Routes requests to your functions and App Hosting back end.", {"builtin": true}]},
+        "edge": {"any": ["Firebase Hosting CDN", "Hosting CDN", "Serves cached content close to users.", {"builtin": true, "caveat": "Add Firebase App Check and Google Cloud Armor if you need request filtering."}]},
+        "db_mongo": {"any": ["Cloud Firestore", "Firestore", "A serverless document database with real-time sync.", {"caveat": "Firestore is not MongoDB-compatible; code written for a MongoDB driver needs a rewrite of its data layer."}]},
+        "db_postgres": {"any": ["Firebase Data Connect with Cloud SQL for PostgreSQL", "Data Connect", "A managed PostgreSQL with a generated, typed API for your apps."]},
+        "vector_service": {"any": ["Firestore vector search", "Firestore vectors", "Vector similarity search over Firestore documents."]},
+        "identity": {"any": ["Firebase Authentication", "Authentication", "Managed sign-in with email, social and phone providers."]},
+        "storage": {"any": ["Cloud Storage for Firebase", "Cloud Storage", "Object storage for user uploads with security rules."]},
+        "secrets": {"any": ["Secret Manager through Cloud Functions parameters", "Secret Manager", "Stores credentials and hands them to your functions.", {"builtin": true}]},
+        "observability": {"any": ["Firebase Crashlytics and Performance Monitoring", "Crashlytics + Performance", "Crash reports and performance traces for your apps."]},
+        "managed_ai": {"any": ["Firebase AI Logic (Gemini)", "AI Logic", "Calls Google's Gemini models from your apps without exposing keys."]}
+      },
+      "gaps": {"network": "Firebase is a managed platform without a network you configure; use Google Cloud VPC for Cloud SQL.", "cache": "Use Memorystore on Google Cloud or an external Redis.", "registry": "Not needed: Firebase builds from source.", "queue_kafka": "Use Pub/Sub on Google Cloud."}
+    },
+    "mongodbatlas": {
+      "name": "MongoDB Atlas", "kind": "data", "brand": {"fill": "#00ED64", "stroke": "#00684A", "text": "#001E2B"},
+      "domains": ["mongodb.com", "www.mongodb.com"], "pricing_page": "https://www.mongodb.com/pricing",
+      "overlay": ["db_mongo", "vector_service", "search"],
+      "services": {
+        "db_mongo": {"any": ["MongoDB Atlas", "Atlas", "A fully managed MongoDB on AWS, Azure or Google Cloud, with backups and private connectivity."]},
+        "vector_service": {"any": ["MongoDB Atlas Vector Search", "Atlas Vector Search", "Vector similarity search inside the same Atlas cluster."]},
+        "search": {"any": ["MongoDB Atlas Search", "Atlas Search", "Full-text search inside the same Atlas cluster."]},
+        "observability": {"any": ["MongoDB Atlas monitoring and alerts", "Atlas monitoring", "Metrics, slow-query analysis and alerts for the cluster.", {"builtin": true}]},
+        "network": {"any": ["MongoDB Atlas private endpoints", "Private endpoints", "Private connectivity from your cloud network to the cluster.", {"caveat": "Set up the matching private link on your compute provider."}]}
+      },
+      "gaps": {"compute": "Atlas hosts data only; run the application on another provider.", "db_postgres": "Atlas is a MongoDB service; use a PostgreSQL service for relational data.", "cache": "Use a managed Redis from your compute provider.", "storage": "Use object storage from your compute provider."}
+    },
+    "neon": {
+      "name": "Neon", "kind": "data", "brand": {"fill": "#00E599", "stroke": "#006B49", "text": "#06241A"},
+      "domains": ["neon.com", "neon.tech", "www.neon.com"], "pricing_page": "https://neon.com/pricing",
+      "overlay": ["db_postgres", "vector_service"],
+      "services": {
+        "db_postgres": {"any": ["Neon Serverless Postgres", "Neon", "A serverless PostgreSQL that scales to zero, with branching for previews and tests.", {"caveat": "Connect through the pooled connection string from serverless functions to avoid exhausting connections."}]},
+        "vector_service": {"any": ["pgvector on Neon", "pgvector on Neon", "Vector similarity search inside the same Neon PostgreSQL."]}
+      },
+      "gaps": {"compute": "Neon hosts a database only; run the application on another provider.", "db_mysql": "Neon is PostgreSQL only.", "cache": "Use a managed Redis from your compute provider.", "storage": "Use object storage from your compute provider."}
+    },
+    "snowflake": {
+      "name": "Snowflake", "kind": "data", "brand": {"fill": "#29B5E8", "stroke": "#0C5A78", "text": "#0B2A36"},
+      "domains": ["snowflake.com", "docs.snowflake.com", "www.snowflake.com"], "pricing_page": "https://www.snowflake.com/en/pricing-options/",
+      "overlay": ["warehouse", "vector_service", "managed_ai"],
+      "services": {
+        "warehouse": {"any": ["Snowflake AI Data Cloud", "Snowflake", "A managed cloud data warehouse for analytics, with separate storage and compute."]},
+        "vector_service": {"any": ["Snowflake Cortex Search", "Cortex Search", "Hybrid vector and keyword search over Snowflake data."]},
+        "managed_ai": {"any": ["Snowflake Cortex AI", "Cortex AI", "Hosted language models and AI functions that run next to your data."]},
+        "compute": {"any": ["Snowpark Container Services", "Snowpark Containers", "Runs containers next to your Snowflake data.", {"caveat": "Best for data and AI services, not general-purpose web back ends."}]},
+        "storage": {"any": ["Snowflake stages", "Stages", "File storage inside Snowflake for loading and unloading data."]},
+        "observability": {"any": ["Snowflake ACCOUNT_USAGE views and event tables", "ACCOUNT_USAGE", "Usage, query history and logs as queryable views.", {"builtin": true}]}
+      },
+      "gaps": {"ingress": "Snowflake serves its own endpoints.", "db_postgres": "Snowflake Postgres is not part of this catalogue; use a managed PostgreSQL for transactional data.", "cache": "Use a managed Redis from your compute provider.", "network": "Use private connectivity from your cloud to Snowflake."}
+    },
+    "supabase": {
+      "name": "Supabase", "kind": "data", "brand": {"fill": "#3ECF8E", "stroke": "#1B6B49", "text": "#10241B"},
+      "domains": ["supabase.com", "www.supabase.com"], "pricing_page": "https://supabase.com/pricing",
+      "overlay": ["db_postgres", "vector_service", "identity", "storage"],
+      "services": {
+        "compute": {"any": ["Supabase Edge Functions", "Edge Functions", "Runs server-side TypeScript close to users, scaling automatically.", {"caveat": "Edge Functions run Deno-based TypeScript, so existing back ends may need changes."}]},
+        "db_postgres": {"any": ["Supabase Postgres", "Supabase Postgres", "A managed PostgreSQL with backups, Row Level Security and an instant API."]},
+        "vector_service": {"any": ["Supabase Vector (pgvector)", "Supabase Vector", "Vector similarity search inside the same Postgres."]},
+        "identity": {"any": ["Supabase Auth", "Supabase Auth", "Managed sign-in with email, social and enterprise providers."]},
+        "storage": {"any": ["Supabase Storage", "Supabase Storage", "Object storage for files and uploads with access policies."]},
+        "ingress": {"any": ["Supabase API gateway", "API gateway", "Routes requests to the database API, auth and functions.", {"builtin": true}]},
+        "secrets": {"any": ["Supabase Vault and function secrets", "Vault", "Encrypted secrets for the database and functions.", {"builtin": true}]},
+        "observability": {"any": ["Supabase logs and reports", "Logs + reports", "Logs and usage reports for the database, auth and functions.", {"builtin": true}]}
+      },
+      "gaps": {"edge": "Put Cloudflare or a similar CDN and firewall in front of public endpoints.", "cache": "Use a managed Redis from your compute provider.", "network": "Restrict database access with network restrictions and SSL enforcement.", "db_mongo": "Supabase is PostgreSQL; use MongoDB Atlas for a MongoDB driver.", "queue_kafka": "Use Supabase Queues for simple jobs, or Confluent Cloud for Kafka."}
+    }
+  }
+}

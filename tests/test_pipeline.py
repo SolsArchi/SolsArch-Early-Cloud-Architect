@@ -95,7 +95,10 @@ class PipelineTests(unittest.TestCase):
         repo = repo_in(self.tmp, "shop", helpers.build_demo)
         code, out = helpers.cli("questions", "--repo", repo)
         self.assertEqual([q["id"] for q in out["ask"]], ["cloud", "compute"])
-        self.assertEqual([o["value"] for o in out["ask"][0]["options"]], ["aws", "azure", "gcp"])
+        values = [o["value"] for o in out["ask"][0]["options"]]
+        self.assertEqual(values[:3], ["aws", "azure", "gcp"])
+        self.assertTrue({"vercel", "hetzner", "supabase", "cloudflare"} <= set(values))
+        self.assertFalse({"sap", "salesforce"} & set(values))
         self.assertEqual([o["value"] for o in out["ask"][1]["options"]], ["server", "serverless"])
         text = json.dumps(out).lower()
         for word in ("region", "budget", "compliance"):

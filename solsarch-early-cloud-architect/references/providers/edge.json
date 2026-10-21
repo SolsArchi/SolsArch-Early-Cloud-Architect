@@ -1,0 +1,75 @@
+{
+  "group": "edge",
+  "note": "Edge and CDN providers. They can host edge code and sit in front of any other provider; add them with --also to put them in front of a plan.",
+  "providers": {
+    "akamai": {
+      "name": "Akamai", "kind": "edge", "brand": {"fill": "#0096D6", "stroke": "#005A80", "text": "#FFFFFF"},
+      "domains": ["akamai.com", "techdocs.akamai.com", "www.akamai.com", "linode.com"], "pricing_page": "https://www.akamai.com/products",
+      "overlay": ["edge"],
+      "services": {
+        "compute": {"any": ["Akamai Cloud Linode Kubernetes Engine (LKE)", "LKE", "Runs your containers on managed Kubernetes in Akamai Cloud.", {"caveat": "Adds Kubernetes you would have to operate."}]},
+        "ingress": {"any": ["Akamai Cloud NodeBalancers", "NodeBalancers", "Receives HTTPS traffic and forwards it to your application."]},
+        "edge": {"any": ["Akamai Ion CDN with App & API Protector", "Ion + App & API Protector", "Serves cached content close to users and filters malicious requests."]},
+        "network": {"any": ["Akamai Cloud VPC", "VPC", "A private network for your servers and databases."]},
+        "db_postgres": {"any": ["Akamai Cloud Managed Databases for PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with backups."]},
+        "db_mysql": {"any": ["Akamai Cloud Managed Databases for MySQL", "Managed MySQL", "A managed MySQL with backups."]},
+        "storage": {"any": ["Akamai Cloud Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
+        "gpu": {"any": ["Akamai Cloud GPU instances", "GPU instances", "GPU machines for hosting your own models."]}
+      },
+      "gaps": {"serverless": "Akamai EdgeWorkers run small edge scripts, not full apps; use LKE for the application.", "cache": "Run Redis in a container on LKE, or use a partner service.", "secrets": "Use Kubernetes Secrets on LKE, or an external secrets manager.", "observability": "Use your own Prometheus and Grafana, or a partner service."}
+    },
+    "cloudflare": {
+      "name": "Cloudflare", "kind": "edge", "brand": {"fill": "#F38020", "stroke": "#7A3E00", "text": "#1F1F1F"},
+      "domains": ["cloudflare.com", "developers.cloudflare.com", "www.cloudflare.com"], "pricing_page": "https://www.cloudflare.com/plans/",
+      "overlay": ["edge", "static_site", "storage", "vector_service"],
+      "services": {
+        "compute": {
+          "server": ["Cloudflare Containers", "Containers", "Runs your containers on Cloudflare's network, started from a Worker.", {"caveat": "Check the current status of Cloudflare Containers (it was introduced as a beta) before depending on it."}],
+          "serverless": ["Cloudflare Workers", "Workers", "Runs your code at the edge per request and scales automatically.", {"caveat": "Workers run JavaScript, TypeScript, Python and WebAssembly in a V8 isolate, not arbitrary containers, so frameworks may need an adapter."}]
+        },
+        "static_site": {"any": ["Cloudflare Workers static assets (Pages)", "Static assets", "Builds and serves your front end from Cloudflare's network.", {"builtin": true}]},
+        "ingress": {"any": ["Cloudflare Load Balancing", "Load Balancing", "Health-checks origins and steers traffic between them."]},
+        "edge": {"any": ["Cloudflare CDN, WAF and DDoS protection", "CDN + WAF", "Serves cached content close to users and filters malicious requests."]},
+        "db_postgres": {"any": ["Cloudflare Hyperdrive with an external PostgreSQL", "Hyperdrive", "Pools and accelerates connections from Workers to a PostgreSQL run elsewhere (for example Neon or Supabase).", {"partner": true, "caveat": "Cloudflare does not host PostgreSQL. Its own database, D1, is SQLite-based."}]},
+        "cache": {"any": ["Cloudflare Workers KV", "Workers KV", "A global key-value store for cached data.", {"caveat": "Workers KV is eventually consistent and is not Redis-compatible, so Redis client code needs changes."}]},
+        "storage": {"any": ["Cloudflare R2", "R2", "S3-compatible object storage with no charge for data leaving it."]},
+        "vector_service": {"any": ["Cloudflare Vectorize", "Vectorize", "A vector index for embeddings, queried from Workers."]},
+        "secrets": {"any": ["Cloudflare Workers Secrets", "Workers Secrets", "Encrypted values handed to your Workers.", {"builtin": true}]},
+        "observability": {"any": ["Cloudflare Workers Logs and Analytics", "Workers Logs", "Shows Worker logs and request analytics.", {"builtin": true}]},
+        "managed_ai": {"any": ["Cloudflare Workers AI", "Workers AI", "Hosted open models behind an API, run on Cloudflare's GPUs."]}
+      },
+      "gaps": {"network": "Use Cloudflare Tunnel to reach private origins without exposing them.", "db_mysql": "Use Hyperdrive with an external MySQL.", "db_mongo": "Use MongoDB Atlas.", "registry": "Cloudflare Containers builds from your Dockerfile; no separate registry is needed.", "identity": "Use Cloudflare Access for staff, or a hosted sign-in service for customers."}
+    },
+    "denodeploy": {
+      "name": "Deno Deploy", "kind": "edge", "brand": {"fill": "#70FFAF", "stroke": "#0B6B3A", "text": "#0B1F14"},
+      "domains": ["deno.com", "docs.deno.com"], "pricing_page": "https://deno.com/deploy/pricing",
+      "overlay": [],
+      "services": {
+        "compute": {"any": ["Deno Deploy", "Deno Deploy", "Runs your Deno, Node.js and framework code on a global network, scaling per request.", {"caveat": "Deno Deploy runs JavaScript and TypeScript apps, not arbitrary containers."}]},
+        "static_site": {"any": ["Deno Deploy static hosting", "Static hosting", "Serves your built front end from Deno's network.", {"builtin": true}]},
+        "ingress": {"any": ["Deno Deploy edge network", "Edge network", "Terminates TLS and routes requests to your app.", {"builtin": true}]},
+        "edge": {"any": ["Deno Deploy edge network", "Edge network", "Serves your app close to users.", {"builtin": true}]},
+        "cache": {"any": ["Deno KV", "Deno KV", "A built-in key-value database.", {"caveat": "Deno KV is not Redis-compatible, so Redis client code needs changes."}]},
+        "secrets": {"any": ["Deno Deploy environment variables", "Environment variables", "Encrypted values handed to your app.", {"builtin": true}]},
+        "observability": {"any": ["Deno Deploy logs and OpenTelemetry", "Logs + OpenTelemetry", "Shows logs and traces for your app.", {"builtin": true}]}
+      },
+      "gaps": {"db_postgres": "Use Neon, Supabase or another hosted PostgreSQL.", "db_mysql": "Use PlanetScale or another hosted MySQL.", "db_mongo": "Use MongoDB Atlas.", "storage": "Use Cloudflare R2, Amazon S3 or similar.", "network": "Deno Deploy has no private network; restrict data stores by credentials.", "registry": "Not needed: Deno Deploy builds from source.", "identity": "Use a hosted sign-in service such as Clerk or Auth0."}
+    },
+    "fastly": {
+      "name": "Fastly", "kind": "edge", "brand": {"fill": "#FF282D", "stroke": "#8A0F12", "text": "#FFFFFF"},
+      "domains": ["fastly.com", "docs.fastly.com", "www.fastly.com"], "pricing_page": "https://www.fastly.com/pricing",
+      "overlay": ["edge"],
+      "services": {
+        "compute": {"any": ["Fastly Compute", "Compute", "Runs your code at the edge per request, compiled to WebAssembly.", {"caveat": "Fastly Compute runs WebAssembly modules (Rust, JavaScript, Go and others), not arbitrary containers."}]},
+        "ingress": {"any": ["Fastly Load Balancing", "Load Balancing", "Steers traffic between your origins with health checks."]},
+        "edge": {"any": ["Fastly CDN with Next-Gen WAF", "CDN + WAF", "Serves cached content close to users and filters malicious requests."]},
+        "static_site": {"any": ["Fastly Object Storage with CDN", "Object Storage + CDN", "Hosts built static files and serves them from the CDN."]},
+        "storage": {"any": ["Fastly Object Storage", "Object Storage", "S3-compatible object storage."]},
+        "cache": {"any": ["Fastly KV Store", "KV Store", "A key-value store readable from Fastly Compute.", {"caveat": "Fastly KV Store is not Redis-compatible, so Redis client code needs changes."}]},
+        "secrets": {"any": ["Fastly Secret Store", "Secret Store", "Encrypted values readable from Fastly Compute.", {"builtin": true}]},
+        "observability": {"any": ["Fastly Real-Time Log Streaming", "Log Streaming", "Streams request logs to your logging tools in real time.", {"builtin": true}]}
+      },
+      "gaps": {"db_postgres": "Fastly does not host databases; use a managed PostgreSQL elsewhere.", "db_mysql": "Use a managed MySQL elsewhere.", "db_mongo": "Use MongoDB Atlas.", "registry": "Not applicable: Compute deploys WebAssembly packages.", "network": "Fastly has no private network for your data stores.", "identity": "Use a hosted sign-in service such as Clerk or Auth0."}
+    }
+  }
+}

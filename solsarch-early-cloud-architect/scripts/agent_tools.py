@@ -22,7 +22,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SOLSARCH = HERE / "solsarch.py"
 TIMEOUT_SECONDS = 600
-CLOUDS = ["aws", "azure", "gcp"]
+sys.path.insert(0, str(HERE))
+import providers  # noqa: E402
+
+CLOUDS = providers.hosting_ids()
 COMPUTE = ["server", "serverless"]
 
 REPO = {"type": "string", "description": "Path of the project folder (a repo, a monorepo or a folder of repos). Default: current directory."}
@@ -43,13 +46,16 @@ TOOLS = [
      "description": "Choose cloud services with fixed rules for the chosen cloud and compute model. Run solsarch_scan first.",
      "properties": {"repo": REPO, "cloud": _prop("string", "Cloud to use.", enum=CLOUDS),
                     "compute": _prop("string", "server = always-on containers, serverless = scales to zero.", enum=COMPUTE),
-                    "assumed": _prop("boolean", "True when the user did not choose these answers.")},
+                    "assumed": _prop("boolean", "True when the user did not choose these answers."),
+                    "also": _prop("string", "Comma-separated overlay providers, for example neon,cloudflare.")},
      "required": ["cloud", "compute"],
      "argv": lambda a: ["plan", "--repo", a.get("repo", "."), "--cloud", a["cloud"], "--compute", a["compute"]]
-                       + (["--assumed"] if a.get("assumed") else [])},
+                       + (["--also", a["also"]] if a.get("also") else []) + (["--assumed"] if a.get("assumed") else [])},
     {"name": "solsarch_compare", "description": "Place the same scan on AWS, Azure and Google Cloud and write a side-by-side table. Does not save a plan.",
-     "properties": {"repo": REPO, "compute": _prop("string", "Compute model to compare.", enum=COMPUTE)}, "required": [],
-     "argv": lambda a: ["compare", "--repo", a.get("repo", "."), "--compute", a.get("compute", "server")]},
+     "properties": {"repo": REPO, "compute": _prop("string", "Compute model to compare.", enum=COMPUTE),
+                    "clouds": _prop("string", "Comma-separated provider ids, or all. Default aws,azure,gcp.")}, "required": [],
+     "argv": lambda a: ["compare", "--repo", a.get("repo", "."), "--compute", a.get("compute", "server")]
+                       + (["--clouds", a["clouds"]] if a.get("clouds") else [])},
     {"name": "solsarch_facts",
      "description": "Web verification of the chosen services. action=queue lists searches to run; add records one official source sentence; skip records that no web search was possible; list shows the log.",
      "properties": {"repo": REPO, "action": _prop("string", "What to do.", enum=["queue", "add", "skip", "list"]),
@@ -76,10 +82,12 @@ TOOLS = [
      "description": "The whole workflow in one call: scan, plan, skip the web check, write everything and verify. Omitted cloud or compute are assumed and marked so.",
      "properties": {"repo": REPO, "cloud": _prop("string", "Cloud to use.", enum=CLOUDS),
                     "compute": _prop("string", "Compute model.", enum=COMPUTE),
+                    "also": _prop("string", "Comma-separated overlay providers, for example neon,cloudflare."),
                     "icon_dir": _prop("string", "Folder of official vendor icon SVGs.")},
      "required": [],
      "argv": lambda a: ["run", "--repo", a.get("repo", ".")] + (["--cloud", a["cloud"]] if a.get("cloud") else [])
                        + (["--compute", a["compute"]] if a.get("compute") else [])
+                       + (["--also", a["also"]] if a.get("also") else [])
                        + (["--icon-dir", a["icon_dir"]] if a.get("icon_dir") else [])},
 ]
 BY_NAME = {t["name"]: t for t in TOOLS}
@@ -118,7 +126,7 @@ def validate(tool, args):
                 return "argument '%s' must be a string" % name
             if "enum" in spec and value not in spec["enum"]:
                 return "argument '%s' must be one of: %s" % (name, ", ".join(spec["enum"]))
-            if name in ("repo", "narrative", "icon_dir", "key", "url") and value.startswith("-"):
+            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds") and value.startswith("-"):
                 return "argument '%s' must not start with '-'" % name
     return None
 

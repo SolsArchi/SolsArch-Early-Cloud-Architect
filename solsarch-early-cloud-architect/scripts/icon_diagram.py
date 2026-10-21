@@ -22,12 +22,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brand  # noqa: E402
 
-VENDOR = {  # fill, dark text
-    "aws": ("#FF9900", "#232F3E"),
-    "azure": ("#0078D4", "#003A6C"),
-    "gcp": ("#4285F4", "#1A4DA1"),
-}
-CLOUD_TITLE = {"aws": "AWS", "azure": "Microsoft Azure", "gcp": "Google Cloud"}
+import providers  # noqa: E402
+
+VENDOR = {pid: (p["brand"]["fill"], p["brand"]["stroke"]) for pid, p in providers.registry().items()
+          if p["kind"] != "enterprise"}  # fill, dark text
+CLOUD_TITLE = {pid: p["name"] for pid, p in providers.registry().items()}
+CLOUD_TITLE["azure"] = "Microsoft Azure"
 
 STROKE = 'fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"'
 GLYPHS = {

@@ -3,9 +3,29 @@
   "authored": "2026-10-17",
   "note": "Fixed service choices per need, cloud and compute model. scripts/recommend.py reads this file so every run, with any model, picks the same services. Names and availability change; the web verification step in SKILL.md checks them against official vendor pages at run time.",
   "clouds": {
-    "aws": {"name": "AWS", "css": "aws", "domains": ["aws.amazon.com", "docs.aws.amazon.com"]},
-    "azure": {"name": "Azure", "css": "azure", "domains": ["learn.microsoft.com", "azure.microsoft.com"]},
-    "gcp": {"name": "Google Cloud", "css": "gcp", "domains": ["cloud.google.com"]}
+    "aws": {
+      "name": "AWS",
+      "css": "aws",
+      "domains": [
+        "aws.amazon.com",
+        "docs.aws.amazon.com"
+      ]
+    },
+    "azure": {
+      "name": "Azure",
+      "css": "azure",
+      "domains": [
+        "learn.microsoft.com",
+        "azure.microsoft.com"
+      ]
+    },
+    "gcp": {
+      "name": "Google Cloud",
+      "css": "gcp",
+      "domains": [
+        "cloud.google.com"
+      ]
+    }
   },
   "modes": {
     "server": "Server-based (always-on containers)",
@@ -14,209 +34,784 @@
   "services": {
     "compute": {
       "aws": {
-        "server": {"service": "Amazon ECS on AWS Fargate", "short": "ECS Fargate",
+        "server": {
+          "service": "Amazon ECS on AWS Fargate",
+          "short": "ECS Fargate",
           "why": "Runs your containers continuously without you managing servers, so background workers and long-lived streaming connections keep working.",
-          "alternatives": [{"service": "Amazon EKS", "reason": "Adds Kubernetes you would have to operate; worth it only if you already run Kubernetes."}]},
-        "serverless": {"service": "AWS Lambda", "short": "Lambda",
+          "alternatives": [
+            {
+              "service": "Amazon EKS",
+              "reason": "Adds Kubernetes you would have to operate; worth it only if you already run Kubernetes."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "AWS Lambda",
+          "short": "Lambda",
           "why": "Runs your code per request and scales to zero, so you pay only when it is called.",
           "caveat": "Each invocation has a time limit, and streaming or WebSocket routes need extra setup.",
-          "alternatives": [{"service": "Amazon ECS on AWS Fargate", "reason": "Choose the server-based model if the app needs long-running work or streaming."}]}
+          "alternatives": [
+            {
+              "service": "Amazon ECS on AWS Fargate",
+              "reason": "Choose the server-based model if the app needs long-running work or streaming."
+            }
+          ]
+        }
       },
       "azure": {
-        "server": {"service": "Azure Container Apps (minimum 1 replica)", "short": "Container Apps",
+        "server": {
+          "service": "Azure Container Apps (minimum 1 replica)",
+          "short": "Container Apps",
           "why": "Runs your containers continuously with built-in HTTPS and scaling, without managing servers or Kubernetes.",
-          "alternatives": [{"service": "Azure Kubernetes Service", "reason": "Adds Kubernetes you would have to operate."}]},
-        "serverless": {"service": "Azure Functions", "short": "Functions",
+          "alternatives": [
+            {
+              "service": "Azure Kubernetes Service",
+              "reason": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Azure Functions",
+          "short": "Functions",
           "why": "Runs your code per event or request and scales automatically, so you pay for use.",
           "caveat": "Execution time limits depend on the hosting plan, and streaming routes need testing.",
-          "alternatives": [{"service": "Azure Container Apps (minimum 1 replica)", "reason": "Choose the server-based model if the app needs long-running work or streaming."}]}
+          "alternatives": [
+            {
+              "service": "Azure Container Apps (minimum 1 replica)",
+              "reason": "Choose the server-based model if the app needs long-running work or streaming."
+            }
+          ]
+        }
       },
       "gcp": {
-        "server": {"service": "Cloud Run (minimum 1 instance)", "short": "Cloud Run",
+        "server": {
+          "service": "Cloud Run (minimum 1 instance)",
+          "short": "Cloud Run",
           "why": "Runs your containers continuously with built-in HTTPS and autoscaling, without managing servers.",
-          "alternatives": [{"service": "Google Kubernetes Engine", "reason": "Adds Kubernetes you would have to operate."}]},
-        "serverless": {"service": "Cloud Run (scales to zero)", "short": "Cloud Run",
+          "alternatives": [
+            {
+              "service": "Google Kubernetes Engine",
+              "reason": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Cloud Run (scales to zero)",
+          "short": "Cloud Run",
           "why": "Runs your containers per request and scales to zero when idle, so you pay for use and web frameworks run unchanged.",
           "caveat": "The first request after an idle period starts a container, which adds a short delay, and request time limits apply.",
-          "alternatives": [{"service": "Cloud Run functions", "reason": "Function-style deployment without a container, but the app has to be restructured into functions."}]}
+          "alternatives": [
+            {
+              "service": "Cloud Run functions",
+              "reason": "Function-style deployment without a container, but the app has to be restructured into functions."
+            }
+          ]
+        }
       }
     },
     "ingress": {
       "aws": {
-        "server": {"service": "Application Load Balancer", "short": "Application Load Balancer",
+        "server": {
+          "service": "Application Load Balancer",
+          "short": "Application Load Balancer",
           "why": "Receives HTTPS traffic in public subnets and forwards it to containers in private subnets, so the containers are never exposed to the internet.",
-          "alternatives": [{"service": "Network Load Balancer", "reason": "Works at the connection level and does not route by URL path."}]},
-        "serverless": {"service": "Amazon API Gateway", "short": "API Gateway",
+          "alternatives": [
+            {
+              "service": "Network Load Balancer",
+              "reason": "Works at the connection level and does not route by URL path."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Amazon API Gateway",
+          "short": "API Gateway",
           "why": "Gives the functions a managed HTTPS front door with throttling and authentication hooks.",
-          "alternatives": [{"service": "Application Load Balancer", "reason": "Can also front Lambda; API Gateway adds API keys and quotas."}]}
+          "alternatives": [
+            {
+              "service": "Application Load Balancer",
+              "reason": "Can also front Lambda; API Gateway adds API keys and quotas."
+            }
+          ]
+        }
       },
       "azure": {
-        "server": {"service": "Azure Application Gateway", "short": "Application Gateway",
+        "server": {
+          "service": "Azure Application Gateway",
+          "short": "Application Gateway",
           "why": "Terminates HTTPS in front of private containers and routes by URL path.",
-          "alternatives": [{"service": "Azure Load Balancer", "reason": "Works at the connection level and does not route by URL path."}]},
-        "serverless": {"service": "Azure API Management", "short": "API Management",
+          "alternatives": [
+            {
+              "service": "Azure Load Balancer",
+              "reason": "Works at the connection level and does not route by URL path."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Azure API Management",
+          "short": "API Management",
           "why": "Gives the functions a managed HTTPS front door with throttling and authentication policies.",
-          "alternatives": [{"service": "Azure Application Gateway", "reason": "Simpler if you only need routing and a firewall."}]}
+          "alternatives": [
+            {
+              "service": "Azure Application Gateway",
+              "reason": "Simpler if you only need routing and a firewall."
+            }
+          ]
+        }
       },
       "gcp": {
-        "server": {"service": "Cloud Load Balancing", "short": "Cloud Load Balancing",
+        "server": {
+          "service": "Cloud Load Balancing",
+          "short": "Cloud Load Balancing",
           "why": "Receives HTTPS traffic at Google's edge and forwards it to private backends.",
-          "alternatives": [{"service": "Cloud Run built-in URL", "reason": "Fine for tests, but has no custom firewall rules or routing layer."}]},
-        "serverless": {"service": "API Gateway", "short": "API Gateway",
+          "alternatives": [
+            {
+              "service": "Cloud Run built-in URL",
+              "reason": "Fine for tests, but has no custom firewall rules or routing layer."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "API Gateway",
+          "short": "API Gateway",
           "why": "Gives the functions a managed HTTPS front door with authentication and quotas.",
-          "alternatives": [{"service": "Cloud Load Balancing", "reason": "Adds routing and a firewall; more setup."}]}
+          "alternatives": [
+            {
+              "service": "Cloud Load Balancing",
+              "reason": "Adds routing and a firewall; more setup."
+            }
+          ]
+        }
       }
     },
     "edge": {
-      "aws": {"any": {"service": "Amazon CloudFront with AWS WAF", "short": "CloudFront + WAF",
-        "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
-        "alternatives": [{"service": "AWS WAF on the load balancer only", "reason": "Skips caching and global delivery."}]}},
-      "azure": {"any": {"service": "Azure Front Door with WAF", "short": "Front Door + WAF",
-        "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
-        "alternatives": [{"service": "Azure WAF on Application Gateway only", "reason": "Skips caching and global delivery."}]}},
-      "gcp": {"any": {"service": "Cloud CDN with Cloud Armor", "short": "Cloud CDN + Armor",
-        "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
-        "alternatives": [{"service": "Cloud Armor on the load balancer only", "reason": "Skips caching."}]}}
+      "aws": {
+        "any": {
+          "service": "Amazon CloudFront with AWS WAF",
+          "short": "CloudFront + WAF",
+          "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
+          "alternatives": [
+            {
+              "service": "AWS WAF on the load balancer only",
+              "reason": "Skips caching and global delivery."
+            }
+          ]
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Front Door with WAF",
+          "short": "Front Door + WAF",
+          "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
+          "alternatives": [
+            {
+              "service": "Azure WAF on Application Gateway only",
+              "reason": "Skips caching and global delivery."
+            }
+          ]
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud CDN with Cloud Armor",
+          "short": "Cloud CDN + Armor",
+          "why": "Serves cached content close to users and filters malicious requests before they reach your application.",
+          "alternatives": [
+            {
+              "service": "Cloud Armor on the load balancer only",
+              "reason": "Skips caching."
+            }
+          ]
+        }
+      }
     },
     "network": {
-      "aws": {"any": {"service": "Amazon VPC", "short": "VPC",
-        "why": "Puts databases and caches in private subnets with no route from the internet.",
-        "alternatives": []}},
-      "azure": {"any": {"service": "Azure Virtual Network", "short": "Virtual Network",
-        "why": "Puts databases and caches on private subnets with no route from the internet.",
-        "alternatives": []}},
-      "gcp": {"any": {"service": "Google Cloud VPC network", "short": "VPC network",
-        "why": "Puts databases and caches on private subnets with no route from the internet.",
-        "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon VPC",
+          "short": "VPC",
+          "why": "Puts databases and caches in private subnets with no route from the internet.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Virtual Network",
+          "short": "Virtual Network",
+          "why": "Puts databases and caches on private subnets with no route from the internet.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Google Cloud VPC network",
+          "short": "VPC network",
+          "why": "Puts databases and caches on private subnets with no route from the internet.",
+          "alternatives": []
+        }
+      }
     },
     "egress": {
-      "aws": {"any": {"service": "NAT Gateway", "short": "NAT Gateway",
-        "why": "Lets private containers call outside APIs while nothing can call them first.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure NAT Gateway", "short": "NAT Gateway",
-        "why": "Lets private workloads call outside APIs while nothing can call them first.", "alternatives": []}},
-      "gcp": {"any": {"service": "Cloud NAT", "short": "Cloud NAT",
-        "why": "Lets private workloads call outside APIs while nothing can call them first.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "NAT Gateway",
+          "short": "NAT Gateway",
+          "why": "Lets private containers call outside APIs while nothing can call them first.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure NAT Gateway",
+          "short": "NAT Gateway",
+          "why": "Lets private workloads call outside APIs while nothing can call them first.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud NAT",
+          "short": "Cloud NAT",
+          "why": "Lets private workloads call outside APIs while nothing can call them first.",
+          "alternatives": []
+        }
+      }
     },
     "db_postgres": {
       "aws": {
-        "server": {"service": "Amazon Aurora PostgreSQL", "short": "Aurora PostgreSQL",
+        "server": {
+          "service": "Amazon Aurora PostgreSQL",
+          "short": "Aurora PostgreSQL",
           "why": "A managed PostgreSQL with copies in several availability zones, automatic backups and room to add read replicas.",
-          "alternatives": [{"service": "Amazon RDS for PostgreSQL", "reason": "Cheaper at small scale but with fewer scaling options."}]},
-        "serverless": {"service": "Amazon Aurora Serverless v2 (PostgreSQL)", "short": "Aurora Serverless v2",
+          "alternatives": [
+            {
+              "service": "Amazon RDS for PostgreSQL",
+              "reason": "Cheaper at small scale but with fewer scaling options."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Amazon Aurora Serverless v2 (PostgreSQL)",
+          "short": "Aurora Serverless v2",
           "why": "A managed PostgreSQL whose capacity grows and shrinks with load, so quiet periods cost less.",
-          "alternatives": [{"service": "Amazon Aurora PostgreSQL", "reason": "Steadier cost if the database is busy all day."}]}
+          "alternatives": [
+            {
+              "service": "Amazon Aurora PostgreSQL",
+              "reason": "Steadier cost if the database is busy all day."
+            }
+          ]
+        }
       },
-      "azure": {"any": {"service": "Azure Database for PostgreSQL - Flexible Server", "short": "PostgreSQL Flexible Server",
-        "why": "A managed PostgreSQL with automatic backups, zone-redundant high availability and a burstable tier for small workloads.",
-        "caveat": "It does not scale to zero; choose the burstable tier for light use.",
-        "alternatives": [{"service": "Azure SQL Database serverless", "reason": "Scales to zero but uses SQL Server, which means changing queries and drivers."}]}},
-      "gcp": {"any": {"service": "Cloud SQL for PostgreSQL", "short": "Cloud SQL PostgreSQL",
-        "why": "A managed PostgreSQL with automatic backups and high availability across zones.",
-        "caveat": "It does not scale to zero; pick a small tier for light use.",
-        "alternatives": [{"service": "AlloyDB for PostgreSQL", "reason": "Faster for heavy workloads but costs more."}]}}
+      "azure": {
+        "any": {
+          "service": "Azure Database for PostgreSQL - Flexible Server",
+          "short": "PostgreSQL Flexible Server",
+          "why": "A managed PostgreSQL with automatic backups, zone-redundant high availability and a burstable tier for small workloads.",
+          "caveat": "It does not scale to zero; choose the burstable tier for light use.",
+          "alternatives": [
+            {
+              "service": "Azure SQL Database serverless",
+              "reason": "Scales to zero but uses SQL Server, which means changing queries and drivers."
+            }
+          ]
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud SQL for PostgreSQL",
+          "short": "Cloud SQL PostgreSQL",
+          "why": "A managed PostgreSQL with automatic backups and high availability across zones.",
+          "caveat": "It does not scale to zero; pick a small tier for light use.",
+          "alternatives": [
+            {
+              "service": "AlloyDB for PostgreSQL",
+              "reason": "Faster for heavy workloads but costs more."
+            }
+          ]
+        }
+      }
     },
     "db_mysql": {
       "aws": {
-        "server": {"service": "Amazon Aurora MySQL", "short": "Aurora MySQL",
+        "server": {
+          "service": "Amazon Aurora MySQL",
+          "short": "Aurora MySQL",
           "why": "A managed MySQL-compatible database with copies in several availability zones and automatic backups.",
-          "alternatives": [{"service": "Amazon RDS for MySQL", "reason": "Cheaper at small scale but with fewer scaling options."}]},
-        "serverless": {"service": "Amazon Aurora Serverless v2 (MySQL)", "short": "Aurora Serverless v2",
+          "alternatives": [
+            {
+              "service": "Amazon RDS for MySQL",
+              "reason": "Cheaper at small scale but with fewer scaling options."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Amazon Aurora Serverless v2 (MySQL)",
+          "short": "Aurora Serverless v2",
           "why": "A managed MySQL-compatible database whose capacity grows and shrinks with load.",
-          "alternatives": [{"service": "Amazon Aurora MySQL", "reason": "Steadier cost if the database is busy all day."}]}
+          "alternatives": [
+            {
+              "service": "Amazon Aurora MySQL",
+              "reason": "Steadier cost if the database is busy all day."
+            }
+          ]
+        }
       },
-      "azure": {"any": {"service": "Azure Database for MySQL - Flexible Server", "short": "MySQL Flexible Server",
-        "why": "A managed MySQL with automatic backups and zone-redundant high availability.",
-        "alternatives": []}},
-      "gcp": {"any": {"service": "Cloud SQL for MySQL", "short": "Cloud SQL MySQL",
-        "why": "A managed MySQL with automatic backups and high availability across zones.",
-        "alternatives": []}}
+      "azure": {
+        "any": {
+          "service": "Azure Database for MySQL - Flexible Server",
+          "short": "MySQL Flexible Server",
+          "why": "A managed MySQL with automatic backups and zone-redundant high availability.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud SQL for MySQL",
+          "short": "Cloud SQL MySQL",
+          "why": "A managed MySQL with automatic backups and high availability across zones.",
+          "alternatives": []
+        }
+      }
     },
     "db_mongo": {
-      "aws": {"any": {"service": "Amazon DocumentDB (with MongoDB compatibility)", "short": "DocumentDB",
-        "why": "A managed document database that speaks the MongoDB protocol, so the existing driver keeps working.",
-        "alternatives": [{"service": "MongoDB Atlas on AWS", "reason": "Full MongoDB feature set from the MongoDB vendor."}]}},
-      "azure": {"any": {"service": "Azure Cosmos DB for MongoDB", "short": "Cosmos DB for MongoDB",
-        "why": "A managed document database that speaks the MongoDB protocol, so the existing driver keeps working.",
-        "alternatives": [{"service": "MongoDB Atlas on Azure", "reason": "Full MongoDB feature set from the MongoDB vendor."}]}},
-      "gcp": {"any": {"service": "MongoDB Atlas on Google Cloud", "short": "MongoDB Atlas",
-        "why": "Google Cloud has no native MongoDB service; Atlas is the managed option and keeps full MongoDB compatibility.",
-        "alternatives": [{"service": "Firestore", "reason": "A native document database but with a different API, so code changes are needed."}]}}
+      "aws": {
+        "any": {
+          "service": "Amazon DocumentDB (with MongoDB compatibility)",
+          "short": "DocumentDB",
+          "why": "A managed document database that speaks the MongoDB protocol, so the existing driver keeps working.",
+          "alternatives": [
+            {
+              "service": "MongoDB Atlas on AWS",
+              "reason": "Full MongoDB feature set from the MongoDB vendor."
+            }
+          ]
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Cosmos DB for MongoDB",
+          "short": "Cosmos DB for MongoDB",
+          "why": "A managed document database that speaks the MongoDB protocol, so the existing driver keeps working.",
+          "alternatives": [
+            {
+              "service": "MongoDB Atlas on Azure",
+              "reason": "Full MongoDB feature set from the MongoDB vendor."
+            }
+          ]
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "MongoDB Atlas on Google Cloud",
+          "short": "MongoDB Atlas",
+          "why": "Google Cloud has no native MongoDB service; Atlas is the managed option and keeps full MongoDB compatibility.",
+          "alternatives": [
+            {
+              "service": "Firestore",
+              "reason": "A native document database but with a different API, so code changes are needed."
+            }
+          ]
+        }
+      }
     },
     "cache": {
       "aws": {
-        "server": {"service": "Amazon ElastiCache", "short": "ElastiCache",
+        "server": {
+          "service": "Amazon ElastiCache",
+          "short": "ElastiCache",
           "why": "A managed Redis-compatible in-memory store used for caching and as a job queue broker.",
-          "alternatives": [{"service": "Amazon MemoryDB", "reason": "Durable Redis, but costs more and is only needed when Redis is your primary database."}]},
-        "serverless": {"service": "Amazon ElastiCache Serverless", "short": "ElastiCache Serverless",
+          "alternatives": [
+            {
+              "service": "Amazon MemoryDB",
+              "reason": "Durable Redis, but costs more and is only needed when Redis is your primary database."
+            }
+          ]
+        },
+        "serverless": {
+          "service": "Amazon ElastiCache Serverless",
+          "short": "ElastiCache Serverless",
           "why": "A managed Redis-compatible store with no nodes to size.",
-          "alternatives": [{"service": "Amazon ElastiCache", "reason": "Steadier cost for constant traffic."}]}
+          "alternatives": [
+            {
+              "service": "Amazon ElastiCache",
+              "reason": "Steadier cost for constant traffic."
+            }
+          ]
+        }
       },
-      "azure": {"any": {"service": "Azure Managed Redis", "short": "Managed Redis",
-        "why": "A managed Redis used for caching and as a job queue broker.",
-        "alternatives": [{"service": "Azure Cache for Redis", "reason": "The earlier Azure Redis offering; Microsoft has announced its retirement in favour of Azure Managed Redis."}]}},
-      "gcp": {"any": {"service": "Memorystore", "short": "Memorystore",
-        "why": "A managed Redis-compatible in-memory store used for caching and as a job queue broker.",
-        "alternatives": []}}
+      "azure": {
+        "any": {
+          "service": "Azure Managed Redis",
+          "short": "Managed Redis",
+          "why": "A managed Redis used for caching and as a job queue broker.",
+          "alternatives": [
+            {
+              "service": "Azure Cache for Redis",
+              "reason": "The earlier Azure Redis offering; Microsoft has announced its retirement in favour of Azure Managed Redis."
+            }
+          ]
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Memorystore",
+          "short": "Memorystore",
+          "why": "A managed Redis-compatible in-memory store used for caching and as a job queue broker.",
+          "alternatives": []
+        }
+      }
     },
     "queue_kafka": {
-      "aws": {"any": {"service": "Amazon MSK", "short": "MSK", "why": "Managed Apache Kafka, so existing Kafka clients work unchanged.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure Event Hubs (Kafka endpoint)", "short": "Event Hubs", "why": "A managed event stream that accepts Kafka clients.", "alternatives": []}},
-      "gcp": {"any": {"service": "Google Cloud Managed Service for Apache Kafka", "short": "Managed Kafka", "why": "Managed Apache Kafka, so existing Kafka clients work unchanged.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon MSK",
+          "short": "MSK",
+          "why": "Managed Apache Kafka, so existing Kafka clients work unchanged.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Event Hubs (Kafka endpoint)",
+          "short": "Event Hubs",
+          "why": "A managed event stream that accepts Kafka clients.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Google Cloud Managed Service for Apache Kafka",
+          "short": "Managed Kafka",
+          "why": "Managed Apache Kafka, so existing Kafka clients work unchanged.",
+          "alternatives": []
+        }
+      }
     },
     "queue_rabbitmq": {
-      "aws": {"any": {"service": "Amazon MQ for RabbitMQ", "short": "Amazon MQ", "why": "Managed RabbitMQ, so existing clients work unchanged.", "alternatives": []}},
-      "azure": {"any": {"service": "CloudAMQP (managed RabbitMQ via Azure Marketplace)", "short": "CloudAMQP", "why": "Azure has no native RabbitMQ service; CloudAMQP is a managed RabbitMQ that keeps clients unchanged.", "alternatives": []}},
-      "gcp": {"any": {"service": "CloudAMQP (managed RabbitMQ via Google Cloud Marketplace)", "short": "CloudAMQP", "why": "Google Cloud has no native RabbitMQ service; CloudAMQP is a managed RabbitMQ that keeps clients unchanged.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon MQ for RabbitMQ",
+          "short": "Amazon MQ",
+          "why": "Managed RabbitMQ, so existing clients work unchanged.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "CloudAMQP (managed RabbitMQ via Azure Marketplace)",
+          "short": "CloudAMQP",
+          "why": "Azure has no native RabbitMQ service; CloudAMQP is a managed RabbitMQ that keeps clients unchanged.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "CloudAMQP (managed RabbitMQ via Google Cloud Marketplace)",
+          "short": "CloudAMQP",
+          "why": "Google Cloud has no native RabbitMQ service; CloudAMQP is a managed RabbitMQ that keeps clients unchanged.",
+          "alternatives": []
+        }
+      }
     },
     "vector_service": {
-      "aws": {"any": {"service": "Amazon OpenSearch Service (vector search)", "short": "OpenSearch", "why": "Stores and searches embeddings when the main database cannot hold vectors.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure AI Search", "short": "AI Search", "why": "Stores and searches embeddings when the main database cannot hold vectors.", "alternatives": []}},
-      "gcp": {"any": {"service": "Vertex AI Vector Search", "short": "Vector Search", "why": "Stores and searches embeddings when the main database cannot hold vectors.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon OpenSearch Service (vector search)",
+          "short": "OpenSearch",
+          "why": "Stores and searches embeddings when the main database cannot hold vectors.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure AI Search",
+          "short": "AI Search",
+          "why": "Stores and searches embeddings when the main database cannot hold vectors.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Vertex AI Vector Search",
+          "short": "Vector Search",
+          "why": "Stores and searches embeddings when the main database cannot hold vectors.",
+          "alternatives": []
+        }
+      }
     },
     "search": {
-      "aws": {"any": {"service": "Amazon OpenSearch Service", "short": "OpenSearch", "why": "Managed full-text search that replaces a search engine you would otherwise run and back up yourself.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure AI Search", "short": "AI Search", "why": "Managed full-text search that replaces a search engine you would otherwise run and back up yourself.", "alternatives": []}},
-      "gcp": {"any": {"service": "Elastic Cloud on Google Cloud", "short": "Elastic Cloud", "why": "Managed Elasticsearch from the vendor; Google Cloud has no native full-text search service with the same API.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon OpenSearch Service",
+          "short": "OpenSearch",
+          "why": "Managed full-text search that replaces a search engine you would otherwise run and back up yourself.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure AI Search",
+          "short": "AI Search",
+          "why": "Managed full-text search that replaces a search engine you would otherwise run and back up yourself.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Elastic Cloud on Google Cloud",
+          "short": "Elastic Cloud",
+          "why": "Managed Elasticsearch from the vendor; Google Cloud has no native full-text search service with the same API.",
+          "alternatives": []
+        }
+      }
     },
     "gpu": {
-      "aws": {"any": {"service": "Amazon EC2 GPU instances", "short": "EC2 GPU", "why": "Virtual machines with GPUs for serving a model you host yourself.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure N-series virtual machines", "short": "N-series VMs", "why": "Virtual machines with GPUs for serving a model you host yourself.", "alternatives": []}},
-      "gcp": {"any": {"service": "Compute Engine with GPUs", "short": "Compute Engine GPU", "why": "Virtual machines with GPUs for serving a model you host yourself.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon EC2 GPU instances",
+          "short": "EC2 GPU",
+          "why": "Virtual machines with GPUs for serving a model you host yourself.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure N-series virtual machines",
+          "short": "N-series VMs",
+          "why": "Virtual machines with GPUs for serving a model you host yourself.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Compute Engine with GPUs",
+          "short": "Compute Engine GPU",
+          "why": "Virtual machines with GPUs for serving a model you host yourself.",
+          "alternatives": []
+        }
+      }
     },
     "storage": {
-      "aws": {"any": {"service": "Amazon S3", "short": "S3", "why": "Durable object storage for files, uploads and backups.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure Blob Storage", "short": "Blob Storage", "why": "Durable object storage for files, uploads and backups.", "alternatives": []}},
-      "gcp": {"any": {"service": "Cloud Storage", "short": "Cloud Storage", "why": "Durable object storage for files, uploads and backups.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon S3",
+          "short": "S3",
+          "why": "Durable object storage for files, uploads and backups.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Blob Storage",
+          "short": "Blob Storage",
+          "why": "Durable object storage for files, uploads and backups.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud Storage",
+          "short": "Cloud Storage",
+          "why": "Durable object storage for files, uploads and backups.",
+          "alternatives": []
+        }
+      }
     },
     "static_site": {
-      "aws": {"any": {"service": "Amazon S3 with CloudFront", "short": "S3 + CloudFront", "why": "Hosts the built front end as static files served from locations near users, with no server to run.", "alternatives": [{"service": "AWS Amplify Hosting", "reason": "Adds a build pipeline but is less flexible."}]}},
-      "azure": {"any": {"service": "Azure Static Web Apps", "short": "Static Web Apps", "why": "Hosts the built front end as static files with a global CDN and no server to run.", "alternatives": []}},
-      "gcp": {"any": {"service": "Cloud Storage with Cloud CDN", "short": "Cloud Storage + CDN", "why": "Hosts the built front end as static files served from locations near users, with no server to run.", "alternatives": [{"service": "Firebase Hosting", "reason": "Simpler setup for small sites."}]}}
+      "aws": {
+        "any": {
+          "service": "Amazon S3 with CloudFront",
+          "short": "S3 + CloudFront",
+          "why": "Hosts the built front end as static files served from locations near users, with no server to run.",
+          "alternatives": [
+            {
+              "service": "AWS Amplify Hosting",
+              "reason": "Adds a build pipeline but is less flexible."
+            }
+          ]
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Static Web Apps",
+          "short": "Static Web Apps",
+          "why": "Hosts the built front end as static files with a global CDN and no server to run.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud Storage with Cloud CDN",
+          "short": "Cloud Storage + CDN",
+          "why": "Hosts the built front end as static files served from locations near users, with no server to run.",
+          "alternatives": [
+            {
+              "service": "Firebase Hosting",
+              "reason": "Simpler setup for small sites."
+            }
+          ]
+        }
+      }
     },
     "identity": {
-      "aws": {"any": {"service": "Amazon Cognito", "short": "Cognito", "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.", "alternatives": []}},
-      "azure": {"any": {"service": "Microsoft Entra External ID", "short": "Entra External ID", "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.", "alternatives": []}},
-      "gcp": {"any": {"service": "Identity Platform", "short": "Identity Platform", "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon Cognito",
+          "short": "Cognito",
+          "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Microsoft Entra External ID",
+          "short": "Entra External ID",
+          "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Identity Platform",
+          "short": "Identity Platform",
+          "why": "Managed sign-up, sign-in and token issuing, so the app does not store passwords itself.",
+          "alternatives": []
+        }
+      }
     },
     "secrets": {
-      "aws": {"any": {"service": "AWS Secrets Manager", "short": "Secrets Manager", "why": "Keeps keys and passwords out of code and hands them to the application at run time through its cloud identity.", "alternatives": [{"service": "AWS Systems Manager Parameter Store", "reason": "Cheaper but without built-in rotation for every secret type."}]}},
-      "azure": {"any": {"service": "Azure Key Vault", "short": "Key Vault", "why": "Keeps keys and passwords out of code and hands them to the application at run time through its managed identity.", "alternatives": []}},
-      "gcp": {"any": {"service": "Secret Manager", "short": "Secret Manager", "why": "Keeps keys and passwords out of code and hands them to the application at run time through its service account.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "AWS Secrets Manager",
+          "short": "Secrets Manager",
+          "why": "Keeps keys and passwords out of code and hands them to the application at run time through its cloud identity.",
+          "alternatives": [
+            {
+              "service": "AWS Systems Manager Parameter Store",
+              "reason": "Cheaper but without built-in rotation for every secret type."
+            }
+          ]
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Key Vault",
+          "short": "Key Vault",
+          "why": "Keeps keys and passwords out of code and hands them to the application at run time through its managed identity.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Secret Manager",
+          "short": "Secret Manager",
+          "why": "Keeps keys and passwords out of code and hands them to the application at run time through its service account.",
+          "alternatives": []
+        }
+      }
     },
     "registry": {
-      "aws": {"any": {"service": "Amazon ECR", "short": "ECR", "why": "Stores the container images built from your Dockerfile, next to the service that runs them.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure Container Registry", "short": "Container Registry", "why": "Stores the container images built from your Dockerfile, next to the service that runs them.", "alternatives": []}},
-      "gcp": {"any": {"service": "Artifact Registry", "short": "Artifact Registry", "why": "Stores the container images built from your Dockerfile, next to the service that runs them.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon ECR",
+          "short": "ECR",
+          "why": "Stores the container images built from your Dockerfile, next to the service that runs them.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Container Registry",
+          "short": "Container Registry",
+          "why": "Stores the container images built from your Dockerfile, next to the service that runs them.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Artifact Registry",
+          "short": "Artifact Registry",
+          "why": "Stores the container images built from your Dockerfile, next to the service that runs them.",
+          "alternatives": []
+        }
+      }
     },
     "observability": {
-      "aws": {"any": {"service": "Amazon CloudWatch", "short": "CloudWatch", "why": "Collects logs and metrics and raises alarms, so failures are visible.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure Monitor", "short": "Azure Monitor", "why": "Collects logs and metrics and raises alerts, so failures are visible.", "alternatives": []}},
-      "gcp": {"any": {"service": "Cloud Logging and Cloud Monitoring", "short": "Logging + Monitoring", "why": "Collects logs and metrics and raises alerts, so failures are visible.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon CloudWatch",
+          "short": "CloudWatch",
+          "why": "Collects logs and metrics and raises alarms, so failures are visible.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Monitor",
+          "short": "Azure Monitor",
+          "why": "Collects logs and metrics and raises alerts, so failures are visible.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud Logging and Cloud Monitoring",
+          "short": "Logging + Monitoring",
+          "why": "Collects logs and metrics and raises alerts, so failures are visible.",
+          "alternatives": []
+        }
+      }
     },
     "managed_ai": {
-      "aws": {"any": {"service": "Amazon Bedrock", "short": "Bedrock", "why": "Hosts several model families inside your AWS account.", "alternatives": []}},
-      "azure": {"any": {"service": "Azure OpenAI", "short": "Azure OpenAI", "why": "Hosts OpenAI models inside your Azure subscription.", "alternatives": []}},
-      "gcp": {"any": {"service": "Vertex AI", "short": "Vertex AI", "why": "Hosts several model families inside your Google Cloud project.", "alternatives": []}}
+      "aws": {
+        "any": {
+          "service": "Amazon Bedrock",
+          "short": "Bedrock",
+          "why": "Hosts several model families inside your AWS account.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure OpenAI",
+          "short": "Azure OpenAI",
+          "why": "Hosts OpenAI models inside your Azure subscription.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Vertex AI",
+          "short": "Vertex AI",
+          "why": "Hosts several model families inside your Google Cloud project.",
+          "alternatives": []
+        }
+      }
+    },
+    "warehouse": {
+      "aws": {
+        "any": {
+          "service": "Amazon Redshift",
+          "short": "Redshift",
+          "why": "A managed data warehouse for analytics over large datasets.",
+          "alternatives": []
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Synapse Analytics",
+          "short": "Synapse",
+          "why": "A managed data warehouse and analytics service.",
+          "alternatives": []
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "BigQuery",
+          "short": "BigQuery",
+          "why": "A serverless data warehouse for analytics over large datasets.",
+          "alternatives": []
+        }
+      }
     }
   }
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Turn a scan plus two user choices into a cloud plan.
 
-Inputs: the scan from ast_scanner.py, the cloud (aws, azure, gcp) and the compute model
-(server or serverless). Output: plan.json with one decision per service, each carrying
+Inputs: the scan from ast_scanner.py, the provider (any hosting provider in the registry, for example
+aws, azure, gcp, hetzner, vercel or supabase), optional overlay providers (--also neon,cloudflare) and the
+compute model (server or serverless). Output: plan.json with one decision per service, each carrying
 the evidence from the code, a plain-language reason, the alternatives not chosen, and a
 fixed web-verification query. The same inputs always give byte-identical output, so the
 plan does not depend on which AI model runs the skill.
@@ -18,6 +19,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import providers  # noqa: E402
+
 CATALOG_PATH = HERE.parent / "references" / "service-catalog.json"
 
 BACKEND_FRAMEWORKS = ("FastAPI", "Django", "Flask", "Express", "NestJS", "Ruby on Rails",
@@ -55,7 +59,9 @@ COST_DRIVERS = {
 
 
 def load_catalog(path=CATALOG_PATH):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    """The base catalogue merged with every provider in references/providers."""
+    base = json.loads(Path(path).read_text(encoding="utf-8"))
+    return providers.merged_catalog(base) if Path(path) == CATALOG_PATH else base
 
 
 class Scan:
@@ -102,35 +108,91 @@ def sentence_found(scan, names):
     return "The scan found " + " and ".join(parts) + "." if parts else ""
 
 
-def build_plan(scan_data, catalog, cloud, mode):
+def hosting_providers(catalog):
+    return [pid for pid, info in catalog["clouds"].items() if info.get("kind", "cloud") != "enterprise"]
+
+
+def build_plan(scan_data, catalog, cloud, mode, also=()):
     if cloud not in catalog["clouds"]:
-        raise ValueError("cloud must be one of: " + ", ".join(catalog["clouds"]))
+        raise ValueError("cloud must be one of: " + ", ".join(hosting_providers(catalog)))
+    registry = catalog.get("providers", {})
+    if cloud in registry and registry[cloud]["kind"] == "enterprise":
+        raise ValueError("%s is an enterprise platform that SolsArch reads for structure only; choose a hosting provider"
+                         % registry[cloud]["name"])
     if mode not in catalog["modes"]:
         raise ValueError("compute model must be one of: " + ", ".join(catalog["modes"]))
+    overlays = []
+    for pid in also or ():
+        if pid == cloud or pid in overlays:
+            continue
+        if pid not in registry or registry[pid]["kind"] == "enterprise" or not registry[pid].get("overlay"):
+            raise ValueError("%s cannot be combined with another provider; choose one of: %s"
+                             % (pid, ", ".join(sorted(k for k, v in registry.items() if v["kind"] != "enterprise" and v.get("overlay")))))
+        overlays.append(pid)
     scan = Scan(scan_data)
     cloud_info = catalog["clouds"][cloud]
-    decisions, external, questions = [], [], []
+    decisions, external, questions, gaps = [], [], [], []
     keys = set()
+    provider_of = {}
+    fallback_notes = {}
+
+    def entry_for(need, provider):
+        options = catalog["services"].get(need, {}).get(provider)
+        if not options:
+            return None, None
+        if mode in options:
+            return options[mode], None
+        if "any" in options:
+            note = None
+            if need == "compute" and mode == "serverless":
+                note = registry.get(provider, {}).get("gaps", {}).get("serverless")
+            return options["any"], note
+        other = options.get("server") or options.get("serverless")
+        name = catalog["clouds"][provider]["name"]
+        note = (registry.get(provider, {}).get("gaps", {}).get("serverless")
+                or "%s has no %s compute in this catalogue, so its other compute service is used." % (name, mode))
+        return other, note
 
     def pick(need):
-        options = catalog["services"][need][cloud]
-        return options.get(mode) or options["any"]
+        """The catalogue entry for a need, or None when no chosen provider offers it natively."""
+        for pid in overlays:
+            if need in registry[pid]["overlay"]:
+                entry, note = entry_for(need, pid)
+                if entry:
+                    provider_of[need], fallback_notes[need] = pid, note
+                    return entry
+        entry, note = entry_for(need, cloud)
+        if entry:
+            provider_of[need], fallback_notes[need] = cloud, note
+        return entry
+
+    def gap_text(need, role):
+        custom = registry.get(cloud, {}).get("gaps", {}).get(need)
+        name = cloud_info["name"]
+        return custom or "%s has no native service for this in the catalogue; use a partner service or run it yourself." % name
 
     def add(key, need, category, role, layer, evidence, intro, tech="", replaces=None, caveats=(),
             confidence="confirmed", service=None, short=None, why=None, alternatives=None, reason=None):
         entry = pick(need) if need else {}
+        if need and entry is None:
+            gaps.append({"key": key, "need": need, "role": role, "message": gap_text(need, role)})
+            return False
+        provider = provider_of.get(need, cloud) if need else cloud
         text = " ".join(part for part in (intro, why or entry.get("why", "")) if part)
-        notes = [c for c in ([entry.get("caveat")] + list(caveats)) if c]
+        notes = [c for c in ([entry.get("caveat"), fallback_notes.get(need) if need else None] + list(caveats)) if c]
         decisions.append({
-            "key": key, "category": category, "role": role, "layer": layer, "cloud": cloud,
+            "key": key, "category": category, "role": role, "layer": layer, "cloud": cloud, "provider": provider,
             "service": service or entry["service"], "short": short or entry["short"], "tech": tech,
             "evidence": evidence, "evidence_text": ", ".join(e["text"] for e in evidence) or "-",
             "why": text, "replaces": replaces,
             "alternatives": alternatives if alternatives is not None else entry.get("alternatives", []),
             "caveats": notes, "confidence": confidence, "need": need,
             "reason": reason or entry.get("why", ""),
+            "builtin": bool(entry.get("builtin")), "partner": bool(entry.get("partner")),
+            "selfmanaged": bool(entry.get("selfmanaged")),
         })
         keys.add(key)
+        return True
 
     signals = scan_data.get("signals", {})
     streaming = signals.get("streaming", "none")
@@ -142,8 +204,9 @@ def build_plan(scan_data, catalog, cloud, mode):
     has_next = scan.has("Next.js")
     spa = (scan.has("React") or scan.has("Vue")) and not has_next
     serverless_notes = []
-    if mode == "serverless" and cloud in ("aws", "azure") and (backend or has_next):
-        switch = catalog["services"]["compute"][cloud]["server"]["service"]
+    server_entry = catalog["services"].get("compute", {}).get(cloud, {}).get("server")
+    if mode == "serverless" and cloud in ("aws", "azure") and (backend or has_next) and server_entry:
+        switch = server_entry["service"]
         serverless_notes.append(
             "%s run on functions through an adapter layer, and large apps may need changes. If that is too much change, "
             "choose the server-based model, which uses %s." % (", ".join(backend + (["Next.js"] if has_next else [])), switch))
@@ -215,9 +278,11 @@ def build_plan(scan_data, catalog, cloud, mode):
                 reason="Embeddings live in the same PostgreSQL through the pgvector extension, so there is no extra database to run.",
                 replaces=("%s, which stores vectors in files or memory of the container" % ", ".join(embedded))
                 if embedded else None,
-                alternatives=[{"service": pick("vector_service")["service"],
-                               "reason": "A separate vector service scales on its own but adds another system to run and secure."}],
+                alternatives=([{"service": pick("vector_service")["service"],
+                                "reason": "A separate vector service scales on its own but adds another system to run and secure."}]
+                              if pick("vector_service") else []),
                 why="")
+            decisions[-1]["provider"] = db["provider"]
         else:
             add("vector", "vector_service", "Vector search", "Vector search", "data",
                 file_evidence(scan.evidence(*names)), sentence_found(scan, names[:2]), tech=", ".join(names))
@@ -257,12 +322,14 @@ def build_plan(scan_data, catalog, cloud, mode):
     # ---------------------------------------------------------------- services that stay external
     for sdk, label in EXTERNAL_AI.items():
         if scan.has(sdk):
+            managed = pick("managed_ai")
             external.append({"key": "ai_" + label.split()[0].lower(), "name": label,
                              "role": "Language model API (stays as it is)", "evidence": file_evidence(scan.evidence(sdk)),
-                             "why": "%s Calls go to the provider's own API. Moving to %s would keep the model but require code changes, "
-                                    "so it is listed as an option and not part of this plan." % (
-                                        sentence_found(scan, [sdk]), pick("managed_ai")["service"]),
-                             "option": pick("managed_ai")["service"]})
+                             "why": ("%s Calls go to the provider's own API. Moving to %s would keep the model but require code changes, "
+                                     "so it is listed as an option and not part of this plan." % (
+                                         sentence_found(scan, [sdk]), managed["service"])) if managed else
+                                    "%s Calls go to the provider's own API, which stays as it is." % sentence_found(scan, [sdk]),
+                             "option": managed["service"] if managed else None})
     if scan.has("Pinecone"):
         external.append({"key": "vector_pinecone", "name": "Pinecone", "role": "Hosted vector database (stays as it is)",
                          "evidence": file_evidence(scan.evidence("Pinecone")),
@@ -322,6 +389,10 @@ def build_plan(scan_data, catalog, cloud, mode):
         questions.append("PyTorch or Transformers was found. Where do the models run? GPU hosting is not part of this plan.")
     if not has_compute and not spa:
         questions.append("No application framework or Dockerfile was found. Describe how the app runs so compute can be chosen.")
+    if cloud_info.get("kind") in ("data", "gpu") and not overlays:
+        questions.append("%s provides %s, not general application hosting. Choose where the application runs and combine them, "
+                         "for example --cloud aws --also %s." % (cloud_info["name"], "data services" if cloud_info.get("kind") == "data"
+                                                                  else "GPU and model hosting", cloud))
     costs = []
     for d in decisions:
         driver = next((COST_DRIVERS[c] for c in (d["key"], d["key"].split("_")[0]) if c in COST_DRIVERS), None)
@@ -339,13 +410,17 @@ def build_plan(scan_data, catalog, cloud, mode):
         if same:
             same["keys"].append(d["key"])  # one web check covers every decision using this service
             continue
-        queue.append({"key": d["key"], "keys": [d["key"]], "service": d["service"], "cloud": cloud,
-                      "query": "%s %s official documentation" % (d["service"], cloud_info["name"]),
-                      "domains": cloud_info["domains"]})
+        owner = catalog["clouds"].get(d.get("provider") or cloud, cloud_info)
+        queue.append({"key": d["key"], "keys": [d["key"]], "service": d["service"], "cloud": d.get("provider") or cloud,
+                      "query": "%s %s official documentation" % (d["service"], owner["name"]),
+                      "domains": owner["domains"]})
     plan = {
-        "plan_version": 1, "project": scan_data.get("root", ""), "cloud": cloud, "cloud_name": cloud_info["name"],
+        "plan_version": 2, "project": scan_data.get("root", ""), "cloud": cloud, "cloud_name": cloud_info["name"],
+        "provider_kind": cloud_info.get("kind", "cloud"), "overlays": overlays,
+        "overlay_names": [catalog["clouds"][o]["name"] for o in overlays],
         "compute_model": mode, "compute_label": catalog["modes"][mode], "decisions": decisions,
-        "external_services": external, "open_questions": questions, "cost_drivers": costs, "verify_queue": queue,
+        "gaps": gaps, "external_services": external, "open_questions": questions, "cost_drivers": costs,
+        "verify_queue": queue,
     }
     plan["fingerprint"] = hashlib.sha256(json.dumps(plan, sort_keys=True).encode("utf-8")).hexdigest()[:12]
     return plan
@@ -354,7 +429,8 @@ def build_plan(scan_data, catalog, cloud, mode):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Build the SolsArch cloud plan from a scan")
     parser.add_argument("--scan", required=True, help="Scan JSON from ast_scanner.py")
-    parser.add_argument("--cloud", required=True, choices=("aws", "azure", "gcp"))
+    parser.add_argument("--cloud", required=True, choices=providers.hosting_ids())
+    parser.add_argument("--also", default="", help="Comma-separated overlay providers, for example neon,cloudflare")
     parser.add_argument("--compute", required=True, choices=("server", "serverless"), dest="mode")
     parser.add_argument("--output", help="Write plan JSON here instead of stdout")
     args = parser.parse_args(argv)
@@ -362,7 +438,7 @@ def main(argv=None):
         scan = json.loads(Path(args.scan).read_text(encoding="utf-8"))
         if "components" not in scan:
             raise ValueError("not output of ast_scanner.py")
-        plan = build_plan(scan, load_catalog(), args.cloud, args.mode)
+        plan = build_plan(scan, load_catalog(), args.cloud, args.mode, [x for x in args.also.split(",") if x])
     except (OSError, ValueError) as error:
         sys.stderr.write("error: %s\n" % error)
         return 2

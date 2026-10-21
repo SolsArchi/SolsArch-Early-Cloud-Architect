@@ -1,0 +1,117 @@
+{
+  "group": "app-platforms",
+  "note": "Platform-as-a-service providers. Built-in means the platform provides it without a separate resource. Partner means the platform sells or integrates a service run by another company.",
+  "providers": {
+    "flyio": {
+      "name": "Fly.io", "kind": "paas", "brand": {"fill": "#7B3BE2", "stroke": "#3F1C80", "text": "#FFFFFF"},
+      "domains": ["fly.io", "www.fly.io"], "pricing_page": "https://fly.io/docs/about/pricing/",
+      "overlay": [],
+      "services": {
+        "compute": {
+          "server": ["Fly Apps on always-on Fly Machines", "Fly Machines", "Runs your containers as Firecracker-based Machines close to users, always on."],
+          "serverless": ["Fly Apps on auto-stopping Fly Machines", "Fly Machines (auto-stop)", "Runs your containers as Machines that stop when idle and start on the next request.", {"caveat": "The first request after an idle period waits for a Machine to start."}]
+        },
+        "ingress": {"any": ["Fly Proxy", "Fly Proxy", "Terminates TLS and load-balances requests to your Machines.", {"builtin": true}]},
+        "edge": {"any": ["Fly Proxy anycast edge", "Fly edge", "Routes users to the nearest region and absorbs basic traffic floods.", {"builtin": true, "caveat": "There is no separate web application firewall; add Cloudflare or a similar service in front if you need one."}]},
+        "network": {"any": ["Fly private 6PN network", "6PN network", "A private IPv6 network between your apps that the internet cannot reach.", {"builtin": true}]},
+        "db_postgres": {"any": ["Fly.io Managed Postgres", "Managed Postgres", "A managed PostgreSQL cluster with backups, run by Fly.io."]},
+        "cache": {"any": ["Upstash for Redis on Fly.io", "Upstash Redis", "A managed Redis-compatible store sold through Fly.io.", {"partner": true}]},
+        "storage": {"any": ["Tigris Object Storage on Fly.io", "Tigris", "S3-compatible object storage sold through Fly.io.", {"partner": true}]},
+        "secrets": {"any": ["Fly Secrets", "Fly Secrets", "Encrypted values handed to your Machines as environment variables.", {"builtin": true}]},
+        "registry": {"any": ["Fly.io registry", "Fly registry", "Stores the images Fly builds from your code.", {"builtin": true}]},
+        "observability": {"any": ["Fly Metrics and log shipping", "Fly Metrics", "Built-in metrics and logs, with an option to ship logs elsewhere.", {"builtin": true}]},
+        "gpu": {"any": ["Fly GPU Machines", "GPU Machines", "GPU-backed Machines for hosting models.", {"caveat": "Check current GPU availability and regions in the Fly.io documentation."}]}
+      },
+      "gaps": {"db_mysql": "Run MySQL in a container on a Fly volume, or use a managed MySQL from a partner.", "db_mongo": "Use MongoDB Atlas.", "queue_kafka": "Use Confluent Cloud or Redpanda Cloud.", "search": "Use a hosted search service such as Meilisearch Cloud or Elastic Cloud.", "identity": "Use a hosted sign-in service such as Clerk or Auth0."}
+    },
+    "heroku": {
+      "name": "Heroku", "kind": "paas", "brand": {"fill": "#430098", "stroke": "#25005A", "text": "#FFFFFF"},
+      "domains": ["heroku.com", "devcenter.heroku.com", "www.heroku.com"], "pricing_page": "https://www.heroku.com/pricing",
+      "overlay": [],
+      "services": {
+        "compute": {"any": ["Heroku Dynos", "Dynos", "Runs your app and workers as dynos, containers that Heroku builds and manages.", {"caveat": "Dynos are always-on; there is no scale-to-zero. Router requests time out after 30 seconds, so stream or poll for long work."}]},
+        "ingress": {"any": ["Heroku Router", "Heroku Router", "Terminates TLS and routes requests to your dynos.", {"builtin": true}]},
+        "network": {"any": ["Heroku Private Spaces", "Private Spaces", "An isolated network for your dynos and data services.", {"caveat": "Private Spaces are an Enterprise feature; smaller plans use shared infrastructure."}]},
+        "db_postgres": {"any": ["Heroku Postgres", "Heroku Postgres", "A managed PostgreSQL with backups and follower databases."]},
+        "cache": {"any": ["Heroku Key-Value Store", "Key-Value Store", "A managed Redis-compatible store used for caching and as a job queue broker."]},
+        "queue_kafka": {"any": ["Apache Kafka on Heroku", "Kafka on Heroku", "A managed Apache Kafka."]},
+        "secrets": {"any": ["Heroku Config Vars", "Config Vars", "Encrypted environment variables handed to your dynos.", {"builtin": true}]},
+        "registry": {"any": ["Heroku Container Registry", "Container Registry", "Stores your container images when you deploy Docker images.", {"builtin": true}]},
+        "observability": {"any": ["Heroku Logplex and metrics", "Logplex", "Collects your dyno logs and basic metrics, with log drains to other tools.", {"builtin": true}]}
+      },
+      "gaps": {"edge": "Put Cloudflare or a similar CDN and firewall in front of the Heroku router.", "db_mongo": "Use MongoDB Atlas.", "search": "Add a search add-on from the Heroku Elements marketplace.", "storage": "Use Amazon S3 or another object store; dynos have no persistent disk.", "identity": "Use a hosted sign-in service such as Auth0 or Clerk.", "egress": "Outbound traffic leaves the router's shared addresses; use a static-IP add-on if a partner requires a fixed address."}
+    },
+    "netlify": {
+      "name": "Netlify", "kind": "paas", "brand": {"fill": "#00C7B7", "stroke": "#00695F", "text": "#0B2A27"},
+      "domains": ["netlify.com", "docs.netlify.com", "www.netlify.com"], "pricing_page": "https://www.netlify.com/pricing/",
+      "overlay": [],
+      "services": {
+        "compute": {"any": ["Netlify Functions", "Netlify Functions", "Runs your server-side code per request and scales automatically.", {"caveat": "Netlify runs functions, not always-on containers. Each invocation has a time limit, so long jobs and persistent connections need another host."}]},
+        "static_site": {"any": ["Netlify hosting", "Netlify hosting", "Builds your front end and serves it from Netlify's CDN.", {"builtin": true}]},
+        "ingress": {"any": ["Netlify edge network", "Netlify edge", "Terminates TLS and routes requests to your site and functions.", {"builtin": true}]},
+        "edge": {"any": ["Netlify CDN and Edge Functions", "Netlify CDN", "Serves cached content close to users and runs code at the edge.", {"builtin": true}]},
+        "storage": {"any": ["Netlify Blobs", "Netlify Blobs", "Key-value and file storage for your site and functions."]},
+        "db_postgres": {"any": ["Neon Postgres through Netlify DB", "Netlify DB (Neon)", "A serverless PostgreSQL provisioned from Netlify and run by Neon.", {"partner": true}]},
+        "secrets": {"any": ["Netlify environment variables", "Environment variables", "Encrypted values handed to your builds and functions.", {"builtin": true}]},
+        "observability": {"any": ["Netlify function logs and log drains", "Function logs", "Shows function logs and can send them to other tools.", {"builtin": true}]}
+      },
+      "gaps": {"network": "Netlify has no private network; keep data stores on a provider that restricts access by credentials and allow-lists.", "db_mysql": "Use PlanetScale or another managed MySQL.", "db_mongo": "Use MongoDB Atlas.", "cache": "Use Upstash Redis.", "queue_kafka": "Use Confluent Cloud or Upstash Kafka.", "registry": "Not needed: Netlify builds from source.", "identity": "Use a hosted sign-in service such as Clerk or Auth0."}
+    },
+    "railway": {
+      "name": "Railway", "kind": "paas", "brand": {"fill": "#0B0D0E", "stroke": "#5C6670", "text": "#FFFFFF"},
+      "domains": ["railway.com", "docs.railway.com", "railway.app"], "pricing_page": "https://railway.com/pricing",
+      "overlay": [],
+      "services": {
+        "compute": {
+          "server": ["Railway services", "Railway services", "Builds and runs your containers, always on, with automatic deploys from your repository."],
+          "serverless": ["Railway services with App Sleeping", "Railway (App Sleeping)", "Runs your containers and puts them to sleep when idle.", {"caveat": "A sleeping service takes a moment to wake on the next request."}]
+        },
+        "ingress": {"any": ["Railway edge proxy", "Railway proxy", "Terminates TLS and routes requests to your services.", {"builtin": true}]},
+        "network": {"any": ["Railway private networking", "Private networking", "A private network between the services of a project.", {"builtin": true}]},
+        "db_postgres": {"any": ["Railway PostgreSQL", "Railway PostgreSQL", "A PostgreSQL database deployed from a Railway template.", {"selfmanaged": true, "caveat": "It runs as a service in your project; set up backups and upgrades yourself."}]},
+        "db_mysql": {"any": ["Railway MySQL", "Railway MySQL", "A MySQL database deployed from a Railway template.", {"selfmanaged": true, "caveat": "It runs as a service in your project; set up backups and upgrades yourself."}]},
+        "db_mongo": {"any": ["Railway MongoDB", "Railway MongoDB", "A MongoDB database deployed from a Railway template.", {"selfmanaged": true, "caveat": "It runs as a service in your project; set up backups and upgrades yourself."}]},
+        "cache": {"any": ["Railway Redis", "Railway Redis", "A Redis service deployed from a Railway template.", {"selfmanaged": true, "caveat": "It runs as a service in your project; persistence and upgrades are yours to manage."}]},
+        "storage": {"any": ["Railway Buckets", "Railway Buckets", "S3-compatible object storage inside a Railway project."]},
+        "secrets": {"any": ["Railway variables", "Variables", "Encrypted values handed to your services as environment variables.", {"builtin": true}]},
+        "observability": {"any": ["Railway logs and metrics", "Logs + metrics", "Shows service logs and resource metrics in the dashboard.", {"builtin": true}]}
+      },
+      "gaps": {"edge": "Put Cloudflare or a similar CDN and firewall in front of the Railway proxy.", "registry": "Not needed: Railway builds from source or pulls public images.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_kafka": "Deploy Kafka from a template or use Confluent Cloud."}
+    },
+    "render": {
+      "name": "Render", "kind": "paas", "brand": {"fill": "#46E3B7", "stroke": "#0B6B52", "text": "#10241B"},
+      "domains": ["render.com", "docs.render.com"], "pricing_page": "https://render.com/pricing",
+      "overlay": [],
+      "services": {
+        "compute": {"any": ["Render Web Services and Background Workers", "Render services", "Builds and runs your app and workers as containers with automatic deploys.", {"caveat": "Free instances spin down when idle; paid instances stay on."}]},
+        "static_site": {"any": ["Render Static Sites", "Static Sites", "Builds your front end and serves it from Render's CDN."]},
+        "ingress": {"any": ["Render edge network", "Render edge", "Terminates TLS and routes requests to your services.", {"builtin": true}]},
+        "network": {"any": ["Render private network", "Private network", "A private network between the services in a region.", {"builtin": true}]},
+        "db_postgres": {"any": ["Render Postgres", "Render Postgres", "A managed PostgreSQL with backups, run by Render."]},
+        "cache": {"any": ["Render Key Value", "Key Value", "A managed Redis-compatible store used for caching and as a job queue broker."]},
+        "secrets": {"any": ["Render environment groups and secret files", "Environment groups", "Encrypted values handed to your services.", {"builtin": true}]},
+        "observability": {"any": ["Render logs and metrics", "Logs + metrics", "Shows service logs and metrics, with log streaming to other tools.", {"builtin": true}]}
+      },
+      "gaps": {"edge": "Render includes a CDN for static sites; add Cloudflare in front for a firewall.", "db_mysql": "Run MySQL as a private service with a persistent disk, or use a managed MySQL from a partner.", "db_mongo": "Use MongoDB Atlas.", "storage": "Render has no object storage; use Amazon S3, Cloudflare R2 or similar. Persistent disks are available for single-instance services.", "registry": "Not needed: Render builds from source or pulls images.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_kafka": "Use Confluent Cloud or Upstash Kafka."}
+    },
+    "vercel": {
+      "name": "Vercel", "kind": "paas", "brand": {"fill": "#000000", "stroke": "#5C5C5C", "text": "#FFFFFF"},
+      "domains": ["vercel.com", "www.vercel.com"], "pricing_page": "https://vercel.com/pricing",
+      "overlay": [],
+      "services": {
+        "compute": {"any": ["Vercel Functions", "Vercel Functions", "Runs your server-side code per request and scales automatically.", {"caveat": "Vercel runs functions, not always-on containers. Each invocation has a duration limit, so long jobs and persistent connections need another host."}]},
+        "static_site": {"any": ["Vercel hosting", "Vercel hosting", "Builds your front end and serves it from Vercel's global network.", {"builtin": true}]},
+        "ingress": {"any": ["Vercel Edge Network", "Edge Network", "Terminates TLS and routes requests to your site and functions.", {"builtin": true}]},
+        "edge": {"any": ["Vercel Edge Network with Vercel Firewall", "Vercel Firewall", "Serves cached content close to users and filters malicious traffic.", {"builtin": true}]},
+        "db_postgres": {"any": ["Neon Postgres through the Vercel Marketplace", "Neon (Marketplace)", "A serverless PostgreSQL provisioned from Vercel and run by Neon.", {"partner": true}]},
+        "db_mongo": {"any": ["MongoDB Atlas through the Vercel Marketplace", "Atlas (Marketplace)", "A managed MongoDB provisioned from Vercel and run by MongoDB.", {"partner": true}]},
+        "cache": {"any": ["Upstash Redis through the Vercel Marketplace", "Upstash Redis (Marketplace)", "A managed Redis-compatible store provisioned from Vercel and run by Upstash.", {"partner": true}]},
+        "vector_service": {"any": ["Upstash Vector through the Vercel Marketplace", "Upstash Vector (Marketplace)", "A managed vector index provisioned from Vercel and run by Upstash.", {"partner": true}]},
+        "storage": {"any": ["Vercel Blob", "Vercel Blob", "Object storage for files and uploads."]},
+        "secrets": {"any": ["Vercel Environment Variables", "Environment variables", "Encrypted values handed to your builds and functions.", {"builtin": true}]},
+        "observability": {"any": ["Vercel Observability and Log Drains", "Observability", "Shows function logs and metrics and can send logs to other tools.", {"builtin": true}]}
+      },
+      "gaps": {"network": "Vercel has no private network by default; restrict data stores by credentials and allow-lists, or use Secure Compute if your plan has it.", "db_mysql": "Use PlanetScale or another managed MySQL.", "queue_kafka": "Use Confluent Cloud or Upstash Kafka.", "search": "Use a hosted search service such as Algolia or Elastic Cloud.", "registry": "Not needed: Vercel builds from source.", "identity": "Use a hosted sign-in service such as Clerk or Auth0."}
+    }
+  }
+}

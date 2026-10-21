@@ -23,6 +23,11 @@ import tempfile
 
 SCHEMA_VERSION = 1
 CLOUDS = ("aws", "azure", "gcp", "multi")
+try:
+    import providers as _providers
+    CLOUDS = tuple(_providers.hosting_ids()) + ("multi",)
+except Exception:  # the registry is optional for memory commands
+    pass
 STATUSES = ("PROPOSED", "APPROVED", "REJECTED", "SUPERSEDED")
 NO_VALUE = ("none", "unset", "null", "n/a", "")
 COMPUTE_MODELS = ("server", "serverless")

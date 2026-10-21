@@ -36,10 +36,12 @@ import evidence_bridge  # noqa: E402
 import facts as facts_store  # noqa: E402
 import memory_harness as mh  # noqa: E402
 import package_outputs  # noqa: E402
+import providers  # noqa: E402
 import recommend  # noqa: E402
 import verify_report  # noqa: E402
 
 CLOUD_LABELS = {"aws": "AWS", "azure": "Azure", "gcp": "Google Cloud"}
+MAJOR_CLOUDS = tuple(CLOUD_LABELS)
 MODE_LABELS = {"server": "Server-based (always-on containers)", "serverless": "Serverless (scales to zero)"}
 
 
@@ -84,8 +86,13 @@ def cmd_questions(args):
     suggested = max(hints, key=lambda k: (hints[k], k == "aws")) if hints and max(hints.values()) > 0 else None
     questions = []
     if "cloud" not in known:
-        questions.append({"id": "cloud", "question": "Which cloud do you want to use?",
-                          "options": [{"value": k, "label": v} for k, v in CLOUD_LABELS.items()]})
+        reg = providers.registry()
+        options = [{"value": k, "label": v, "group": reg[k]["group"]} for k, v in CLOUD_LABELS.items()]
+        options += [{"value": pid, "label": reg[pid]["name"], "group": reg[pid]["group"]}
+                    for pid in providers.hosting_ids() if pid not in CLOUD_LABELS]
+        questions.append({"id": "cloud", "question": "Which cloud or platform do you want to use?", "options": options,
+                          "present": "Offer AWS, Azure and Google Cloud first; list the others only if the user wants "
+                                     "something else. For a stack that mixes providers, use plan --also."})
     if "compute" not in known:
         questions.append({"id": "compute", "question": "Should the app run on servers or serverless?",
                           "options": [{"value": k, "label": v} for k, v in MODE_LABELS.items()]})
@@ -114,12 +121,16 @@ def cmd_scan(args):
     })
 
 
+def split_also(text):
+    return [x.strip().lower() for x in (text or "").split(",") if x.strip()]
+
+
 def cmd_plan(args):
     scan = read_json(state_dir(args.repo) / "scan.json")
     if not scan or "components" not in scan:
         return emit({"status": "error", "message": "No scan found. Run the scan step first."}, 2)
     try:
-        plan = recommend.build_plan(scan, recommend.load_catalog(), args.cloud, args.compute)
+        plan = recommend.build_plan(scan, recommend.load_catalog(), args.cloud, args.compute, split_also(args.also))
     except ValueError as error:
         return emit({"status": "error", "message": str(error)}, 1)
     target = state_dir(args.repo) / "plan.json"
@@ -137,6 +148,7 @@ def cmd_plan(args):
     memory = memory or mh.empty_memory()
     assumed = set(memory.get("assumed_fields") or [])
     memory["primary_cloud"], memory["compute_model"] = args.cloud, args.compute
+    memory["overlays"] = plan["overlays"]
     if args.assumed:
         assumed.update(("primary_cloud", "compute_model"))
     else:
@@ -149,7 +161,8 @@ def cmd_plan(args):
     sync_warning = mh.sync_plan(args.repo, plan)
     payload = {
         "status": "written", "file": str(target), "fingerprint": plan["fingerprint"],
-        "cloud": plan["cloud_name"], "compute_model": plan["compute_label"],
+        "cloud": plan["cloud_name"], "compute_model": plan["compute_label"], "overlays": plan["overlay_names"],
+        "not_available_natively": [{"role": g["role"], "message": g["message"]} for g in plan["gaps"]],
         "decisions": [{"key": d["key"], "service": d["service"], "role": d["role"], "confidence": d["confidence"]}
                       for d in plan["decisions"]],
         "to_verify": len(plan["verify_queue"]),
@@ -220,7 +233,9 @@ def cmd_run(args):
         cloud, assumed = hints or "aws", True
     if not compute:
         compute, assumed = "server", True
-    plan_args = ["plan", "--repo", repo, "--cloud", cloud, "--compute", compute] + (["--assumed"] if assumed else [])
+    also = args.also or ",".join(memory.get("overlays") or [])
+    plan_args = ["plan", "--repo", repo, "--cloud", cloud, "--compute", compute] + (["--also", also] if also else []) \
+        + (["--assumed"] if assumed else [])
     code, plan = capture(main, plan_args)
     steps["plan"] = {"status": plan.get("status"), "cloud": cloud, "compute": compute, "assumed": assumed}
     if code != 0:
@@ -246,7 +261,12 @@ def cmd_compare(args):
     if not scan or "components" not in scan:
         return emit({"status": "error", "message": "No scan found. Run the scan step first."}, 2)
     catalog = recommend.load_catalog()
-    plans = {cloud: recommend.build_plan(scan, catalog, cloud, args.compute) for cloud in CLOUD_LABELS}
+    chosen = providers.hosting_ids() if args.clouds == "all" else split_also(args.clouds) or list(MAJOR_CLOUDS)
+    unknown = [c for c in chosen if c not in providers.hosting_ids()]
+    if unknown:
+        return emit({"status": "error", "message": "unknown provider: %s" % ", ".join(unknown)}, 2)
+    plans = {cloud: recommend.build_plan(scan, catalog, cloud, args.compute) for cloud in chosen}
+    labels = {cloud: plans[cloud]["cloud_name"] for cloud in chosen}
     order, roles = [], {}
     for plan in plans.values():
         for d in plan["decisions"]:
@@ -256,16 +276,17 @@ def cmd_compare(args):
     rows = []
     for key in order:
         cells = []
-        for cloud in CLOUD_LABELS:
+        for cloud in chosen:
             match = next((d for d in plans[cloud]["decisions"] if d["key"] == key), None)
-            cells.append(match["service"] if match else "not needed")
+            gap = next((g for g in plans[cloud]["gaps"] if g["key"] == key), None)
+            cells.append(match["service"] if match else ("not native: " + gap["message"] if gap else "not needed"))
         rows.append((roles[key], cells))
     lines = ["# Cloud comparison: %s" % (scan.get("root") or "project"), "",
              "Compute model: %s. The same scan was placed on each cloud with the same fixed rules. "
              "This file compares service choices only; it does not estimate price or performance." % MODE_LABELS[args.compute],
-             "", "| Role | " + " | ".join(CLOUD_LABELS.values()) + " |", "| :--- | :--- | :--- | :--- |"]
+             "", "| Role | " + " | ".join(labels.values()) + " |", "| :--- | " + " | ".join(":---" for _ in chosen) + " |"]
     lines += ["| %s | %s |" % (role, " | ".join(c.replace("|", "/") for c in cells)) for role, cells in rows]
-    lines += ["", "To continue with one cloud, run: solsarch.py plan --repo REPO --cloud aws|azure|gcp --compute %s" % args.compute, ""]
+    lines += ["", "To continue with one provider, run: solsarch.py plan --repo REPO --cloud PROVIDER --compute %s" % args.compute, ""]
     target = Path(args.repo) / "docs" / "solsarch-cloud-comparison.md"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(chr(10).join(lines).encode("utf-8"))
@@ -289,9 +310,7 @@ def build_evidence(repo, icon_dir=None):
     summary = {"evidence_count": len(evidence["evidence"])}
     if plan and plan.get("cloud") and plan.get("compute_model"):
         import icon_diagram
-        import place_services
-        rules = read_json(Path(place_services.DEFAULT_RULES))
-        placements = place_services.place(evidence, rules, plan["cloud"], plan["compute_model"])
+        placements = evidence_bridge.placements_from_plan(plan, evidence)
         write_json(state_dir(repo) / "placements.json", placements)
         summary["placements"] = len(placements["placements"])
         try:
@@ -370,17 +389,20 @@ def main(argv=None):
             p.add_argument("--force", action="store_true", help="Package even if verification found errors")
     p = sub.add_parser("run")
     p.add_argument("--repo", default=".")
-    p.add_argument("--cloud", choices=("aws", "azure", "gcp"))
+    p.add_argument("--cloud", choices=providers.hosting_ids())
+    p.add_argument("--also", default="", help="Comma-separated overlay providers, for example neon,cloudflare")
     p.add_argument("--compute", choices=("server", "serverless"))
     p.add_argument("--icon-dir")
     p.add_argument("--force", action="store_true")
     sub.add_parser("guide")
     p = sub.add_parser("compare")
+    p.add_argument("--clouds", default="aws,azure,gcp", help="Comma-separated provider ids, or 'all'")
     p.add_argument("--repo", default=".")
     p.add_argument("--compute", choices=("server", "serverless"), default="server")
     p = sub.add_parser("plan")
     p.add_argument("--repo", default=".")
-    p.add_argument("--cloud", required=True, choices=("aws", "azure", "gcp"))
+    p.add_argument("--cloud", required=True, choices=providers.hosting_ids())
+    p.add_argument("--also", default="", help="Comma-separated overlay providers, for example neon,cloudflare")
     p.add_argument("--compute", required=True, choices=("server", "serverless"))
     p.add_argument("--assumed", action="store_true", help="The user did not choose these; mark them as assumed")
     p = sub.add_parser("facts")

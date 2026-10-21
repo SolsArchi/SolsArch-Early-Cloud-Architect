@@ -109,3 +109,36 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+PLACEMENT_CATEGORY = {
+    "compute_web": "Frontend compute", "compute_api": "Backend compute", "compute_app": "Application compute",
+    "compute_worker": "Background worker compute", "static_site": "Static frontend hosting", "ingress": "Public entry point",
+    "database": "Relational database", "database_mysql": "Relational database", "database_mongo": "Document database",
+    "vector": "Vector store", "cache": "Cache", "queue_rabbitmq": "Message broker", "queue_kafka": "Event streaming",
+    "storage": "Object storage", "secrets": "Secrets management", "egress": "Outbound internet access", "gpu": "GPU compute",
+}
+
+
+def placements_from_plan(plan, flat):
+    """Placements in the shape icon_diagram.py draws, taken from the plan so every provider works the same way."""
+    by_location = {}
+    for item in flat.get("evidence", []):
+        by_location.setdefault((item.get("file"), item.get("line")), []).append(item["id"])
+    placements = []
+    for decision in plan["decisions"]:
+        category = PLACEMENT_CATEGORY.get(decision["key"])
+        if not category:
+            continue
+        ids = []
+        for ev in decision.get("evidence", []):
+            if ev.get("kind") == "file":
+                for eid in by_location.get((ev["file"], ev["line"]), []):
+                    if eid not in ids:
+                        ids.append(eid)
+        placements.append({"id": "P%02d" % (len(placements) + 1), "rule": decision["key"], "category": category,
+                           "service": decision["service"], "evidence_ids": ids[:4],
+                           "confidence": "Confirmed" if decision["confidence"] == "confirmed" else "Inferred",
+                           "why": decision["why"], "alternative": "", "caveats": decision["caveats"]})
+    return {"cloud": plan["cloud"], "compute_model": plan["compute_model"], "rules_version": "plan",
+            "placements": placements, "unplaced_evidence": []}

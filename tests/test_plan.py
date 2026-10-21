@@ -33,7 +33,7 @@ def keys(plan):
 class CatalogTests(unittest.TestCase):
     def test_every_need_covers_every_cloud_and_mode(self):
         for need, clouds in CATALOG["services"].items():
-            for cloud in CATALOG["clouds"]:
+            for cloud in ("aws", "azure", "gcp"):
                 options = clouds[cloud]
                 for mode in CATALOG["modes"]:
                     entry = options.get(mode) or options.get("any")

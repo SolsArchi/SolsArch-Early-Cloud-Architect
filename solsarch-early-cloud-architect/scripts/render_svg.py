@@ -68,6 +68,11 @@ SHEET_ORDER = ("edge", "ingress", "static_site") + APP_ORDER + DATA_ORDER + ("ne
 
 def palette(cloud):
     try:
+        import providers
+        return providers.palette()[cloud]
+    except (ImportError, KeyError, ValueError):
+        pass
+    try:
         data = json.loads(PALETTE.read_text(encoding="utf-8"))["providers"]
         return data[cloud]
     except (OSError, ValueError, KeyError):

@@ -37,11 +37,15 @@ class SvgTests(unittest.TestCase):
                         plan = plan_for(builder, cloud, mode)
                         for render in (render_svg.infrastructure, render_svg.service_sheet):
                             svg = render(plan)
+                            if svg is None:  # a data-only provider can have nothing to draw for this repository
+                                continue
                             root = ET.fromstring(svg)
                             self.assertTrue(root.attrib["viewBox"])
                             self.assertTrue(root.find("s:title", NS).text)
                             brand = render_svg.palette(cloud)["fill"]
                             self.assertIn(brand, svg)
+                        if render_svg.service_sheet(plan) is None:
+                            continue
                         sheet = ET.fromstring(render_svg.service_sheet(plan))
                         cards = [t.text for t in sheet.iter("{http://www.w3.org/2000/svg}text")]
                         for decision in plan["decisions"]:
