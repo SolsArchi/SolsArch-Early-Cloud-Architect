@@ -178,6 +178,30 @@ class Ibm:
               resource_group           = ibm_resource_group.main.id
             }
 
+            resource "ibm_is_security_group" "app" {
+              name           = "${local.name}-app"
+              vpc            = ibm_is_vpc.main.id
+              resource_group = ibm_resource_group.main.id
+              tags           = local.tags
+            }
+
+            resource "ibm_is_security_group_rule" "inbound_from_group" {
+              group     = ibm_is_security_group.app.id
+              direction = "inbound"
+              remote    = ibm_is_security_group.app.id
+            }
+
+            resource "ibm_is_security_group_rule" "outbound_https" {
+              group     = ibm_is_security_group.app.id
+              direction = "outbound"
+              remote    = "0.0.0.0/0"
+
+              tcp {
+                port_min = 443
+                port_max = 443
+              }
+            }
+
             resource "ibm_cr_namespace" "main" {
               name              = replace(local.name, "-", "")
               resource_group_id = ibm_resource_group.main.id

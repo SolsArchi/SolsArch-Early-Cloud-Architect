@@ -576,6 +576,7 @@ class Azure:
                   account_tier                    = "Standard"
                   account_replication_type        = "@@repl@@"
                   min_tls_version                 = "TLS1_2"
+                  infrastructure_encryption_enabled = true
                   allow_nested_items_to_be_public = false
                   https_traffic_only_enabled      = true
                   tags                            = local.tags

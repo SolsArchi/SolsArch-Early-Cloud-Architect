@@ -404,6 +404,10 @@ class Huawei:
                     start_time = "02:00-03:00"
                     keep_days  = 14
                   }
+
+                  lifecycle {
+                    prevent_destroy = true
+                  }
                 }
 
                 variable "database_flavor" {

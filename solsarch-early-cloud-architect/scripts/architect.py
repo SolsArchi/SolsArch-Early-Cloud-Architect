@@ -25,7 +25,8 @@ from structure_scanner import normalise_path, service_of  # noqa: E402
 
 PROFILE_FILE = "profile.json"
 TRAFFIC_TIERS = ("prototype", "growth", "enterprise")
-ACCOUNT_TYPES = ("standard", "free_trial")
+ACCOUNT_TYPES = ("standard", "free_trial", "free_tier", "pay_as_you_go")
+LEAN_ACCOUNTS = ("free_trial", "free_tier")
 HA_MODES = ("multi_az", "single_az")
 PROFILE_DEFAULTS = {"traffic_tier": "prototype", "account_type": "standard", "high_availability": "multi_az",
                     "compliance": [], "region": None, "monthly_budget": None, "risk_appetite": "balanced",
@@ -122,7 +123,7 @@ def save_profile(repo, profile):
 
 
 def lean(profile):
-    return profile.get("account_type") == "free_trial"
+    return profile.get("account_type") in LEAN_ACCOUNTS
 
 
 def single_az(profile):

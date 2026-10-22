@@ -131,7 +131,7 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
         overlays.append(pid)
     scan = Scan(scan_data)
     profile = profile or {}
-    lean = profile.get("account_type") == "free_trial"
+    lean = profile.get("account_type") in ("free_trial", "free_tier")
     cloud_info = catalog["clouds"][cloud]
     decisions, external, questions, gaps = [], [], [], []
     keys = set()

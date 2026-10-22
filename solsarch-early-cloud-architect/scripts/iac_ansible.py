@@ -495,5 +495,48 @@ class Ansible:
         """, project=self.m.project, fp=self.m.fingerprint, data=", ".join(self.data) or "none; the plan uses managed data services")
 
 
+def addons(model):
+    """An Ansible playbook for Kubernetes providers: installs the ingress controller and certificate manager, then applies ../kubernetes."""
+    files = Files(model.fingerprint)
+    files.add("ansible/requirements.yml", dump({"collections": [{"name": "kubernetes.core"}]}))
+    files.add("ansible/ansible.cfg", T("""
+        [defaults]
+        roles_path = roles
+        retry_files_enabled = False
+        interpreter_python = auto_silent
+        result_format = yaml
+    """))
+    tasks = [
+        {"name": "Add the ingress-nginx chart repository", "kubernetes.core.helm_repository": {"name": "ingress-nginx", "repo_url": "https://kubernetes.github.io/ingress-nginx"}},
+        {"name": "Add the cert-manager chart repository", "kubernetes.core.helm_repository": {"name": "jetstack", "repo_url": "https://charts.jetstack.io"}},
+        {"name": "Install the ingress controller", "kubernetes.core.helm": {
+            "name": "ingress-nginx", "chart_ref": "ingress-nginx/ingress-nginx", "release_namespace": "ingress-nginx", "create_namespace": True,
+            "wait": True, "values": {"controller": {"replicaCount": 2, "allowSnippetAnnotations": False}}}},
+        {"name": "Add the Prometheus chart repository", "kubernetes.core.helm_repository": {"name": "prometheus-community", "repo_url": "https://prometheus-community.github.io/helm-charts"}},
+        {"name": "Install metrics and alerting (kube-prometheus-stack)", "kubernetes.core.helm": {
+            "name": "kube-prometheus-stack", "chart_ref": "prometheus-community/kube-prometheus-stack", "release_namespace": "monitoring", "create_namespace": True,
+            "wait": True, "values": {"grafana": {"enabled": True}, "alertmanager": {"enabled": True}}}},
+        {"name": "Install cert-manager", "kubernetes.core.helm": {
+            "name": "cert-manager", "chart_ref": "jetstack/cert-manager", "release_namespace": "cert-manager", "create_namespace": True,
+            "wait": True, "values": {"crds": {"enabled": True}}}},
+        {"name": "Apply the application manifests", "kubernetes.core.k8s": {
+            "state": "present", "definition": "{{ lookup('kubernetes.core.kustomize', dir=playbook_dir ~ '/../kubernetes') }}"}},
+    ]
+    play = [{"name": "Install cluster add-ons and the application", "hosts": "localhost", "connection": "local", "gather_facts": False, "tasks": tasks}]
+    files.add("ansible/k8s-addons.yml", "---" + chr(10) + dump(play))
+    files.add("ansible/README.md", T("""
+        # Cluster add-ons for @@project@@
+
+        Generated from plan @@fp@@. After the cluster exists (see ../terraform), point `KUBECONFIG` at it and run:
+
+        1. `ansible-galaxy collection install -r requirements.yml`
+        2. Edit `../kubernetes/configmap.yaml` and create the `@@project@@-secrets` secret (see `../kubernetes/secret.example.yaml`).
+        3. `ansible-playbook k8s-addons.yml`
+
+        It installs ingress-nginx, cert-manager and kube-prometheus-stack (metrics and alerts) with Helm and applies the Kustomize base in `../kubernetes`.
+    """, project=model.project, fp=model.fingerprint))
+    return files
+
+
 def generate(model, registry=None):
     return Ansible(model, registry).generate()

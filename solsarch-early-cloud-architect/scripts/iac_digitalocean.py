@@ -175,6 +175,10 @@ class DigitalOcean:
                   node_count           = @@nodes@@
                   private_network_uuid = digitalocean_vpc.main.id
                   tags                 = local.tags
+
+                  lifecycle {
+                    prevent_destroy = true
+                  }
                 }
             """, name=name, engine=engine, version=version, size=size, nodes=nodes))
         for _, _, _, name, _ in self.dbs:
@@ -253,6 +257,7 @@ class DigitalOcean:
             if not worker:
                 body.append("    http_port          = %d" % (u["port"] or 8080))
             block = "  %s {\n%s\n\n" % ("worker" if worker else "service", "\n".join(body))
+            block += "    alert {" + chr(10) + '      rule     = "CPU_UTILIZATION"' + chr(10) + '      operator = "GREATER_THAN"' + chr(10) + "      value    = 85" + chr(10) + '      window   = "FIVE_MINUTES"' + chr(10) + "    }" + chr(10) + chr(10)
             block += "    image {\n      registry_type = \"DOCR\"\n      repository    = \"%s\"\n      tag           = var.image_tag\n    }\n" % n
             if not worker:
                 block += "\n    health_check {\n      http_path = \"%s\"\n    }\n" % (u["health_path"] or "/")

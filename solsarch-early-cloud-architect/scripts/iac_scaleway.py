@@ -173,6 +173,23 @@ class Scaleway:
               tags = local.tags
             }
 
+            data "scaleway_account_project" "main" {}
+
+            resource "scaleway_iam_application" "app" {
+              name        = "${local.name}-app"
+              description = "Identity of the running containers"
+            }
+
+            resource "scaleway_iam_policy" "app" {
+              name           = "${local.name}-app"
+              application_id = scaleway_iam_application.app.id
+
+              rule {
+                project_ids          = [data.scaleway_account_project.main.id]
+                permission_set_names = ["ContainerRegistryReadOnly", "SecretManagerReadOnly", "ObjectStorageReadOnly"]
+              }
+            }
+
             resource "scaleway_secret" "app" {
               name        = "${local.name}-app"
               description = "Application secrets. Put the values in with the console or scw secret."
@@ -204,6 +221,10 @@ class Scaleway:
                   private_network {
                     pn_id       = scaleway_vpc_private_network.main.id
                     enable_ipam = true
+                  }
+
+                  lifecycle {
+                    prevent_destroy = true
                   }
                 }
             """, type="DB-GP-XS" if self.ha else "DB-DEV-S", ha="true" if self.ha else "false"))

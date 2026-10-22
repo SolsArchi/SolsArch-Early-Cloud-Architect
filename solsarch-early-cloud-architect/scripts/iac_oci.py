@@ -636,6 +636,10 @@ class Oci:
                       retention_days = 14
                     }
                   }
+
+                  lifecycle {
+                    prevent_destroy = true
+                  }
                 }
             """, count=2 if self.ha else 1, ha="true" if self.ha else "false"))
         if self.redis:

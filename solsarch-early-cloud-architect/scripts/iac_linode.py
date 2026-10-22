@@ -264,6 +264,10 @@ class Linode:
               type         = var.database_type
               cluster_size = @@size@@
               allow_list   = [for i in data.linode_instances.nodes.instances : "${i.ip_address}/32"]
+
+              lifecycle {
+                prevent_destroy = true
+              }
             }
 
             variable "database_type" {

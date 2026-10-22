@@ -174,6 +174,10 @@ class Vultr:
               vpc_id                  = vultr_vpc.main.id
               trusted_ips             = ["10.20.0.0/24"]
               tag                     = var.project_name
+
+              lifecycle {
+                prevent_destroy = true
+              }
             }
         """, engine=engine, version=version, replicas=1 if self.ha else 0)))
 
