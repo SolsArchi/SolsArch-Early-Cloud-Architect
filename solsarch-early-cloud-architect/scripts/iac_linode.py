@@ -155,6 +155,7 @@ class Linode:
             }
 
             resource "linode_firewall" "nodes" {
+              # checkov:skip=CKV_LIN_6: LKE nodes must reach the control plane, image registries and DNS, so outbound stays open; inbound is closed.
               label           = "${local.name}-nodes"
               tags            = local.tags
               inbound_policy  = "DROP"

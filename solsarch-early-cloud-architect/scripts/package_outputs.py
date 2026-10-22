@@ -99,7 +99,7 @@ def deploy_files(repo, docs, state):
         for path in sorted(root.rglob("*")):
             if path.is_file():
                 files["infrastructure/" + path.relative_to(root).as_posix()] = path.read_bytes()
-    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md"):
+    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md"):
         source = docs / name
         if source.exists():
             text = brand.watermark_markdown(source.read_text(encoding="utf-8"))

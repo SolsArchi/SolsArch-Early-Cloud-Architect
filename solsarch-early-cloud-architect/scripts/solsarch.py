@@ -279,6 +279,23 @@ def build_iac(repo):
             "next_steps": manifest["next_steps"]}
 
 
+def cmd_validate(args):
+    """Run the real tools (terraform fmt/init/validate, TFLint, Trivy, Checkov, kubectl, ansible-lint) over the generated code."""
+    root = state_dir(args.repo) / "iac"
+    if not root.is_dir():
+        built = build_iac(args.repo)
+        if built.get("status") != "written":
+            return emit(built, 2)
+    import toolchain
+    result = toolchain.check_all(root, args.engine, not args.no_fix, args.offline)
+    write_json(state_dir(args.repo) / "validation.json", result)
+    docs = Path(args.repo) / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    (docs / "solsarch-validation.md").write_bytes(toolchain.render_markdown(result).encode("utf-8"))
+    return emit({"status": result["verdict"], "failed": result["failed"], "security_findings": result["security_findings"],
+                 "not_run": result["skipped"], "report": str(docs / "solsarch-validation.md")}, 1 if result["failed"] else 0)
+
+
 def cmd_iac(args):
     return emit(build_iac(args.repo), 0)
 
@@ -603,6 +620,11 @@ def main(argv=None):
     p.add_argument("--repo", default=".")
     p = sub.add_parser("iac")
     p.add_argument("--repo", default=".")
+    p = sub.add_parser("validate")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--engine", choices=("auto", "terraform", "tofu"), default="auto")
+    p.add_argument("--no-fix", action="store_true")
+    p.add_argument("--offline", action="store_true")
     p = sub.add_parser("deploy-guide")
     p.add_argument("--repo", default=".")
     p = sub.add_parser("eol")
@@ -631,7 +653,7 @@ def main(argv=None):
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
                "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
-               "iac": cmd_iac, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
+               "iac": cmd_iac, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:
