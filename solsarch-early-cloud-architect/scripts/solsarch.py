@@ -30,6 +30,7 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -39,7 +40,12 @@ import ast_scanner  # noqa: E402
 import architect  # noqa: E402
 import build_report  # noqa: E402
 import costs as costs_engine  # noqa: E402
+import deploy_guide  # noqa: E402
+import eol_check  # noqa: E402
 import evidence_bridge  # noqa: E402
+import iac as iac_engine  # noqa: E402
+import knowledge  # noqa: E402
+import mcp_sources  # noqa: E402
 import facts as facts_store  # noqa: E402
 import memory_harness as mh  # noqa: E402
 import package_outputs  # noqa: E402
@@ -241,6 +247,67 @@ def build_costs(repo, online=True, refresh=False):
             "monthly": result["totals"]["monthly"], "priced_lines": result["totals"]["priced_lines"],
             "unpriced_lines": result["totals"]["unpriced_lines"], "live_share": result["totals"]["live_share"],
             "range": result["range"] and {k: result["range"][k] for k in ("p10", "p50", "p90")}}
+
+
+def build_iac(repo):
+    """Write the infrastructure code, its manifest, the capability report and the deploy guide. Never raises."""
+    plan = read_json(state_dir(repo) / "plan.json")
+    scan = read_json(state_dir(repo) / "scan.json")
+    design = read_json(state_dir(repo) / "design.json")
+    if not (plan and scan and design):
+        return {"status": "error", "message": "No scan, plan and design found. Run the scan, plan and evidence steps first."}
+    try:
+        profile = architect.load_profile(repo)
+        result = iac_engine.build(plan, design, profile, scan, Path(repo).resolve().name)
+        out_dir = state_dir(repo) / "iac"
+        if out_dir.exists():
+            import shutil
+            shutil.rmtree(out_dir)
+        iac_engine.write(result["files"], out_dir)
+        manifest = result["manifest"]
+        write_json(state_dir(repo) / "iac-manifest.json", manifest)
+        docs = Path(repo) / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / "solsarch-iac.md").write_bytes(iac_engine.render_markdown(manifest).encode("utf-8"))
+        guide = deploy_guide.build(plan, design, profile, manifest, result["files"])
+        (docs / "solsarch-deploy-guide.md").write_bytes(guide.encode("utf-8"))
+    except Exception as error:  # infrastructure code must not stop the architecture work
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    p = manifest["parity"]
+    return {"status": "written", "folder": str(out_dir), "files": manifest["file_count"], "families": [f["label"] for f in manifest["families"]],
+            "capability_score": p["score"], "capability_gaps": p["gaps"], "guide": str(docs / "solsarch-deploy-guide.md"),
+            "next_steps": manifest["next_steps"]}
+
+
+def cmd_iac(args):
+    return emit(build_iac(args.repo), 0)
+
+
+def cmd_deploy_guide(args):
+    result = build_iac(args.repo)
+    return emit(result, 0 if result.get("status") == "written" else 1)
+
+
+def cmd_knowledge(args):
+    if args.action == "search":
+        return emit({"query": args.query, "results": knowledge.search(args.query or "", args.limit)})
+    if args.action == "chapters":
+        return emit({"chapters": knowledge.chapters()})
+    if args.action == "playbooks":
+        return emit({"playbooks": knowledge.playbooks()})
+    return emit(knowledge.section(args.chapter, args.query) or {"error": "no such chapter"})
+
+
+def cmd_eol(args):
+    return emit(eol_check.check(args.repo))
+
+
+def cmd_mcp(args):
+    if args.action == "tools":
+        return emit({"mcp_servers": mcp_sources.TOOLS, "command_line_tools": mcp_sources.CLI_TOOLS})
+    if args.action == "discover":
+        return emit(mcp_sources.discover(args.provider))
+    return emit(mcp_sources.listing(args.provider))
 
 
 def cmd_costs(args):
@@ -478,6 +545,11 @@ def cmd_finish(args):
     if errors and not args.force:
         return emit({"status": "error", "step": "verify", "detail": errors,
                      "hint": "Fix the cause and run finish again, or pass --force to package anyway."}, 1)
+    extras = {}
+    costs_result = build_costs(args.repo, online=not os.environ.get("SOLSARCH_OFFLINE"))
+    extras["costs"] = costs_result.get("status") if costs_result.get("status") != "error" else "error: " + costs_result.get("message", "")
+    iac_result = build_iac(args.repo)
+    extras["infrastructure"] = iac_result.get("status") if iac_result.get("status") != "error" else "error: " + iac_result.get("message", "")
     code, package = capture(package_outputs.main, base)
     if code != 0:
         return emit({"status": "error", "step": "zip", "detail": package}, code)
@@ -485,7 +557,9 @@ def cmd_finish(args):
         "status": "done", "verdict": report["verdict"], "blockers": report["blockers"],
         "report": report["report"], "diagrams_file": report["diagrams_file"],
         "diagram_count": report["diagram_count"], "zip": package["zip"], "fingerprint": report["fingerprint"],
-        "verification": "failed (forced)" if errors else "passed",
+        "verification": "failed (forced)" if errors else "passed", "extras": extras,
+        "infrastructure_folder": iac_result.get("folder"), "deploy_guide": iac_result.get("guide"),
+        "capability_score": iac_result.get("capability_score"), "monthly_cost_estimate": costs_result.get("monthly"),
         "warnings": [p["message"] for p in problems if p["severity"] == "warning"],
     })
 
@@ -527,6 +601,20 @@ def main(argv=None):
     p.add_argument("--set", action="append", metavar="KEY=VALUE", help="Set a profile field; repeat for several")
     p = sub.add_parser("design")
     p.add_argument("--repo", default=".")
+    p = sub.add_parser("iac")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("deploy-guide")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("eol")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("knowledge")
+    p.add_argument("action", nargs="?", choices=("search", "chapters", "playbooks", "section"), default="search")
+    p.add_argument("query", nargs="?", default="")
+    p.add_argument("--limit", type=int, default=5)
+    p.add_argument("--chapter", type=int, default=1)
+    p = sub.add_parser("mcp")
+    p.add_argument("action", nargs="?", choices=("list", "discover", "tools"), default="list")
+    p.add_argument("--provider")
     p = sub.add_parser("compare")
     p.add_argument("--clouds", default="aws,azure,gcp", help="Comma-separated provider ids, or 'all'")
     p.add_argument("--repo", default=".")
@@ -542,7 +630,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
-               "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs}
+               "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
+               "iac": cmd_iac, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

@@ -40,6 +40,13 @@ data/plan.json            The machine-readable plan: services, evidence, alterna
 data/scan.json            What the scanner found in the code.
 data/facts.json           Which service names were checked on the web, with sources.
 data/decisions.json       The saved decision records.
+solsarch-deploy-guide.md  Step-by-step deployment guide for someone who has never deployed (terminal and
+                          console paths, written for your account type). deploy-guide.html is the same,
+                          ready to print.
+solsarch-costs.md         The monthly cost estimate and what is live, estimated or unpriced.
+solsarch-iac.md           What infrastructure code was written and the capability checklist result.
+infrastructure/           Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform configuration files
+                          and the GitHub Actions pipeline for the chosen provider.
 
 The same code, cloud and compute model always produce the same plan and diagrams.
 """
@@ -84,6 +91,29 @@ def extras(repo, report_text):
     return files
 
 
+def deploy_files(repo, docs, state):
+    """The infrastructure code, the deploy guide, the cost report and the capability report, when they were built."""
+    files = {}
+    root = state / "iac"
+    if root.is_dir():
+        for path in sorted(root.rglob("*")):
+            if path.is_file():
+                files["infrastructure/" + path.relative_to(root).as_posix()] = path.read_bytes()
+    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md"):
+        source = docs / name
+        if source.exists():
+            text = brand.watermark_markdown(source.read_text(encoding="utf-8"))
+            files[name] = text.encode("utf-8")
+            if name == "solsarch-deploy-guide.md":
+                try:
+                    import package_report
+                    title = (text.splitlines() or ["Deploy guide"])[0].lstrip("# ").strip()
+                    files["deploy-guide.html"] = package_report.build_html(title, text, {}).encode("utf-8")
+                except Exception as error:  # the zip must still be written if the page cannot be built
+                    files["deploy-guide-html-error.txt"] = ("deploy-guide.html was not built: %s" % error + chr(10)).encode("utf-8")
+    return files
+
+
 def collect(repo):
     repo = Path(repo)
     docs = repo / "docs"
@@ -115,6 +145,7 @@ def collect(repo):
         except ValueError:
             decisions = []
     files.update(extras(repo, required[0].read_text(encoding="utf-8")))
+    files.update(deploy_files(repo, docs, state))
     files["data/decisions.json"] = (json.dumps(decisions, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     return files
 

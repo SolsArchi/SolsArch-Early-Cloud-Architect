@@ -146,6 +146,16 @@ def _viewbox(root_tag):
     return x, y, w, h
 
 
+WATERMARK_LINE = "Prepared with SolsArch Early Cloud Architect | https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect"
+
+
+def watermark_markdown(text):
+    """Add the SolsArch line at the end of a Markdown document once."""
+    if WATERMARK_LINE in text:
+        return text
+    return text.rstrip(chr(10)) + chr(10) * 2 + "---" + chr(10) + "*" + WATERMARK_LINE + "*" + chr(10)
+
+
 def stamp_svg(svg):
     """Return svg with the SolsArch mark in the bottom-right corner. Unparseable input is returned unchanged."""
     if MARKER in svg:
