@@ -17,6 +17,60 @@ It works the same in **Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, W
 
 It prepares everything and hands you the guide. It never deploys for you and never holds your cloud credentials.
 
+## In one picture
+
+```
+ your code ──► 3 questions ──► scan ──► plan ──► web check ──► finish ──► deploy guide ──► you deploy
+ (any repo)   cloud, compute,   what is   fixed    official      one command   step by step     with your own
+              account type      in it     rules    sentences     builds all    (terminal or     keys, never
+                                                                              console)         shared
+```
+
+## What it can do
+
+| Capability | What you get |
+| :--- | :--- |
+| **Understand the code** | Frameworks, databases, queues, services, ports and health paths; monorepos and several repos in one folder |
+| **Choose services** | Fixed rules across 34 clouds and platforms; every choice points to the file that caused it; AWS, Azure and GCP side by side |
+| **Check on the web** | One official sentence per service from the vendor's own site, with a hash you can re-check later |
+| **Draw** | C4 diagrams, frontend, backend and database-schema diagrams, sequences, and an icon picture of the cloud layout |
+| **Write the infrastructure code** | Terraform for 14 clouds, Kubernetes, Helm, Ansible, Dockerfiles, platform config files, GitHub Actions pipeline, pull-request gate, weekly drift check |
+| **Estimate cost** | Monthly estimate, range and 12-month view; each line labelled live price, estimate or unpriced |
+| **Check quality and risk** | Five pre-deployment security checks, design rules, end-of-life runtimes, an operations maturity score, and real-tool checks (Terraform, Trivy, Checkov, kubectl) |
+| **Explain how to deploy** | A beginner-friendly guide for your account type, with terminal and console paths |
+| **Hand off** | Exports for Backstage, Structurizr, PlantUML, LikeC4, draw.io, Score and Port; an executive deck and PDF; everything in one zip |
+
+## The user journey
+
+1. **Install** once for your agent, or register the MCP server (see below).
+2. **Ask in plain words**, for example "Design and deploy this to Render" or "I have an Azure free trial, show me how".
+3. **Answer three questions:** which cloud or platform, servers or serverless, and what kind of account you have (free trial, always-free, pay as you go, or paid). A free account gets a smaller, cheaper design.
+4. **It scans and plans.** You see the chosen services and why each was chosen.
+5. **Web check.** Automatic if you set a search key; otherwise your agent searches, or the step is skipped and the report says so.
+6. **One command builds everything** (`finish`): report, diagrams, cost estimate, infrastructure code, deploy guide, scorecard, exports, deck and the zip. A check rejects invented evidence, leaked secrets and broken diagrams.
+7. **You get a short summary:** the verdict, any blockers, anything that changed, and where the zip and guide are.
+8. **Optional checks:** `validate` runs the real tools over the generated code, `gate` gives a pass or fail for pull requests, `eol` lists runtimes past end of life.
+9. **You deploy with the guide.** Your agent can walk you through it one step at a time. You set your own keys in your own terminal; the skill never sees them.
+10. **After launch**, the generated pipeline runs the checks on every pull request and asks a person to approve before it applies anything. The weekly drift check opens an issue if the cloud stops matching the code. Re-run the skill after big changes.
+
+## Add-ons (all optional)
+
+The skill works with nothing but Python. These make it better when you have them; anything missing is reported as "not run", never as passed.
+
+| Add-on | What it adds | How to turn it on |
+| :--- | :--- | :--- |
+| Search API | Automatic web check (`facts auto`) | Set `TAVILY_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY` or `GOOGLE_CSE_KEY` |
+| Language model | Helps choose among sentences taken from the page (checked afterwards) | Set `OPENAI_API_KEY` (or `SOLSARCH_LLM_BASE_URL` for Ollama, vLLM and others), `ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; pass `--llm` |
+| Terraform or OpenTofu | Real `init`, `validate`, `fmt` on the generated code | Install either; run `solsarch.py validate` |
+| TFLint, Checkov, Trivy | Lint and security scans of the generated code | Install them; `validate` uses them |
+| kubectl, ansible-lint | Checks Kubernetes and Ansible output | Install them |
+| Docker | Build and push images as the guide shows | Install Docker Desktop |
+| Infracost | Cost change on every pull request | Add `INFRACOST_API_KEY` as a repository secret |
+| Backstage, Port, Humanitec | Service catalog entries with the maturity level | Import files from `exports/` |
+| Structurizr, PlantUML, LikeC4, draw.io | Editable architecture diagrams | Open files from `exports/` |
+| Provider MCP servers | Live lookups through each cloud's own MCP server | `solsarch.py mcp tools` lists them |
+| Price book | Live vendor prices, saved so repeat runs match | `solsarch.py costs` (set `SOLSARCH_OFFLINE=1` to stay offline) |
+
 ## Install
 
 Clone this repository, then run the line for your agent from the folder you want to design:
