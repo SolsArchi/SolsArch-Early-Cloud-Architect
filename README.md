@@ -19,11 +19,32 @@ It prepares everything and hands you the guide. It never deploys for you and nev
 
 ## In one picture
 
-```
- your code ──► 3 questions ──► scan ──► plan ──► web check ──► finish ──► deploy guide ──► you deploy
- (any repo)   cloud, compute,   what is   fixed    official      one command   step by step     with your own
-              account type      in it     rules    sentences     builds all    (terminal or     keys, never
-                                                                              console)         shared
+```mermaid
+flowchart LR
+    A["Your code<br/>(any repository)"] --> B["3 questions<br/>cloud, servers or serverless,<br/>account type"]
+    B --> C["Scan<br/>what is in the code"]
+    C --> D["Plan<br/>services chosen by fixed rules"]
+    D --> E["Web check<br/>official sentence per service"]
+    E --> F["Build everything<br/>one command"]
+
+    F --> G["Report and diagrams"]
+    F --> H["Infrastructure code<br/>Terraform, Ansible, Kubernetes,<br/>platform configs, CI pipeline"]
+    F --> I["Cost estimate and<br/>security and ops checks"]
+    F --> J["Step-by-step deploy guide<br/>terminal or console"]
+    F --> K["Exports, deck and one zip"]
+
+    J --> L["You deploy<br/>with your own keys"]
+    H --> L
+    L --> M["Pull-request gate and<br/>weekly drift check"]
+
+    classDef start fill:#eaf2ff,stroke:#1f6feb,color:#14202e
+    classDef step fill:#ffffff,stroke:#566574,color:#14202e
+    classDef out fill:#eefaf1,stroke:#2da44e,color:#14202e
+    classDef you fill:#fff4e0,stroke:#d29922,color:#14202e
+    class A,B start
+    class C,D,E,F step
+    class G,H,I,J,K out
+    class L,M you
 ```
 
 ## What it can do
