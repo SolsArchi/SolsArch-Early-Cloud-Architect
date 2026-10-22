@@ -45,6 +45,10 @@ solsarch-deploy-guide.md  Step-by-step deployment guide for someone who has neve
                           ready to print.
 solsarch-costs.md         The monthly cost estimate and what is live, estimated or unpriced.
 solsarch-iac.md           What infrastructure code was written and the capability checklist result.
+solsarch-ops-scorecard.md Operations maturity across DevOps, DevSecOps, MLOps, AIOps, LLMOps and AgentOps.
+solsarch-executive-deck.pptx / .html and solsarch-executive-summary.pdf
+                          A short deck (PowerPoint, or print the HTML to PDF) and a two-page summary for leaders.
+exports/                  The architecture for Structurizr, PlantUML, LikeC4, draw.io, Backstage, Score and Port.
 infrastructure/           Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform configuration files
                           and the GitHub Actions pipeline for the chosen provider.
 
@@ -99,7 +103,15 @@ def deploy_files(repo, docs, state):
         for path in sorted(root.rglob("*")):
             if path.is_file():
                 files["infrastructure/" + path.relative_to(root).as_posix()] = path.read_bytes()
-    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md"):
+    exports = state / "exports"
+    if exports.is_dir():
+        for path in sorted(exports.rglob("*")):
+            if path.is_file():
+                files["exports/" + path.relative_to(exports).as_posix()] = path.read_bytes()
+    for name in ("solsarch-executive-deck.pptx", "solsarch-executive-deck.html", "solsarch-executive-summary.pdf"):
+        if (docs / name).exists():
+            files[name] = (docs / name).read_bytes()
+    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md"):
         source = docs / name
         if source.exists():
             text = brand.watermark_markdown(source.read_text(encoding="utf-8"))

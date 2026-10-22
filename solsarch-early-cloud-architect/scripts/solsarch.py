@@ -41,6 +41,10 @@ import architect  # noqa: E402
 import build_report  # noqa: E402
 import costs as costs_engine  # noqa: E402
 import deploy_guide  # noqa: E402
+import executive  # noqa: E402
+import exporters  # noqa: E402
+import gate as gate_engine  # noqa: E402
+import ops_scorecard  # noqa: E402
 import eol_check  # noqa: E402
 import evidence_bridge  # noqa: E402
 import iac as iac_engine  # noqa: E402
@@ -291,6 +295,70 @@ def build_iac(repo):
             "next_steps": manifest["next_steps"]}
 
 
+def build_scorecard(repo):
+    """Write the operations maturity scorecard. Never raises."""
+    try:
+        card = ops_scorecard.build(repo)
+        write_json(state_dir(repo) / "ops-scorecard.json", card)
+        docs = Path(repo) / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / "solsarch-ops-scorecard.md").write_bytes(ops_scorecard.render_markdown(card).encode("utf-8"))
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "overall_level": card["overall_level"], "overall_label": card["overall_label"],
+            "findings": [f["rule"] for f in card["findings"]]}
+
+
+def build_exports(repo):
+    """Write the architecture in the formats other tools read (Structurizr, PlantUML, LikeC4, draw.io, Backstage, Score, Port). Never raises."""
+    plan, scan, design = (read_json(state_dir(repo) / n) for n in ("plan.json", "scan.json", "design.json"))
+    if not (plan and scan and design):
+        return {"status": "error", "message": "No scan, plan and design found. Run the scan, plan and finish steps first."}
+    try:
+        files = exporters.generate(plan, design, scan, read_json(state_dir(repo) / "ops-scorecard.json"), Path(repo).resolve().name)
+        out = state_dir(repo) / "exports"
+        if out.exists():
+            import shutil
+            shutil.rmtree(out)
+        for path in sorted(files.files):
+            target = out / path.split("/", 1)[1]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(files.files[path].encode("utf-8"))
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "folder": str(out), "files": len(files.files)}
+
+
+def build_executive(repo):
+    try:
+        return executive.build(repo)
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+
+
+def cmd_executive(args):
+    result = build_executive(args.repo)
+    return emit(result, 0 if result.get("status") == "written" else 2)
+
+
+def cmd_scorecard(args):
+    return emit(build_scorecard(args.repo))
+
+
+def cmd_export(args):
+    build_scorecard(args.repo)
+    return emit(build_exports(args.repo))
+
+
+def cmd_gate(args):
+    result = gate_engine.evaluate(args.repo, gate_engine.load_config(args.repo, args.config))
+    if args.sarif:
+        Path(args.sarif).write_text(json.dumps(gate_engine.sarif(args.repo), indent=2) + chr(10), encoding="utf-8")
+    if args.comment:
+        Path(args.comment).write_text(gate_engine.comment(result), encoding="utf-8")
+    return emit(result, 0 if result["verdict"] == "pass" else (2 if result["verdict"] == "error" else 1))
+
+
 def cmd_validate(args):
     """Run the real tools (terraform fmt/init/validate, TFLint, Trivy, Checkov, kubectl, ansible-lint) over the generated code."""
     root = state_dir(args.repo) / "iac"
@@ -386,27 +454,33 @@ GUIDE = {
     "summary": "Designs cloud architecture for a local repository: scan, plan, verify, diagrams, report, zip.",
     "run_from": "the folder that holds scripts/solsarch.py; use python, python3 or py",
     "rules": [
-        "Ask the user only two questions: which cloud (aws, azure, gcp) and server or serverless.",
+        "Ask the user only three questions: which cloud or platform, server or serverless, and what kind of cloud account they have (free trial, always-free, pay as you go, standard).",
         "Never choose, rename or remove services yourself and never edit the generated report or diagrams.",
-        "Never print a secret value and never state a price.",
+        "Never print a secret value. State a cost only as the cost report gives it, with its label (live, estimate, unpriced).",
         "If the user cannot be asked, use the defaults and mark the answers as assumed.",
     ],
     "steps": [
         {"id": "questions", "command": "solsarch.py questions --repo REPO",
          "do": "Ask exactly the questions listed in 'ask'. Skip any already answered."},
+        {"id": "profile", "command": "solsarch.py profile --repo REPO --set account_type=free_trial|free_tier|pay_as_you_go|standard",
+         "do": "Record the account type before the plan step; it shapes the design (lean for free accounts) and the deploy guide."},
         {"id": "scan", "command": "solsarch.py scan --repo REPO",
          "do": "Reads the code. If components is empty, ask the user to describe the system and stop."},
         {"id": "compare", "command": "solsarch.py compare --repo REPO --compute server", "optional": True,
          "do": "Only when the user asks which cloud fits best: AWS, Azure and GCP side by side."},
         {"id": "plan", "command": "solsarch.py plan --repo REPO --cloud aws|azure|gcp --compute server|serverless [--assumed]",
          "do": "Chooses services with fixed rules. Show the user the decisions."},
+        {"id": "facts-auto", "command": "solsarch.py facts auto --repo REPO [--llm]", "optional": True,
+         "do": "If a search API key is set (TAVILY_API_KEY, BRAVE_API_KEY, SERPER_API_KEY or GOOGLE_CSE_KEY), records the official sentences by itself; pages that say a service was retired or renamed are left for you to review."},
         {"id": "facts", "command": "solsarch.py facts queue --repo REPO", "optional": True,
          "do": "With a web search tool: search each query, then record one official sentence with 'facts add'. "
                "Without one: solsarch.py facts skip --repo REPO --reason \"no web search tool\"."},
         {"id": "finish", "command": "solsarch.py finish --repo REPO",
-         "do": "Writes evidence, report, diagrams, runs the verification gate, then the zip. Fix errors, never use --force unless asked."},
+         "do": "Writes evidence, report, diagrams, the cost estimate, the infrastructure code and the deploy guide, runs the verification gate, then the zip. Fix errors, never use --force unless asked."},
+        {"id": "validate", "command": "solsarch.py validate --repo REPO", "optional": True,
+         "do": "Checks the generated infrastructure code with terraform/tofu, TFLint, Trivy, Checkov, kubectl and ansible-lint, repairing formatting. Tools that are not installed are reported as not run."},
         {"id": "tell", "do": "Reply with the verdict, a short summary, any blocker, services marked changed or "
-                              "unavailable, assumed answers, and the paths of the zip and the report."},
+                              "unavailable, assumed answers, and the paths of the zip, the report and docs/solsarch-deploy-guide.md. Offer to walk a non-technical user through the deploy guide step by step."},
     ],
     "shortcut": "solsarch.py run --repo REPO --cloud aws --compute server  (does scan, plan, facts skip and finish in one call)",
 }
@@ -446,8 +520,13 @@ def cmd_run(args):
         return emit({"status": "error", "step": "plan", "detail": plan}, code)
     data = facts_store.load_facts(repo)
     if not data.get("facts") and not data.get("skipped"):
-        capture(facts_store.main, ["skip", "--repo", repo, "--reason", "web verification not performed by the run command"])
-        steps["facts"] = "skipped: no web search was done; the report says services are not verified"
+        import web_tools
+        if web_tools.search_provider():
+            code, auto = capture(facts_store.main, ["auto", "--repo", repo] + (["--llm"] if web_tools.llm_provider() else []))
+            steps["facts"] = {"recorded": len(auto.get("recorded", [])), "needs_review": len(auto.get("needs_review", [])), "still_pending": len(auto.get("still_pending", []))}
+        else:
+            capture(facts_store.main, ["skip", "--repo", repo, "--reason", "web verification not performed by the run command"])
+            steps["facts"] = "skipped: no web search was done; the report says services are not verified"
     finish_args = ["finish", "--repo", repo] + (["--icon-dir", args.icon_dir] if args.icon_dir else []) + (["--force"] if args.force else [])
     code, done = capture(main, finish_args)
     if code != 0:
@@ -577,7 +656,13 @@ def cmd_finish(args):
     extras = {}
     costs_result = build_costs(args.repo, online=not os.environ.get("SOLSARCH_OFFLINE"))
     extras["costs"] = costs_result.get("status") if costs_result.get("status") != "error" else "error: " + costs_result.get("message", "")
+    card_result = build_scorecard(args.repo)
+    extras["scorecard"] = card_result.get("status") if card_result.get("status") != "error" else "error: " + card_result.get("message", "")
     iac_result = build_iac(args.repo)
+    export_result = build_exports(args.repo)
+    extras["exports"] = export_result.get("status") if export_result.get("status") != "error" else "error: " + export_result.get("message", "")
+    exec_result = build_executive(args.repo)
+    extras["executive"] = exec_result.get("status") if exec_result.get("status") != "error" else "error: " + exec_result.get("message", "")
     extras["infrastructure"] = iac_result.get("status") if iac_result.get("status") != "error" else "error: " + iac_result.get("message", "")
     code, package = capture(package_outputs.main, base)
     if code != 0:
@@ -632,6 +717,17 @@ def main(argv=None):
     p.add_argument("--repo", default=".")
     p = sub.add_parser("iac")
     p.add_argument("--repo", default=".")
+    p = sub.add_parser("executive")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("scorecard")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("export")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("gate")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--config")
+    p.add_argument("--sarif")
+    p.add_argument("--comment")
     p = sub.add_parser("validate")
     p.add_argument("--repo", default=".")
     p.add_argument("--engine", choices=("auto", "terraform", "tofu"), default="auto")
@@ -665,7 +761,7 @@ def main(argv=None):
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
                "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
-               "iac": cmd_iac, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
+               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "export": cmd_export, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

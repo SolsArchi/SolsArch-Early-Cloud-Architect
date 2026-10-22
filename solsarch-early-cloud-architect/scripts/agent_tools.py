@@ -114,6 +114,15 @@ TOOLS = [
     {"name": "solsarch_mcp", "description": "List where each provider publishes an MCP server and the open-source infrastructure servers and tools that can be used.",
      "properties": {"action": _prop("string", "What to show.", enum=["list", "discover", "tools"]), "provider": _prop("string", "Provider id (discover or list).")},
      "required": [], "argv": lambda a: ["mcp", a.get("action", "list")] + (["--provider", a["provider"]] if a.get("provider") else [])},
+    {"name": "solsarch_scorecard", "description": "Score how the software is built and run across DevOps, DevSecOps, MLOps, AIOps, LLMOps and AgentOps (levels 0 to 4), from files in the repository.",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["scorecard", "--repo", a.get("repo", ".")]},
+    {"name": "solsarch_export", "description": "Write the architecture for other tools: Structurizr DSL, PlantUML C4, LikeC4, draw.io, Backstage catalog, Score specs and Port entities.",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["export", "--repo", a.get("repo", ".")]},
+    {"name": "solsarch_gate", "description": "Pass or fail check for a pull request: security blockers, violated design rules, ops findings, capability score, validation, budget and end-of-life software. Writes a SARIF file and a pull-request comment on request.",
+     "properties": {"repo": REPO, "sarif": _prop("string", "Path to write the SARIF file."), "comment": _prop("string", "Path to write the pull-request comment (Markdown).")},
+     "required": [], "argv": lambda a: ["gate", "--repo", a.get("repo", ".")] + (["--sarif", a["sarif"]] if a.get("sarif") else []) + (["--comment", a["comment"]] if a.get("comment") else [])},
+    {"name": "solsarch_executive", "description": "Write a short executive deck (PowerPoint and printable HTML) and a two-page PDF summary from the results.",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["executive", "--repo", a.get("repo", ".")]},
 ]
 BY_NAME = {t["name"]: t for t in TOOLS}
 
@@ -151,7 +160,7 @@ def validate(tool, args):
                 return "argument '%s' must be a string" % name
             if "enum" in spec and value not in spec["enum"]:
                 return "argument '%s' must be one of: %s" % (name, ", ".join(spec["enum"]))
-            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds", "query", "provider") and value.startswith("-"):
+            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds", "query", "provider", "sarif", "comment") and value.startswith("-"):
                 return "argument '%s' must not start with '-'" % name
     return None
 

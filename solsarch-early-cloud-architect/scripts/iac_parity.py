@@ -98,8 +98,11 @@ def applicable(model):
         need -= {"database"}
     if not model.has("storage"):
         need -= {"storage"}
+    stateful = bool(model.db_key or model.has("database_mongo") or model.has("cache") or model.has("storage") or model.has("queue_kafka") or model.has("queue_rabbitmq"))
+    if not stateful:
+        need -= {"encryption", "protection"}
     if not any(u["kind"] != "static" for u in model.units):
-        need -= {"hardened", "health", "scaling", "two_phase", "registry", "identity"}
+        need -= {"hardened", "health", "scaling", "two_phase", "registry", "identity", "firewall", "secrets", "network"}
     if not model.has("secrets"):
         need -= set()
     if model.single_az:

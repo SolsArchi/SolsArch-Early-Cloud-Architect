@@ -1396,4 +1396,7 @@ class Azure:
 
 
 def generate(model):
+    import iac_static
+    if iac_static.has_static_only(model):
+        return iac_static.azure(model, Azure(model).bootstrap())
     return Azure(model).generate()

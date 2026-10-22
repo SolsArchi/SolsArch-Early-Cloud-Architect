@@ -68,10 +68,12 @@ def first_lines(text, n=12):
 
 
 def terraform_dirs(root):
+    """Every folder that is a Terraform root module: it holds a .tf file that declares required_providers."""
     root = Path(root)
     found = []
-    for path in sorted(root.rglob("versions.tf")):
-        found.append(path.parent)
+    for folder in sorted({p.parent for p in root.rglob("*.tf")}):
+        if any("required_providers" in f.read_text(encoding="utf-8", errors="ignore") for f in folder.glob("*.tf")):
+            found.append(folder)
     return found
 
 

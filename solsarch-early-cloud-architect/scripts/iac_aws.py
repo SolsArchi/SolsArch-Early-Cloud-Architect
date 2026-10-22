@@ -1984,4 +1984,7 @@ class Aws:
 
 
 def generate(model):
+    import iac_static
+    if iac_static.has_static_only(model):
+        return iac_static.aws(model, Aws(model).bootstrap())
     return Aws(model).generate()

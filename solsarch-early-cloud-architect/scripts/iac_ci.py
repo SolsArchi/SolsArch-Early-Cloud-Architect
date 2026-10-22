@@ -36,6 +36,41 @@ TOKEN_ENV = {
 TERRAFORM_PROVIDERS = tuple(["aws", "azure", "gcp"] + list(TOKEN_ENV))
 
 
+def gate_files(model, provider, tf_dir, uses_terraform, env):
+    """A pull-request gate that re-runs the SolsArch checks, and (for Terraform) a weekly drift check."""
+    files = Files(model.fingerprint)
+    nl = chr(10)
+    run = nl.join(["git clone --depth 1 https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect.git .solsarch-skill",
+                   "SKILL=.solsarch-skill/solsarch-early-cloud-architect/scripts/solsarch.py",
+                   "python $SKILL run --repo . --cloud %s --compute %s" % (provider, model.mode),
+                   "python $SKILL scorecard --repo .",
+                   "python $SKILL gate --repo . --sarif solsarch.sarif --comment solsarch-comment.md"])
+    steps = [{"uses": "actions/checkout@v4"}, {"uses": "actions/setup-python@v5", "with": {"python-version": "3.12"}},
+             {"name": "Run the SolsArch checks", "id": "gate", "run": run, "env": {"SOLSARCH_OFFLINE": "1"}, "continue-on-error": True},
+             {"name": "Show findings on the pull request", "uses": "github/codeql-action/upload-sarif@v3", "if": "always()", "with": {"sarif_file": "solsarch.sarif"}},
+             {"name": "Comment on the pull request", "if": "always() && github.event_name == 'pull_request'", "env": {"GH_TOKEN": "${{ github.token }}"},
+              "run": "gh pr comment ${{ github.event.pull_request.number }} --body-file solsarch-comment.md"},
+             {"name": "Fail when the gate failed", "if": "steps.gate.outcome == 'failure'", "run": "exit 1"}]
+    if uses_terraform:
+        steps.insert(5, {"name": "Show the cost change (needs the INFRACOST_API_KEY secret)", "if": "env.INFRACOST_API_KEY != ''",
+                         "env": {"INFRACOST_API_KEY": "${{ secrets.INFRACOST_API_KEY }}"},
+                         "run": "curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh" + chr(10) + "infracost breakdown --path %s --format table" % tf_dir})
+    gate = {"name": "SolsArch gate", "on": {"pull_request": {}}, "permissions": {"contents": "read", "pull-requests": "write", "security-events": "write"},
+            "jobs": {"gate": {"runs-on": "ubuntu-latest", "steps": steps}}}
+    files.add(".github/workflows/solsarch-gate.yml", dump(gate))
+    if uses_terraform:
+        drift_steps = [{"uses": "actions/checkout@v4"}, {"uses": "hashicorp/setup-terraform@v3", "with": {"terraform_version": "1.9.8"}}] + OIDC.get(provider, []) + [
+            {"name": "Initialise", "run": "terraform init -backend-config=backend.hcl", "working-directory": tf_dir, **({"env": env} if env else {})},
+            {"name": "Compare the cloud with the code", "id": "plan", "run": "terraform plan -input=false -detailed-exitcode -lock=false", "working-directory": tf_dir,
+             "continue-on-error": True, **({"env": env} if env else {})},
+            {"name": "Open an issue when they differ", "if": "steps.plan.outputs.exitcode == '2'", "env": {"GH_TOKEN": "${{ github.token }}"},
+             "run": "gh issue create --title \"Cloud drift detected\" --body \"terraform plan found changes between the code and the cloud. Open the run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\""}]
+        drift = {"name": "Drift check", "on": {"schedule": [{"cron": "17 5 * * 1"}], "workflow_dispatch": {}},
+                 "permissions": {"contents": "read", "issues": "write", "id-token": "write"}, "jobs": {"drift": {"runs-on": "ubuntu-latest", "steps": drift_steps}}}
+        files.add(".github/workflows/drift.yml", dump(drift))
+    return files
+
+
 def generate(model, provider, tf_dir="terraform"):
     files = Files(model.fingerprint)
     env = dict(TOKEN_ENV.get(provider, {}))
@@ -70,6 +105,7 @@ def generate(model, provider, tf_dir="terraform"):
                 "concurrency": {"group": "deploy-${{ github.ref }}", "cancel-in-progress": False}, "permissions": {"contents": "read"}, "jobs": jobs}
     text = dump(workflow)
     files.add(".github/workflows/deploy.yml", text)
+    files.update(gate_files(model, provider, tf_dir, uses_terraform, env))
     secrets = sorted({v.split("secrets.")[1].rstrip(" }") for v in env.values() if "secrets." in v})
     variables = sorted({v.split("vars.")[1].rstrip(" }") for s in OIDC.get(provider, []) for v in s["with"].values() if "vars." in v})
     files.add("docs/ci-setup.md", T("""
