@@ -38,7 +38,7 @@ def _prop(kind, description, **extra):
 TOOLS = [
     {"name": "solsarch_guide", "description": "Return the SolsArch workflow, rules and steps as JSON. Call this first if you do not know the workflow.",
      "properties": {}, "required": [], "argv": lambda a: ["guide"]},
-    {"name": "solsarch_questions", "description": "List the two questions to ask the user (cloud, server or serverless), minus anything already answered.",
+    {"name": "solsarch_questions", "description": "List the questions to ask the user (cloud or platform, server or serverless, account type), minus anything already answered.",
      "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["questions", "--repo", a.get("repo", ".")]},
     {"name": "solsarch_scan", "description": "Scan the project for frameworks, databases, queues, containers, routes, endpoints, schemas and security findings.",
      "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["scan", "--repo", a.get("repo", ".")]},

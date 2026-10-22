@@ -2,19 +2,20 @@
 
 # SolsArch Early Cloud Architect
 
-An Agent Skill that turns a code repository into a cloud architecture. Ask your AI agent to design the cloud setup for a project and it will:
+An Agent Skill that turns a code repository into a cloud architecture **and everything needed to deploy it**. Ask your AI agent to design the cloud setup for a project and it will:
 
-1. ask you two questions: **which cloud** (AWS, Azure or Google Cloud) and **servers or serverless**;
+1. ask three questions: **which cloud or platform** (34 are supported), **servers or serverless**, and **what kind of account you have** (free trial, always-free tier, pay as you go, or standard paid);
 2. scan the code and choose services with fixed rules, each tied to the file and line that caused it;
-3. check the chosen services against the cloud vendor's own documentation by web search;
-4. draw the diagrams: a picture of your cloud layout with an **icon on every service**, a service sheet, and Mermaid diagrams (C4 levels, sign-in and request sequences, code-to-cloud map);
-5. run five pre-deployment security checks;
-6. **verify** the report against the scan (no invented evidence ids, no leaked secrets, no broken or unexplained diagrams);
-7. write a report that explains every diagram and why each service was chosen, and put everything in **one zip** with an interactive `report.html`.
+3. check the chosen services against the vendor's own documentation by web search (by hand, or automatically with any search API);
+4. draw the diagrams: an icon picture of your cloud layout, a service sheet, and Mermaid diagrams (C4 levels, frontend, backend, database schema, sequences);
+5. write the **infrastructure code**: Terraform, Ansible, Kubernetes manifests, a Helm chart, Dockerfiles, the platform's own config file (Render, Fly, Vercel ...) and a CI pipeline with a pull-request gate;
+6. estimate the monthly cost with honest labels (live vendor price, estimate, unpriced), score operations maturity, and run pre-deployment security checks;
+7. write a **step-by-step deploy guide for someone who has never deployed**, for your account type, with terminal and console paths;
+8. **verify** the report against the scan (no invented evidence, no leaked secrets, no broken diagrams) and put everything in **one zip**.
 
-It reads one repository (or a monorepo, or a folder of repositories), checks its own report against the scan so nothing is invented, and does not touch your cloud account. See "Limits" below.
+It works the same in **Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Windsurf, any MCP-capable agent, and custom agents**. The decisions come from scripts, not from the model, so every agent produces the same plan, and running it twice gives the same files byte for byte. Python 3.8 or newer is all it needs.
 
-It works the same in **Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Windsurf, any MCP-capable agent, and custom agents**. The decisions come from scripts, not from the model, so every agent produces the same plan. It needs Python 3.8 or newer and nothing else.
+It prepares everything and hands you the guide. It never deploys for you and never holds your cloud credentials.
 
 ## Install
 
@@ -33,9 +34,7 @@ Clone this repository, then run the line for your agent from the folder you want
 | MCP client | register `scripts/mcp_server.py` (see below) | Tools over the Model Context Protocol |
 | Custom agent | `scripts/agent_tools.py schema --format openai` | Function-calling schemas and a JSON dispatcher |
 
-An existing instruction file is extended, never replaced, and running the installer twice changes nothing. An existing
-skill install is only replaced with `--force`. `python install.py --list-agents` shows every target. Start a new agent
-session afterwards.
+An existing instruction file is extended, never replaced, and running the installer twice changes nothing. An existing skill install is only replaced with `--force`. `python install.py --list-agents` shows every target. Start a new agent session afterwards.
 
 ### MCP server (any MCP-capable agent)
 
@@ -43,9 +42,7 @@ session afterwards.
 claude mcp add solsarch -- python /path/to/solsarch-early-cloud-architect/scripts/mcp_server.py   # Claude Code
 ```
 
-Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`.
-Tools: `solsarch_run` (everything in one call), `solsarch_questions`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`,
-`solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_guide`.
+Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`. It exposes 21 tools: `solsarch_run`, `solsarch_questions`, `solsarch_profile`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`, `solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_costs`, `solsarch_iac`, `solsarch_deploy_guide`, `solsarch_validate`, `solsarch_gate`, `solsarch_scorecard`, `solsarch_export`, `solsarch_executive`, `solsarch_knowledge`, `solsarch_eol`, `solsarch_mcp` and `solsarch_guide`.
 
 ### Custom agents and scripts
 
@@ -53,90 +50,91 @@ Tools: `solsarch_run` (everything in one call), `solsarch_questions`, `solsarch_
 python solsarch-early-cloud-architect/scripts/solsarch.py run --repo . --cloud aws --compute server   # one command, JSON out
 python solsarch-early-cloud-architect/scripts/solsarch.py guide                                       # the workflow as JSON
 python solsarch-early-cloud-architect/scripts/agent_tools.py schema --format openai|anthropic|mcp     # tool definitions
-python solsarch-early-cloud-architect/scripts/agent_tools.py call solsarch_run '{"repo": "."}'        # call a tool
 ```
 
-`run` leaves the cloud and compute answers marked as assumed unless you pass them, writes the report with services
-labelled "not verified", and tells the agent what to do next. Exit codes: 0 done, 1 failed, 2 earlier step missing or bad
-input, 3 needs the user to describe the system.
+Exit codes: 0 done, 1 failed, 2 earlier step missing or bad input, 3 needs the user to describe the system.
 
 ## Use
 
 Open your agent in a repository and ask in plain words:
 
-- "Design the cloud architecture for this project."
-- "Draw the C4 diagrams for this repo and explain the service choices."
-- "Are there deployment blockers in this repo?"
-- "Continue the architecture work from last time."
+- "Design the cloud architecture for this project and give me the Terraform."
+- "I have a free trial on Azure. Show me how to deploy this step by step."
+- "Deploy this to Render" (or Vercel, Railway, Fly.io, Hetzner ...).
+- "Are there deployment blockers in this repo?" / "Which cloud fits best?"
 
-The agent asks the two questions, runs the steps, and tells you where the zip is.
+The agent asks the three questions, runs the steps, and walks you through `docs/solsarch-deploy-guide.md`.
 
 ## Same result with any model
 
-The decisions do not come from the model. Scripts choose the services, draw the diagrams and write the report from the scan and your two answers, so Claude, Codex and ChatGPT agents produce the same plan, the same diagrams and the same tables. Each plan carries a fingerprint you can compare. The model asks the questions, runs the commands, does the web searches and relays the result.
+Scripts choose the services, draw the diagrams, write the infrastructure files and the report from the scan and your answers. Claude, Codex and ChatGPT agents produce the same plan, the same files and the same zip. Each plan carries a fingerprint you can compare, and no generated file holds a timestamp or a random value.
 
-Web searches are controlled the same way: the script supplies the exact query, accepts only https pages on the vendor's own domain, requires a quote that names the service, and sets the date itself. A source that fails these checks is rejected. Without a web search tool, the check is skipped and the report says so; services are then labelled "Not verified".
+Web searches are controlled the same way: the script supplies the exact query, accepts only https pages on the vendor's own domain, requires a quote that names the service, stores a SHA-256 of the sentence, and sets the date itself. `facts recheck` fetches the pages again and tells you if a recorded sentence has disappeared. A search API (Tavily, Brave, Serper or Google) and any language model (OpenAI or any OpenAI-compatible server, Anthropic, Gemini) can do the searching with `facts auto`; a model is only allowed to choose among sentences taken from the page, and the same checks apply.
 
 ## What you get
 
 All outputs are in `docs/solsarch-output.zip`, and also written into your repository:
 
-| File | Contents |
+| In the zip | Contents |
 | :--- | :--- |
-| `docs/solsarch-output.zip` | Everything below, plus `report.html` (interactive viewer), `data/evidence.json`, `data/placements.json` and a README |
-| `docs/solsarch-report.md` | Verdict, summary, your choices, what the scan found, why each service was chosen, every diagram with an explanation, security findings, web checks, cost drivers, open questions, coverage |
-| `docs/solsarch-architecture.md` | The diagrams with their explanations |
-| `docs/diagrams/infrastructure-icons.svg` | Cloud layout with a service icon on every box. Opens in any browser, document or slide tool, offline |
-| `docs/diagrams/service-cards.svg` | One card per chosen service, with icon, product name, role and why it is there |
-| `docs/diagrams/*.mmd` | Each Mermaid diagram as source |
-| `.solsarch/memory.json` | Your choices and decision records for the next session |
-| `.solsarch/scan.json`, `plan.json`, `facts.json`, `evidence.json`, `placements.json` | The scan, the plan and the web checks (add `scan.json` to `.gitignore`) |
+| `solsarch-report.md`, `report.html` | Verdict, summary, why each service was chosen, every diagram explained, security findings, web checks, cost drivers |
+| `solsarch-deploy-guide.md`, `deploy-guide.html` | The step-by-step guide for non-technical people: account setup for your account type, spending alert, tool install on Windows, Mac and Linux, sign-in, terminal commands with what you should see, the same by clicking in the console, checks, domain and HTTPS, teardown, troubleshooting, glossary |
+| `infrastructure/` | Terraform (14 clouds), Ansible, Kubernetes, Helm, Dockerfiles, platform config files, GitHub Actions deploy pipeline, pull-request gate and drift check |
+| `solsarch-iac.md` | What was written and the 17-point capability checklist, run the same way for every provider |
+| `solsarch-costs.md` | Monthly estimate, range, 12-month view, commitment options, optimisations; each line labelled live, estimate or unpriced |
+| `solsarch-ops-scorecard.md` | Maturity (level 0 to 4) across DevOps, DevSecOps, MLOps, AIOps, LLMOps and AgentOps, counted from files |
+| `solsarch-validation.md` | Results of terraform/tofu, TFLint, Trivy, Checkov, kubectl and ansible-lint (after `validate`); tools not installed are listed as not run |
+| `solsarch-executive-deck.pptx` / `.html`, `solsarch-executive-summary.pdf` | A short deck and a two-page summary for leaders |
+| `exports/` | The architecture for Structurizr, PlantUML C4, LikeC4, draw.io, Backstage (with the maturity level), Score and Port |
+| `diagrams/` | Icon pictures (SVG), Mermaid sources and an HTML viewer; every picture carries the SolsArch mark |
+| `data/` | Plan, scan, evidence, placements, web checks, decisions |
 
-The zip also contains `diagrams/index.html`, which shows everything in a browser. The icon pictures work offline; the Mermaid diagrams load the Mermaid library from the internet once.
+## What it supports
 
-The verdict is computed from the findings. Critical and high findings are blockers. Every claim is labelled confirmed or inferred, and answers you did not give stay marked as assumed.
+| Kind | Providers | What is written |
+| :--- | :--- | :--- |
+| Major clouds | AWS, Azure, Google Cloud | Terraform (containers or functions, private data tier, WAF, secrets, alarms; a static-site layout when there is no running service) |
+| Other clouds | Hetzner, DigitalOcean, Linode and Akamai, Vultr, Scaleway, OVHcloud, Oracle, Alibaba, Tencent, Huawei, IBM | Terraform, plus Kubernetes and Helm where the cloud runs Kubernetes, plus Ansible for plain servers |
+| Application platforms | Render, Fly.io, Railway, Heroku, Vercel, Netlify | The platform's config file (checked against the vendor schema where one is published), a deploy script, and the guide |
+| Edge, data and AI | Cloudflare, Deno Deploy, Fastly, Firebase, Supabase, Neon, MongoDB Atlas, Databricks, Snowflake, CoreWeave, Lambda, RunPod, Together AI | Config files or Terraform modules, and the guide |
+| Mixed stacks | any hosting provider plus overlays such as Neon, MongoDB Atlas, Cloudflare, Supabase | `--also neon,cloudflare` |
 
-## The five checks
+Terraform output is checked with the real `terraform init`, `validate` and `fmt -check` for every cloud in several repository shapes before each release.
 
-SEC-001 CDN straight to private compute. SEC-002 database exposed to the internet. SEC-003 SQLite or LMDB on containers. SEC-004 proxy settings that cut streaming responses. SEC-005 hardcoded credentials or wildcard IAM. Secret values are never printed.
+## Works with the tools you already use
+
+SolsArch does not replace them; it feeds them.
+
+- **Pull requests:** `gate` gives pass or fail with thresholds in `solsarch.gate.json`, SARIF annotations and a comment. The generated pipeline also runs Checkov and Trivy, and Infracost when you add its key.
+- **Catalogs and diagramming:** the exports open in Backstage, Port, Humanitec (Score), Structurizr, IcePanel-style C4 tools, LikeC4, PlantUML and diagrams.net.
+- **Infrastructure runners:** the Terraform runs under Terraform or OpenTofu, and in env0, Spacelift, Atlantis or plain GitHub Actions.
+- **Agents and MCP:** provider MCP servers and open-source infrastructure servers are listed by `solsarch.py mcp tools`; the reference library (16 chapters, 7 specialist playbooks) is searchable with `solsarch.py knowledge search`.
+
+## The five checks, and more
+
+Pre-deployment: SEC-001 CDN straight to private compute, SEC-002 database exposed to the internet, SEC-003 SQLite or LMDB on containers, SEC-004 proxy settings that cut streaming responses, SEC-005 hardcoded credentials or wildcard IAM. Design rules DR-01 to DR-12 (including runtimes past end of life). Operations rules OPS-DOCKER-001/002, OPS-LLM-001, OPS-AGENT-001. Secret values are never printed.
 
 ## Commands
 
 ```bash
-python solsarch-early-cloud-architect/scripts/solsarch.py questions --repo REPO
-python solsarch-early-cloud-architect/scripts/solsarch.py scan      --repo REPO
-python solsarch-early-cloud-architect/scripts/solsarch.py plan      --repo REPO --cloud aws --compute server
-python solsarch-early-cloud-architect/scripts/solsarch.py facts queue --repo REPO     # web verification
-python solsarch-early-cloud-architect/scripts/solsarch.py evidence  --repo REPO [--icon-dir ICONS]
-python solsarch-early-cloud-architect/scripts/solsarch.py verify    --repo REPO
-python solsarch-early-cloud-architect/scripts/solsarch.py compare   --repo REPO --compute server   # AWS vs Azure vs GCP table
-python solsarch-early-cloud-architect/scripts/solsarch.py finish    --repo REPO [--icon-dir ICONS] [--force]
+S=solsarch-early-cloud-architect/scripts/solsarch.py
+python $S questions --repo REPO                       # three questions
+python $S profile   --repo REPO --set account_type=free_trial
+python $S scan      --repo REPO
+python $S plan      --repo REPO --cloud aws --compute server [--also neon]
+python $S facts auto --repo REPO [--llm]              # or: facts queue / facts add / facts skip / facts recheck
+python $S finish    --repo REPO                       # report, diagrams, costs, infrastructure, guide, scorecard, exports, deck, zip
+python $S validate  --repo REPO                       # run the real tools over the generated code
+python $S gate      --repo REPO --sarif out.sarif --comment out.md
+python $S compare   --repo REPO                       # AWS vs Azure vs GCP, or --clouds all
+python $S knowledge search "terraform state locking"
+python $S eol --repo REPO ; python $S mcp tools ; python $S run --repo REPO --cloud aws --compute server
+python solsarch-early-cloud-architect/scripts/eval_harness.py run --suite quick   # self-check of the whole pipeline
 ```
-
-`finish` runs `evidence`, writes the report and diagrams, runs `verify`, and only then writes the zip. A failed
-verification stops it unless you pass `--force`. Up to eleven Mermaid diagrams are drawn: infrastructure, C4 context, container and component, **frontend structure**
-(routes, components, API calls), **backend API structure** (endpoints by service and file), **database schema** (an ER
-diagram of tables, columns and foreign keys), sign-in sequence, core request sequence, background-job sequence and the
-code-to-cloud map. A diagram is skipped when the repository has nothing to show for it, for example no queue means no job sequence.
-Front ends: Next.js, React Router, Vue Router. Back ends: FastAPI, Flask, Django, Express/Fastify, NestJS, Spring, Go, Rails, Laravel, Axum.
-Schemas: SQL, Prisma, SQLAlchemy, Django models, TypeORM, Mongoose.
-
-`--icon-dir` takes a folder of official vendor icon SVGs (AWS, Azure, Google Cloud). They are not bundled because of
-their licence terms. Name files after the service (`amazon-aurora-postgresql.svg`), its category (`relational-database.svg`) or the glyph (`database.svg`); unmatched services keep the built-in glyph.
-
-## Monorepos, several repos, several clouds
-
-Point `--repo` at a monorepo or at a folder holding several repositories; every service folder is scanned and planned
-together. `compare` places the same scan on AWS, Azure and Google Cloud and writes `docs/solsarch-cloud-comparison.md`;
-`plan` then commits to one cloud. A deployment that spans clouds is run as one plan per cloud.
 
 ## Branding
 
-Every SVG diagram (infrastructure, service cards, icon picture, and Mermaid SVGs exported with `render_diagram.py`)
-carries the SolsArch mark in its bottom-right corner, as do the HTML viewers and each diagram in `solsarch-architecture.md`.
-The skill embeds a 7 KB version of the mark in `scripts/brand.py`; the full-size logos in `assets/branding/` are for
-this repository only and are not part of the installed skill or the upload zip. Mermaid `.mmd` source files are plain
-text and carry no image.
+Every SVG diagram, HTML viewer, deck, PDF and Markdown document carries the SolsArch mark or the line "Prepared with SolsArch Early Cloud Architect", and every generated infrastructure file starts with a header naming the plan that produced it. The skill embeds a small mark in `scripts/brand.py`; the full-size logos in `assets/branding/` are for this repository only.
 
 ## What is inside
 
@@ -144,54 +142,44 @@ text and carry no image.
 solsarch-early-cloud-architect/
   SKILL.md                         the instructions the agent follows
   references/
-    service-catalog.json           fixed service choice per need, cloud and compute model (used by plan)
-    placement-rules.json           condition rules with confidence and caveats (used by place_services.py)
-    capacity-sizing.md             baseline sizing heuristics
-    security-blocker-rules.md, c4-diagram-standards.md, sequence-flow-patterns.md, cloud-catalog-matrix.md
+    knowledge/                     16-chapter architecture reference library (searchable)
+    agents/                        7 specialist playbooks (IaC, Ansible, security, cost, cloud decision, validation, orchestration)
+    providers/                     34 hosting providers and 7 enterprise platforms as data
+    deploy-guides.json             per provider: sign-up, credentials, budget alerts, console steps, teardown
+    service-catalog.json, placement-rules.json, eol.json, mcp-sources.json, policies/baseline.rego, eval/
   scripts/
-    solsarch.py                    the one command the agent uses (questions, scan, plan, compare, facts, finish, run, guide)
-    agent_tools.py, mcp_server.py  function-calling schemas, JSON dispatcher and MCP server over the same commands
-    ast_scanner.py                 repository evidence and findings (deep catalogue, generated/gitignored dirs skipped)
-    structure_scanner.py           front-end routes, back-end endpoints and database schemas
-    structure_diagrams.py          the frontend, backend and schema diagrams
-    evidence_bridge.py             numbers the evidence E001, E002, ... for the verifier and placement engine
-    recommend.py                   scan + cloud + compute model -> plan
-    place_services.py              rule-based placement with confidence and caveats (modular route)
-    research.py, facts.py          web-check query planner and the strict source logger
-    build_diagrams.py, render_svg.py, icon_diagram.py, render_diagram.py   diagrams, icon pictures, optional mmdc export
-    diagram_sanitizer.py, mermaid_lint.py   repair and C4-aware lint of Mermaid
-    verify_report.py               anti-hallucination gate
-    build_report.py                writes the report
-    brand.py                       the SolsArch mark and stamp_svg() for every diagram
-    package_outputs.py             builds the zip (used by finish)
-    package_report.py              verified zip for a hand-written report (modular route)
-    hermes_memory.py, memory_harness.py     project memory, ADRs with --supersedes, scan diffing
-    validate_skill.py              checks the folder against the packaging rules
-  assets/, evals/
-assets/branding/                   full-size logos (repository only, never installed)
-tests/                             unit, accuracy, determinism and end-to-end tests with fixture repositories
-examples/                          two real outputs (RAG on Google Cloud, a full-stack repo on AWS)
-tools/                             install_skill.py, package_skill.py
+    solsarch.py                    the one command the agent uses
+    recommend.py, architect.py     the plan engine and the principal-architect design review
+    iac.py, iac_*.py               infrastructure generators and the orchestrator; iac_parity.py is the capability checklist
+    deploy_guide.py                the step-by-step guide
+    toolchain.py, gate.py          real-tool checks with a repair loop; the pull-request gate
+    ops_scorecard.py, exporters.py, executive.py, costs.py
+    web_tools.py, facts.py         search and model adapters; the strict source logger
+    agent_tools.py, mcp_server.py  function-calling schemas, dispatcher and MCP server
+    eval_harness.py                self-check
+tests/                             unit, determinism, neutrality and end-to-end tests
 install.py                         installer for every agent, and the zip builder
-AGENTS.md, CLAUDE.md               instructions for any agent working in or with this repository
 ```
 
 ## Develop
 
 ```bash
-python -m pytest tests          # or: python -m unittest discover -s tests (pytest-style tests need pytest)
+python -m pytest tests                       # about 5 minutes; add -k "not every_repo_shape" for a quick run
+SOLSARCH_TEST_TERRAFORM=1 python -m pytest tests/test_iac.py   # also run terraform validate on every cloud (needs terraform and network)
 python solsarch-early-cloud-architect/scripts/validate_skill.py solsarch-early-cloud-architect
 ```
 
+Scripts use only the Python standard library. Tests set `SOLSARCH_OFFLINE=1` so no price lookup uses the network.
+
 ## Limits
 
-- Lite means one repository, static analysis only. It does not inspect a live cloud account, estimate prices, cover enterprise platforms such as SAP or Salesforce, map controls to compliance frameworks, or generate Terraform. The report lists cost drivers, not dollar figures.
-- The scanner reads application code, manifests, Dockerfiles, compose files, Kubernetes manifests, Terraform, nginx configs, JSON and YAML policies and `.env` files. It does not read CloudFormation, CDK or Pulumi output, or git history. A clean result means nothing was found in those files, not that the system is secure.
-- Diagrams show the standard pattern for the chosen services. They are derived from the libraries and files found, not from tracing calls, and say so under each diagram.
-- The sanitizer checks diagram structure. It is not Mermaid's own parser. If `mmdc` is installed, `diagram_sanitizer.py --render-check` also renders a diagram, and `render_diagram.py` exports PNG/SVG.
-- The service catalog was written on 2026-10-17. Service names change; the web check exists to catch that, and it reports what it finds without changing the plan.
-- Region is not asked or chosen. The report lists it as an open question.
-- The icons are simple glyphs for the kind of service (database, queue, load balancer and so on) on a tile in the chosen cloud's brand colour. They are not the cloud vendors' official icon packs, which have their own licence terms and are not bundled. Mermaid diagrams cannot carry icons, so the icons appear in the two SVG pictures.
+- It reads code and files; it does not inspect a live cloud account. The generated weekly drift workflow compares your code with your cloud inside your own pipeline.
+- A clean result means nothing was found in the files read, not that the system is secure. The scanner does not read git history.
+- Provider plan names, sizes, engine versions and free-offer terms change. The generated README and guide say where to check, and the guide never quotes a price. Some provider values (database plans, object-storage tiers) cannot be validated without an account; they are variables with common defaults and a note.
+- Terraform is validated against the real provider schemas, not applied to live accounts. Run `plan` before `apply`.
+- Tools that are not installed (TFLint, Checkov, ansible-lint on Windows ...) are reported as not run, never as passed.
+- Diagrams show the standard pattern for the chosen services; they are derived from files, not from tracing calls. Icons are simple glyphs, not the vendors' official packs (use `--icon-dir` for those).
+- Region is an open question unless you set it in the profile.
 
 ## License
 

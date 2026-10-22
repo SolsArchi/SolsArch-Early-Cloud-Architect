@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Single entry point for the SolsArch Early Cloud Architect workflow.
 
-    solsarch.py questions --repo REPO        the two questions to ask, minus anything already known
+    solsarch.py questions --repo REPO        the three questions to ask (cloud, compute, account type), minus anything already known
     solsarch.py scan --repo REPO             read the code, write .solsarch/scan.json
     solsarch.py plan --repo REPO --cloud aws --compute server [--assumed]
                                              choose services, write .solsarch/plan.json, save decisions
@@ -12,11 +12,14 @@
                                              live vendor prices -> docs/solsarch-costs.md; `costs add` records a supplied price
     solsarch.py profile --repo REPO [--set traffic_tier=growth --set compliance=hipaa]
                                              optional answers that shape sizing, compliance and the design
-    solsarch.py design --repo REPO           the principal-architect review: archetype, units, rules DR-01..DR-11, capacity
+    solsarch.py design --repo REPO           the principal-architect review: archetype, units, rules DR-01..DR-12, capacity
     solsarch.py compare --repo REPO [--compute server|serverless]
                                              the same scan placed on AWS, Azure and GCP side by side (no plan is saved)
-    solsarch.py facts queue|add|skip|list --repo REPO ...
-                                             web verification of the chosen services (see facts.py)
+    solsarch.py facts queue|add|auto|recheck|skip|list --repo REPO ...
+                                             web verification of the chosen services (see facts.py and web_tools.py)
+    solsarch.py iac|deploy-guide|validate|gate|scorecard|export|executive|knowledge|eol|mcp ...
+                                             infrastructure code, the step-by-step deploy guide, real-tool checks, the pull-request gate,
+                                             ops maturity, exports, the executive deck, the reference library, end-of-life and MCP sources
     solsarch.py evidence --repo REPO [--icon-dir D]
                                              number the evidence (E001...), place services, draw the icon picture
     solsarch.py verify --repo REPO           check the report against the evidence (hallucinated ids, secrets, diagrams)
