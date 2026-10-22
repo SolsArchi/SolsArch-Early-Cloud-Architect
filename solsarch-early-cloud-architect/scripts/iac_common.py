@@ -42,7 +42,11 @@ class Model:
         self.cloud = plan["cloud"]
         self.mode = plan["compute_model"]
         self.fingerprint = plan["fingerprint"]
-        self.by_key = {d["key"]: d for d in plan["decisions"]}
+        self.all_by_key = {d["key"]: d for d in plan["decisions"]}
+        # Only services that live in this provider's account are built here. A decision that another provider supplies (a free
+        # MongoDB Atlas cluster chosen with --also, say) has its own module, and the application reads its address from a variable.
+        self.by_key = {k: d for k, d in self.all_by_key.items() if d.get("provider", self.cloud) == self.cloud}
+        self.external_decisions = [d for k, d in self.all_by_key.items() if k not in self.by_key]
         self.project = slug(project or plan.get("project") or "app")
         self.units = [u for u in design["units"] if u["kind"] in ("api", "web", "worker", "service", "static")]
         if not self.units:
@@ -64,8 +68,17 @@ class Model:
         self.has = lambda key: key in self.by_key
         self.db_key = "database" if "database" in self.by_key else ("database_mysql" if "database_mysql" in self.by_key else None)
         self.external = plan.get("external_services", [])
+        self.config_inputs = plan.get("config_inputs", [])
+        self.scheduled = any(u.get("scheduler") for u in self.units)
+        self.streaming_units = [u for u in self.units if u.get("streaming")]
         self.gaps = plan.get("gaps", [])
         self.domains = []
+
+    @property
+    def needs_private_network(self):
+        """True when something must sit in a private network in this account: always-on containers, or data stores kept here."""
+        data_here = any(d.get("layer") == "data" for d in self.by_key.values())
+        return self.mode == "server" or data_here or "network" in self.by_key
 
     @property
     def replicas(self):

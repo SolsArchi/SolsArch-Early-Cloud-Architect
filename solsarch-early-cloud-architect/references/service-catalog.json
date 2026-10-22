@@ -812,6 +812,65 @@
           "alternatives": []
         }
       }
+    },
+    "scheduler": {
+      "aws": {
+        "any": {
+          "service": "Amazon EventBridge Scheduler",
+          "short": "EventBridge Scheduler",
+          "why": "Runs a job on a schedule by calling your function or an endpoint, so nothing has to stay running between requests.",
+          "alternatives": [],
+          "caveat": "The code that starts the scheduler inside the application must be replaced by a schedule that calls an endpoint or a function."
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Functions timer trigger",
+          "short": "Timer trigger",
+          "why": "Runs a job on a schedule without a process that stays running.",
+          "alternatives": [],
+          "caveat": "The in-process scheduler must be replaced by a timer-triggered function that calls the same job."
+        }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud Scheduler",
+          "short": "Cloud Scheduler",
+          "why": "Calls an HTTP endpoint on a schedule, so scheduled work does not depend on a process that stays running.",
+          "alternatives": [],
+          "caveat": "The in-process scheduler must be replaced by a Cloud Scheduler job that calls an endpoint."
+        }
+      }
+    },
+    "secrets_lean": {
+      "aws": {
+        "any": {
+          "service": "AWS Systems Manager Parameter Store",
+          "short": "Parameter Store",
+          "why": "Keeps keys and passwords out of code. Standard parameters are free, unlike one charge per secret in Secrets Manager.",
+          "alternatives": [
+            {
+              "service": "AWS Secrets Manager",
+              "reason": "Adds automatic rotation, at a charge per secret per month."
+            }
+          ]
+        }
+      }
+    },
+    "ingress_function_url": {
+      "aws": {
+        "any": {
+          "service": "AWS Lambda Function URL (response streaming)",
+          "short": "Function URL",
+          "why": "A built-in HTTPS address for the function with no extra service to pay for. Response streaming keeps long answers flowing for up to fifteen minutes.",
+          "alternatives": [
+            {
+              "service": "Amazon API Gateway",
+              "reason": "Adds request-based charges, buffers responses and cuts a request off after about thirty seconds."
+            }
+          ]
+        }
+      }
     }
   }
 }

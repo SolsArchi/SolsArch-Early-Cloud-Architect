@@ -131,6 +131,10 @@ them to share a key with you. If a step fails, ask for the first red line of the
 - **Kubernetes manifests, Helm chart and Ansible add-ons:** Linode, Akamai, Vultr, OVHcloud, Tencent, CoreWeave. **Ansible server setup:** Hetzner.
 - **The platform's own config file and a deploy script:** Render, Fly.io, Railway, Heroku, Vercel, Netlify, Cloudflare, Deno Deploy, Fastly,
   Firebase, Supabase, Databricks, Snowflake, RunPod, Lambda, Together AI. **Terraform data modules:** Neon, MongoDB Atlas.
+- **Always-free AWS, serverless:** free-tier accounts get MongoDB Atlas M0 instead of DocumentDB, no cache node, Parameter Store instead of Secrets Manager,
+  Lambda Function URLs with response streaming instead of API Gateway, an EventBridge schedule instead of an in-process scheduler, no VPC or NAT gateway,
+  Lambda-ready Dockerfiles that start the entrypoint the scan found, and every variable the code reads passed to the functions. The cost report shows the bill
+  at 10,000, 100,000 and 1,200,000 requests a month, and the gate scores deployment readiness out of 100 (85 to pass) and fails on any disagreement between plan, code and costs.
 - **For every provider:** Dockerfiles for units without one, a GitHub Actions deploy pipeline, a pull-request gate with SARIF annotations,
   a weekly drift check (Terraform providers), Backstage, Structurizr, PlantUML, LikeC4, draw.io, Score and Port exports.
 

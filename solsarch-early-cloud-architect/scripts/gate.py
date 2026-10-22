@@ -23,7 +23,15 @@ DEFAULTS = {
     "budget_overrun_percent": 10,
     "require_validation_pass": False,
     "require_costs": False,
+    "min_readiness": 85,
 }
+# Billable Terraform resource types and the plan decision each one belongs to. A type the plan did not ask for is a contradiction.
+BILLABLE = {"aws_nat_gateway": "egress", "aws_db_instance": "database", "aws_rds_cluster": "database", "aws_docdb_cluster": "database_mongo",
+            "aws_elasticache_replication_group": "cache", "aws_elasticache_cluster": "cache", "aws_lb": "ingress",
+            "aws_apigatewayv2_api": "ingress", "aws_api_gateway_rest_api": "ingress", "aws_secretsmanager_secret": "secrets",
+            "aws_wafv2_web_acl": "edge", "aws_mq_broker": "queue_rabbitmq", "aws_msk_cluster": "queue_kafka"}
+FREE_TIER_FORBIDDEN = ("aws_nat_gateway", "aws_docdb_cluster", "aws_elasticache_replication_group", "aws_elasticache_cluster",
+                       "aws_secretsmanager_secret", "aws_lb", "aws_apigatewayv2_api", "aws_api_gateway_rest_api", "aws_rds_cluster", "aws_db_instance")
 SEVERITY_LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
 
 
@@ -47,6 +55,57 @@ def load_config(repo, explicit=None):
 
 def check(name, status, detail, items=()):
     return {"check": name, "status": status, "detail": detail, "items": list(items)[:12]}
+
+
+def contradictions(scan, plan, manifest, costs):
+    """Places where the plan, the generated code and the cost report disagree. Any one of them fails the gate."""
+    found = []
+    if not manifest:
+        return found
+    types = set(manifest.get("resource_types", []))
+    keys = {d["key"] for d in plan["decisions"] if d.get("provider", plan["cloud"]) == plan["cloud"]}
+    if plan["cloud"] == "aws":
+        for t in sorted(types & set(BILLABLE)):
+            if BILLABLE[t] not in keys:
+                found.append("The generated code creates %s but the plan has no %s service." % (t, BILLABLE[t]))
+        if (plan.get("profile") or {}).get("account_type") == "free_tier":
+            for t in sorted(types & set(FREE_TIER_FORBIDDEN)):
+                found.append("The account is always-free but the generated code creates %s, which bills without a free allowance." % t)
+        signals = scan.get("signals", {})
+        if plan["compute_model"] == "serverless" and "aws_lambda_function" in types:
+            if signals.get("streaming") == "used" and not manifest.get("streaming_compatible"):
+                found.append("The code streams responses but the generated entry point cannot stream.")
+            if signals.get("scheduler") == "used" and not manifest.get("has_scheduler"):
+                found.append("The code runs an in-process scheduler but no managed schedule was generated.")
+    if costs:
+        priced = {l["decision"] for l in costs["lines"]} | {u["decision"] for u in costs["unpriced"]} | {i["decision"] for i in costs.get("included", [])}
+        for t in sorted(types & set(BILLABLE)):
+            if BILLABLE[t] in keys and BILLABLE[t] not in priced:
+                found.append("The generated code creates %s but the cost report has no line for %s." % (t, BILLABLE[t]))
+        stale = [l["decision"] for l in costs["lines"] if l["decision"] in ("egress", "cache", "database_mongo") and l["decision"] not in keys]
+        found += ["The cost report prices %s but the plan does not contain it." % k for k in sorted(set(stale))]
+    return found
+
+
+def readiness(checks, rules, manifest, costs, bad_contradictions):
+    """A 100-point deployment-readiness score. Points are earned from checks that ran; a check that did not run earns nothing."""
+    by = {c["check"]: c for c in checks}
+    ok = lambda name: by.get(name, {}).get("status") == "pass"  # noqa: E731
+    parts = []
+    parts.append(("Plan, code and costs agree", 20 if not bad_contradictions else 0))
+    parts.append(("No violated design rule", 15 if not any(r["status"] == "violated" for r in rules) else 0))
+    parts.append(("No blocking security finding", 15 if ok("Pre-deployment security checks") else 0))
+    parts.append(("Infrastructure code validates", 15 if ok("Infrastructure code validation") else 0))
+    cap = (manifest or {}).get("parity", {}).get("score", 0)
+    parts.append(("Capability checklist", round(10 * min(1.0, cap / 100.0)) if manifest else 0))
+    cost_pts = 0
+    if costs:
+        cost_pts = 10 if not costs["unpriced"] else 5  # every service is listed either way; 10 needs a price for each
+    parts.append(("Every service has a cost line", cost_pts))
+    ops = by.get("Operations maturity", {})
+    parts.append(("Operations maturity", 10 if ops.get("status") == "pass" else (5 if ops.get("status") == "fail" and len(ops.get("items", [])) <= 2 else 0)))
+    parts.append(("No end-of-life software", 5 if ok("End-of-life software") else 0))
+    return {"score": sum(p for _, p in parts), "parts": parts}
 
 
 def evaluate(repo, config=None):
@@ -91,7 +150,7 @@ def evaluate(repo, config=None):
     validation = read(state / "validation.json")
     if validation:
         failed = validation.get("failed", [])
-        checks.append(check("Infrastructure code validation", "fail" if failed else ("pass" if validation["verdict"] == "passed" else "warn"),
+        checks.append(check("Infrastructure code validation", "fail" if failed else ("pass" if validation["verdict"].startswith("passed") else "warn"),
                             "verdict %s" % validation["verdict"].replace("_", " "), failed + validation.get("skipped", [])[:4]))
     else:
         checks.append(check("Infrastructure code validation", "fail" if config["require_validation_pass"] else "skipped", "validate has not been run"))
@@ -113,8 +172,14 @@ def evaluate(repo, config=None):
     checks.append(check("End-of-life software", "fail" if over > config["max_end_of_life"] else "pass",
                         "past end of life: %s" % (eol[0]["detail"] if eol else "none found")))
 
+    contra = contradictions(scan, plan, manifest, costs)
+    checks.append(check("Plan, code and cost report agree", "fail" if contra else ("pass" if manifest else "skipped"),
+                        "%d contradiction(s)" % len(contra) if manifest else "no generated code to compare", contra))
+    ready = readiness(checks, rules, manifest, costs, contra)
+    checks.append(check("Deployment readiness score", "fail" if ready["score"] < config["min_readiness"] else "pass",
+                        "%d out of 100 (minimum %s)" % (ready["score"], config["min_readiness"]), ["%s: %d" % p for p in ready["parts"]]))
     failed = [c for c in checks if c["check"] and c["status"] == "fail"]
-    return {"verdict": "fail" if failed else "pass", "plan_fingerprint": plan["fingerprint"], "config": {k: v for k, v in config.items() if not k.startswith("_")},
+    return {"verdict": "fail" if failed else "pass", "readiness": ready, "plan_fingerprint": plan["fingerprint"], "config": {k: v for k, v in config.items() if not k.startswith("_")},
             "checks": checks, "failed": [c["check"] for c in failed]}
 
 

@@ -74,6 +74,23 @@ def emit(payload, code=0):
     return code
 
 
+def remove_tree(path):
+    """Delete a folder. Terraform provider downloads have paths longer than Windows allows by default, so use the extended prefix there."""
+    import os
+    import shutil
+    import stat
+
+    def unlock(function, target, _error):
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+
+    target = str(Path(path).resolve())
+    prefix = '\\' * 2 + "?" + '\\'
+    if os.name == "nt" and not target.startswith(prefix):
+        target = prefix + target
+    shutil.rmtree(target, onerror=unlock)
+
+
 def state_dir(repo):
     return Path(repo) / ".solsarch"
 
@@ -280,8 +297,7 @@ def build_iac(repo):
         result = iac_engine.build(plan, design, profile, scan, Path(repo).resolve().name)
         out_dir = state_dir(repo) / "iac"
         if out_dir.exists():
-            import shutil
-            shutil.rmtree(out_dir)
+            remove_tree(out_dir)
         iac_engine.write(result["files"], out_dir)
         manifest = result["manifest"]
         write_json(state_dir(repo) / "iac-manifest.json", manifest)
@@ -321,8 +337,7 @@ def build_exports(repo):
         files = exporters.generate(plan, design, scan, read_json(state_dir(repo) / "ops-scorecard.json"), Path(repo).resolve().name)
         out = state_dir(repo) / "exports"
         if out.exists():
-            import shutil
-            shutil.rmtree(out)
+            remove_tree(out)
         for path in sorted(files.files):
             target = out / path.split("/", 1)[1]
             target.parent.mkdir(parents=True, exist_ok=True)

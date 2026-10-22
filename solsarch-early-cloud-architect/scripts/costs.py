@@ -98,7 +98,7 @@ class Ctx:
         self.transfer_gb = cap["bandwidth_gb_per_day"] * 30.0
         self.dau = None
         self.log_gb = max(1.0, self.monthly_requests * 1024 / 1073741824.0)
-        self.by_key = {d["key"]: d for d in plan["decisions"]}
+        self.by_key = {d["key"]: d for d in plan["decisions"] if d.get("provider", plan["cloud"]) == plan["cloud"]}
 
     def compute_key(self, unit):
         wanted = {"web": "compute_web", "api": "compute_api", "worker": "compute_worker", "service": "compute_app"}.get(unit["kind"])
@@ -179,7 +179,7 @@ def aws_specs(c, aws):
                             lambda: aws.find("AWSELB", r"^(?:[A-Z0-9]+-)?LoadBalancerUsage$", "alb_hour", {"operation": "LoadBalancing:Application"}), scales="fixed"))
             out.append(spec("aws", "alb_lcu_hour", r, "ingress", "Load balancer capacity units", max(1.0, math.ceil(c.avg_rps / 25.0)) * HOURS, "LCU-hours",
                             lambda: aws.find("AWSELB", r"^(?:[A-Z0-9]+-)?LCUUsage$", "alb_lcu_hour", {"operation": "LoadBalancing:Application"})))
-        else:
+        elif "Function URL" not in by["ingress"]["service"]:
             out.append(spec("aws", "apigw_request", r, "ingress", "API Gateway requests", c.monthly_requests, "requests",
                             lambda: aws.find("AmazonApiGateway", r"ApiGatewayRequest$", "apigw_request")))
     if "edge" in by:
@@ -233,7 +233,7 @@ def aws_specs(c, aws):
     if "identity" in by:
         out.append(spec("aws", "cognito_mau", r, "identity", "Cognito monthly active users (assumed 3 per daily user)", c.cap["daily_requests"] / 40.0 * 3.0, "MAU",
                         lambda: aws.find("AmazonCognito", r"Global-CognitoUserPoolMAU$", "cognito_mau")))
-    if "secrets" in by:
+    if "secrets" in by and "Secrets Manager" in by["secrets"]["service"]:
         out.append(spec("aws", "secrets_manager_secret", r, "secrets", "Secrets Manager secrets (assumed 5)", 5, "secret-months",
                         lambda: aws.find("AWSSecretsManager", r"AWSSecretsManager-Secrets$", "secrets_manager_secret"), scales="fixed"))
     if "registry" in by:
@@ -546,6 +546,14 @@ class Pricer:
                 note = "Runs on the servers or nodes priced above; you run, patch and back it up yourself."
             elif d["key"] == "network" and provider in ("aws", "azure", "gcp", "oci", "ibm", "alibaba", "huawei", "tencent"):
                 note = "The private network has no separate charge; costs come from the services inside it."
+            elif d["key"] == "ingress" and "Function URL" in d["service"]:
+                note = "A Lambda Function URL has no charge of its own; you pay only for the function's requests and duration."
+            elif d["key"] == "secrets" and "Parameter Store" in d["service"]:
+                note = "Standard parameters are free (up to 10,000). Only secrets that need rotation would justify Secrets Manager."
+            elif d["key"] == "scheduler" and provider == "aws":
+                note = "EventBridge Scheduler includes 14 million invocations a month at no charge; a few schedules stay free."
+            elif provider in ("mongodbatlas", "neon") and self.profile.get("account_type") == "free_tier":
+                note = "The free plan (M0 or Free) has no charge; it has storage and connection limits, and no backups on M0."
             elif d["key"] == "vector" and d["short"] == "pgvector":
                 note = "pgvector runs inside the database; its storage is part of the database lines."
             elif d["key"].startswith("compute_") and provider in ("linode", "vultr", "scaleway", "hetzner", "digitalocean") and \
@@ -662,6 +670,42 @@ def commitments(lines, provider):
             "reserved_1yr_data_monthly": round(data * (1 - RESERVED_GUIDE["reserved_1yr"]), 2),
             "reserved_3yr_data_monthly": round(data * (1 - RESERVED_GUIDE["reserved_3yr"]), 2),
             "discounts": {"flexible_1yr": one, "flexible_3yr": three, "reserved_1yr": RESERVED_GUIDE["reserved_1yr"], "reserved_3yr": RESERVED_GUIDE["reserved_3yr"]}}
+
+
+FREE_ALLOWANCE = {("aws", "lambda_request"): 1000000.0, ("aws", "lambda_gb_second"): 400000.0}
+SCENARIO_REQUESTS = (10000, 100000, 1200000)
+
+
+def scenarios(lines, base_monthly, account_type):
+    """What the bill is at three fixed request volumes, before and after the always-free allowance.
+
+    Lines that grow with use are scaled from the estimate; fixed lines stay. The allowance is applied to the pooled
+    usage of each metered meter, so several functions share one allowance, as they do in an account."""
+    base = base_monthly or 1.0
+    free = account_type in ("free_tier", "free_trial") or account_type == "standard"
+    rows = []
+    for req in SCENARIO_REQUESTS:
+        k = req / base
+        gross = fixed = 0.0
+        allowance = 0.0
+        pooled = {}
+        for l in lines:
+            if l["scales"] == "fixed":
+                gross += l["monthly"]
+                fixed += l["monthly"]
+                continue
+            cost = l["monthly"] * k
+            gross += cost
+            key = (l["provider"], l["meter"])
+            if key in FREE_ALLOWANCE and l["unit_price"]:
+                pooled.setdefault(key, [0.0, l["unit_price"]])[0] += l["quantity"] * k
+        if free:
+            for key, (qty, price) in pooled.items():
+                allowance += min(qty, FREE_ALLOWANCE[key]) * price
+        rows.append({"requests": req, "gross": round(gross, 2), "allowance": round(allowance, 2), "net": round(max(0.0, gross - allowance), 2),
+                     "fixed": round(fixed, 2)})
+    return {"rows": rows, "note": "Request volumes are fixed planning points. Net is gross minus the always-free allowance for metered Lambda use; "
+                                  "fixed charges (for example a NAT gateway or a database node) are never reduced by it."}
 
 
 def optimizations(plan, design, lines, total):
@@ -783,6 +827,7 @@ def build(plan, design, profile, book_path, fetcher=None, online=True, refresh=F
                                                                            "Quantities come from a labelled capacity estimate unless you supplied traffic.",
                                                                            "Taxes, support plans and third-party services (language model APIs, hosted vendors outside the plan) are not included."],
         "ha_monthly": round(sum(l["monthly"] for l in lines if l["ha"]), 2),
+        "scenarios": scenarios(lines, cap["daily_requests"] * 30.0, profile.get("account_type") or "standard") if lines else None,
     }
     return result
 
@@ -840,6 +885,11 @@ def render_markdown(costs):
         out += ["## 12-month projection", "", p["assumption"] + ".", "", "| Month | Monthly cost | Cumulative |", "| ---: | ---: | ---: |"]
         out += ["| %d | %s | %s |" % (m["month"], money(m["monthly"]), money(m["cumulative"])) for m in p["months"]]
         out += ["", "First-year total %s. Month-12 run rate %s a year." % (money(p["year_one_total"]), money(p["month_12_run_rate_annual"])), ""]
+    if costs.get("scenarios"):
+        sc = costs["scenarios"]
+        out += ["## Cost at three request volumes", "", sc["note"], "", "| Requests a month | Gross | Free allowance | Net | Fixed charges |", "| ---: | ---: | ---: | ---: | ---: |"]
+        out += ["| %s | %s | %s | %s | %s |" % (format(r["requests"], ","), money(r["gross"]), money(r["allowance"]), money(r["net"]), money(r["fixed"]))
+                for r in sc["rows"]] + [""]
     if costs["range"]:
         r = costs["range"]
         out += ["## Cost range", "", "%s median, with P10 %s and P90 %s. Main driver: %s. Method: %s." % (

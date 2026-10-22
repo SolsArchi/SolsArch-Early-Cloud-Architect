@@ -15,6 +15,7 @@ running it twice gives byte-identical files.
 import hashlib
 import importlib
 import json
+import re
 
 import iac_ci
 import iac_common
@@ -83,6 +84,10 @@ def build(plan, design, profile, scan, project=None):
         "plan_fingerprint": plan["fingerprint"], "families": families, "file_count": len(out), "parity": parity,
         "digest": hashlib.sha256(json.dumps({p: out[p] for p in sorted(out)}, sort_keys=True).encode("utf-8")).hexdigest()[:16],
         "next_steps": next_steps(provider, kind, out),
+        "resource_types": sorted({m for p, t in out.items() if p.endswith(".tf") for m in re.findall(r'^resource "([a-z0-9_]+)"', t, re.M)}),
+        "streaming_compatible": any("RESPONSE_STREAM" in t for p, t in out.items() if p.endswith(".tf")),
+        "has_scheduler": any("aws_scheduler_schedule" in t for p, t in out.items() if p.endswith(".tf")),
+        "injected_env_vars": sorted({v["name"] for v in model.config_inputs}),
     }
     return {"files": out, "manifest": manifest}
 

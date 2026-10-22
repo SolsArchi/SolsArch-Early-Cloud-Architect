@@ -319,7 +319,7 @@ class Aws:
               route_table_id = aws_route_table.data.id
             }
         """)]
-        if self.m.has("egress") or not self.m.single_az or True:
+        if self.m.has("egress") or not self.lambda_mode:
             body.append(T("""
                 resource "aws_eip" "nat" {
                   count = @@nats@@
@@ -1984,7 +1984,11 @@ class Aws:
 
 
 def generate(model):
+    import iac_aws_lambda
     import iac_static
     if iac_static.has_static_only(model):
         return iac_static.aws(model, Aws(model).bootstrap())
-    return Aws(model).generate()
+    aws = Aws(model)
+    if model.mode == "serverless" and not model.needs_private_network:
+        return iac_aws_lambda.generate(model, aws.region, aws.bootstrap())
+    return aws.generate()

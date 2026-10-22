@@ -139,6 +139,14 @@ _add("ai", "Anthropic SDK", "anthropic", "@anthropic-ai/sdk")
 _add("ai", "LangChain", "langchain", "langchain-core", "@langchain/core")
 _add("ai", "LlamaIndex", "llama-index")
 _add("ai", "Transformers", "transformers")
+_add("ai", "LangGraph", "langgraph", "@langchain/langgraph")
+_add("ai", "Groq SDK", "groq", "langchain-groq", "groq-sdk")
+_add("ai", "MCP", "mcp", "fastmcp", "@modelcontextprotocol/sdk")
+_add("ai", "CopilotKit", "@copilotkit/*", "copilotkit")
+_add("ai", "Whisper", "openai-whisper", "faster-whisper", "whisper")
+_add("scheduler", "APScheduler", "apscheduler")
+_add("scheduler", "node-cron", "node-cron", "node-schedule", "agenda", "bree", "cron")
+_add("scheduler", "schedule (Python)", "schedule")
 _add("ai", "PyTorch", "torch")
 _add("ai", "vLLM", "vllm")
 _add("ai", "Ollama", "ollama")
@@ -161,6 +169,7 @@ IMPORT_MAP = {
     "langchain": "langchain", "jwt": "pyjwt", "aiosqlite": "aiosqlite",
     "chromadb": "chromadb", "dramatiq": "dramatiq", "rq": "rq", "motor": "motor",
     "qdrant_client": "qdrant-client", "torch": "torch", "transformers": "transformers",
+    "apscheduler": "apscheduler", "langgraph": "langgraph", "groq": "groq", "mcp": "mcp", "whisper": "openai-whisper", "schedule": "schedule",
 }
 
 # docker image basename -> (category, display name)
@@ -182,8 +191,25 @@ SQLITE_RE = re.compile(
     r"|django\.db\.backends\.sqlite3")
 LMDB_RE = re.compile(r"\blmdb\b", re.I)
 STREAM_RE = re.compile(
-    r"text/event-stream|StreamingResponse|EventSourceResponse|streamText\(|"
-    r"toDataStreamResponse|stream\s*=\s*True|stream:\s*true")
+    r"text/event-stream|StreamingResponse|EventSourceResponse|sse_starlette|streamText\(|"
+    r"toDataStreamResponse|createDataStreamResponse|TransformStream|new EventSource\(|stream\s*=\s*True|stream:\s*true|"
+    r"\bWebSocket\b|websockets\.|socket\.io|astream\(|astream_events\(|CopilotRuntime")
+SCHEDULER_RE = re.compile(
+    r"AsyncIOScheduler|BackgroundScheduler|BlockingScheduler|scheduler\.add_job|schedule\.every\(|beat_schedule|celery.*beat|"
+    r"@Scheduled\b|cron\.schedule\(|new CronJob\(|node-cron|agenda\.define|\.every\(\s*['\"]\d")
+ENV_READ_RES = [
+    re.compile(r"os\.environ\[\s*['\"]([A-Z][A-Z0-9_]+)['\"]\s*\]"),
+    re.compile(r"os\.environ\.get\(\s*['\"]([A-Z][A-Z0-9_]+)['\"]"),
+    re.compile(r"os\.getenv\(\s*['\"]([A-Z][A-Z0-9_]+)['\"]"),
+    re.compile(r"process\.env\.([A-Z][A-Z0-9_]+)"),
+    re.compile(r"process\.env\[\s*['\"]([A-Z][A-Z0-9_]+)['\"]\s*\]"),
+    re.compile(r"\bos\.Getenv\(\s*\"([A-Z][A-Z0-9_]+)\""),
+]
+ENV_NAME_LINE_RE = re.compile(r"^\s*(?:export\s+)?([A-Z][A-Z0-9_]{2,})\s*=")
+ENV_IGNORED = {"PATH", "HOME", "USER", "PWD", "SHELL", "LANG", "TERM", "TMPDIR", "TEMP", "TMP", "PYTHONPATH", "PYTHONUNBUFFERED", "NODE_ENV",
+               "PORT", "HOSTNAME", "CI", "DEBUG", "VERCEL", "NEXT_RUNTIME", "NEXT_PUBLIC_VERCEL_URL", "AWS_REGION", "AWS_LAMBDA_FUNCTION_NAME",
+               "AWS_EXECUTION_ENV", "LAMBDA_TASK_ROOT", "TZ", "PYTHONDONTWRITEBYTECODE", "WEBSITE_HOSTNAME"}
+ENV_EXAMPLE_NAMES = (".env.example", ".env.sample", ".env.template", ".env.dist", "env.example", ".env.local.example")
 OPEN_CIDR_RE = re.compile(r"0\.0\.0\.0/0|::/0")
 DB_PORT_RE = re.compile(r"\b(5432|3306|27017|6379|1433|1521)\b")
 IAM_WILDCARD_RES = [
@@ -260,6 +286,16 @@ def lookup(token):
     return None
 
 
+def env_category(name):
+    """secret, connection or config, from the variable name alone."""
+    upper = name.upper()
+    if any(w in upper for w in ("KEY", "SECRET", "TOKEN", "PASSWORD", "PASSWD", "CREDENTIAL", "AUTH", "PRIVATE")):
+        return "secret"
+    if upper.endswith(("URL", "URI", "HOST", "DSN", "ENDPOINT")):
+        return "connection"
+    return "config"
+
+
 # ---------------------------------------------------------------- collector
 class Collector:
     def __init__(self):
@@ -276,6 +312,7 @@ class Collector:
         self.deploy_configs = []
         self.advisories = []
         self.provider_hits = defaultdict(int)
+        self.env_vars = {}
 
     def component(self, category, name, file, line, via, note=None, test=False):
         evidence = self.components.setdefault((category, name), [])
@@ -290,6 +327,15 @@ class Collector:
         if test:
             item["test_file"] = True
         evidence.append(item)
+
+    def env_var(self, name, file, line, required=False, declared=False):
+        if name in ENV_IGNORED or name.startswith(("npm_", "NEXT_TELEMETRY")):
+            return
+        item = self.env_vars.setdefault(name, {"name": name, "files": [], "line": line, "required": False, "declared": False})
+        if file not in item["files"] and len(item["files"]) < 3:
+            item["files"].append(file)
+        item["required"] = item["required"] or required
+        item["declared"] = item["declared"] or declared
 
     def signal(self, key, file, line, note=None, test=False):
         bucket = self.signals[key]
@@ -641,7 +687,11 @@ def scan_lines(collector, rel, name, text, lines, check_secrets, env_ignored, te
     # File-level prefilters keep the per-line loop cheap on large repositories.
     maybe_sqlite = "sqlite" in lowered
     maybe_lmdb = "lmdb" in lowered
-    maybe_stream = "stream" in lowered
+    maybe_stream = ("stream" in lowered or "websocket" in lowered or "socket.io" in lowered or "eventsource" in lowered
+                    or "copilotruntime" in lowered)
+    maybe_sched = "schedul" in lowered or "cron" in lowered or "beat" in lowered or "agenda" in lowered or ".every(" in lowered
+    maybe_env = "environ" in lowered or "getenv" in lowered or "process.env" in lowered
+    is_env_example = name in ENV_EXAMPLE_NAMES or (is_env_file and name.endswith((".example", ".sample", ".template", ".dist")))
     maybe_iam = "action" in lowered
     for number, line in enumerate(lines, 1):
         if len(line) > 2000:
@@ -655,6 +705,17 @@ def scan_lines(collector, rel, name, text, lines, check_secrets, env_ignored, te
             weak = IMPORT_LINE_RE.match(line) is not None
             collector.signal("streaming", rel, number,
                              "import only" if weak else snippet(line), test=test)
+        if maybe_sched and not commented and SCHEDULER_RE.search(line):
+            collector.signal("scheduler", rel, number, snippet(line), test=test)
+        if maybe_env and not commented and not test:
+            for rx in ENV_READ_RES:
+                for hit in rx.finditer(line):
+                    needs = "os.environ[" in line or ("process.env." in line and "||" not in line and "??" not in line)
+                    collector.env_var(hit.group(1), rel, number, required=needs)
+        if is_env_example and not commented:
+            declared = ENV_NAME_LINE_RE.match(line)
+            if declared:
+                collector.env_var(declared.group(1), rel, number, declared=True)
         if maybe_iam and any(rx.search(line) for rx in IAM_WILDCARD_RES):
             collector.signal("iam_wildcard", rel, number, "IAM policy allows Action *", test=test)
         if is_yaml:
@@ -909,6 +970,10 @@ def scan(root, max_files=DEFAULT_MAX_FILES):
     live_streaming = [s for s in collector.signals.get("streaming", []) if not s.get("test_file")]
     streaming = ("used" if any(s.get("note") != "import only" for s in live_streaming)
                  else "import-only" if live_streaming else "none")
+    live_scheduler = [e for e in collector.signals.get("scheduler", []) if not e.get("test_file")]
+    scheduler = "used" if live_scheduler else ("import-only" if (collector.components.get(("scheduler", "APScheduler")) or
+                                                                  collector.components.get(("scheduler", "node-cron"))) else "none")
+    env_vars = [dict(v, category=env_category(v["name"])) for v in sorted(collector.env_vars.values(), key=lambda x: x["name"])]
     return {
         "scanner_version": SCANNER_VERSION,
         "root": root.name,
@@ -920,7 +985,8 @@ def scan(root, max_files=DEFAULT_MAX_FILES):
         },
         "languages": dict(sorted(collector.languages.items())),
         "code_layout": code_layout,
-        "signals": {"streaming": streaming},
+        "signals": {"streaming": streaming, "scheduler": scheduler},
+        "env_vars": env_vars,
         "components": components,
         "signal_evidence": {key: [e for e in items if not e.get("test_file")]
                             for key, items in sorted(collector.signals.items())

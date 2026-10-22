@@ -187,7 +187,7 @@ SolsArch does not replace them; it feeds them.
 
 ## The five checks, and more
 
-Pre-deployment: SEC-001 CDN straight to private compute, SEC-002 database exposed to the internet, SEC-003 SQLite or LMDB on containers, SEC-004 proxy settings that cut streaming responses, SEC-005 hardcoded credentials or wildcard IAM. Design rules DR-01 to DR-12 (including runtimes past end of life). Operations rules OPS-DOCKER-001/002, OPS-LLM-001, OPS-AGENT-001. Secret values are never printed.
+Pre-deployment: SEC-001 CDN straight to private compute, SEC-002 database exposed to the internet, SEC-003 SQLite or LMDB on containers, SEC-004 proxy settings that cut streaming responses, SEC-005 hardcoded credentials or wildcard IAM. Design rules DR-01 to DR-13 (including runtimes past end of life and, for an always-free AWS account, any service that bills without a free allowance). Operations rules OPS-DOCKER-001/002, OPS-LLM-001, OPS-AGENT-001. Secret values are never printed.
 
 ## Commands
 

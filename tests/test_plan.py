@@ -33,6 +33,8 @@ def keys(plan):
 class CatalogTests(unittest.TestCase):
     def test_every_need_covers_every_cloud_and_mode(self):
         for need, clouds in CATALOG["services"].items():
+            if need in ("secrets_lean", "ingress_function_url"):  # AWS-only cheaper variants; other clouds use the normal need
+                continue
             for cloud in ("aws", "azure", "gcp"):
                 options = clouds[cloud]
                 for mode in CATALOG["modes"]:

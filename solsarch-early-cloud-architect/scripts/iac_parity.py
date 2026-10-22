@@ -33,19 +33,19 @@ CAPABILITIES = [
 PATTERNS = {
     "network": r"aws_vpc\b|azurerm_virtual_network|google_compute_network|hcloud_network\b|linode_vpc|vultr_vpc|digitalocean_vpc|scaleway_vpc\b|ovh_cloud_project_network_private\b|oci_core_vcn|alicloud_vpc|tencentcloud_vpc|huaweicloud_vpc\b|ibm_is_vpc|kind: networkpolicy",
     "firewall": r"aws_security_group|azurerm_network_security_group|google_compute_firewall|hcloud_firewall|linode_firewall|vultr_firewall|digitalocean_database_firewall|oci_core_network_security_group|alicloud_security_group|tencentcloud_security_group|huaweicloud_networking_secgroup|ufw|name: default-deny|enable_firewall",
-    "front_door": r"aws_lb\b|azurerm_application_gateway|google_compute_url_map|hcloud_load_balancer\b|oci_load_balancer_load_balancer|alicloud_alb_load_balancer|kind: ingress|apigateway|api_gateway|caddy|enable_default_public_endpoint|scaleway_container\b|digitalocean_app\b|ibm_code_engine_app|cciv2_service|tencentcloud_clb|elb_loadbalancer",
+    "front_door": r"aws_lb\b|aws_lambda_function_url|azurerm_application_gateway|google_compute_url_map|hcloud_load_balancer\b|oci_load_balancer_load_balancer|alicloud_alb_load_balancer|kind: ingress|apigateway|api_gateway|caddy|enable_default_public_endpoint|scaleway_container\b|digitalocean_app\b|ibm_code_engine_app|cciv2_service|tencentcloud_clb|elb_loadbalancer",
     "hardened": r"readonlyrootfilesystem|read_only_root_filesystem|is_root_file_system_readonly|run_as_non_root|runasnonroot|readonly_root|read_only: true|cap_drop|--user|user 10001|run_as_user|user nonroot|user 1000",
     "health": r"health_check|\.checks\]|healthcheck_url|healthcheck|health_check_path|healthcheckpath|readinessprobe|liveness|probe_readiness|healthchecker|health_uri|http_path|healthcheck_path",
     "scaling": r"autoscal|app_autoscaling|min_replicas|minreplicas|auto_scaler|horizontalpodautoscaler|scale_max|max_scale|max_instances|max_nodes|node_max|numinstances|num_instances|instance_count|app_server_count|replicas",
     "database": r"solsarch-backup|pg_dump|aws_rds_cluster|azurerm_postgresql_flexible_server|google_sql_database_instance|linode_database_|vultr_database|digitalocean_database_cluster|scaleway_rdb_instance|ovh_cloud_project_database\b|oci_psql_db_system|alicloud_db_instance|tencentcloud_postgresql_instance|huaweicloud_rds_instance|ibm_database|name: postgres|neon_project|mongodbatlas_advanced_cluster",
     "encryption": r"storage_encrypted|encryption_at_rest|encrypted\s*=\s*true|disk_encryption|infrastructure_encryption|kms_key|disk_encrypt|ssl_enable|encrypt\s*=\s*true|enable_encryption|sse_algorithm|server_side_encryption|ssl_mode|require_secure_transport|customer_managed|cmek|ssl\s*=\s*true",
     "storage": r"aws_s3_bucket_versioning|azurerm_storage_account|google_storage_bucket|linode_object_storage_bucket|vultr_object_storage|digitalocean_spaces_bucket|scaleway_object_bucket|ovh_cloud_project_storage|oci_objectstorage_bucket|alicloud_oss_bucket|tencentcloud_cos_bucket|huaweicloud_obs_bucket|ibm_cos_bucket",
-    "secrets": r"aws_secretsmanager_secret|azurerm_key_vault|google_secret_manager_secret|scaleway_secret\b|oci_vault_secret|alicloud_kms_secret|tencentcloud_ssm_secret|huaweicloud_csms_secret|ibm_resource_instance\" \"secrets|secrets-manager|ansible-vault|vault\.example|kind: secret|sync: false|secret_environment_variables|type\s*=\s*\"secret\"|fly secrets|heroku config|wrangler secret|supabase secrets|\"secret\"",
+    "secrets": r"aws_secretsmanager_secret|aws_ssm_parameter|azurerm_key_vault|google_secret_manager_secret|scaleway_secret\b|oci_vault_secret|alicloud_kms_secret|tencentcloud_ssm_secret|huaweicloud_csms_secret|ibm_resource_instance\" \"secrets|secrets-manager|ansible-vault|vault\.example|kind: secret|sync: false|secret_environment_variables|type\s*=\s*\"secret\"|fly secrets|heroku config|wrangler secret|supabase secrets|\"secret\"",
     "registry": r"aws_ecr_repository|azurerm_container_registry|google_artifact_registry|scaleway_registry_namespace|digitalocean_container_registry|ovh_cloud_project_containerregistry|oci_artifacts_container_repository|alicloud_cr_|tencentcloud_tcr_|huaweicloud_swr_|ibm_cr_namespace|registry_address|images:|registry_user",
     "observability": r"aws_cloudwatch|kube-prometheus-stack|cockpit|monitoring-compose|alert\s*\{|azurerm_log_analytics|google_monitoring|google_logging|prometheus|oci_logging_log_group|alicloud_log_project|tencentcloud_cls_|huaweicloud_lts_|ibm_resource_instance\" \"logs|observability|log_drain|monitoring_enabled|digitalocean_monitor",
     "identity": r"aws_iam_role|azurerm_user_assigned_identity|google_service_account|serviceaccount|ibm_resource_group|oci_identity|ram_role|cam_role|agency|automountserviceaccounttoken|user: \"10001|deploy user|ssh_keys|run_as_user",
     "state": r"backend\s+\"|backend\.hcl|deploy\.sh|launch\.sh|create\.sh|render\.yaml|fly deploy|railway\.json|wrangler deploy|firebase deploy|supabase db push|databricks bundle|site\.yml",
-    "two_phase": r"deploy_app|bootstrap/main\.tf|\"deploy\"|count\s*=\s*var\.deploy|autodeploy: false|render\.yaml|fly deploy|--remote-only|apply -k",
+    "two_phase": r"-target=aws_ecr_repository|deploy_app|bootstrap/main\.tf|\"deploy\"|count\s*=\s*var\.deploy|autodeploy: false|render\.yaml|fly deploy|--remote-only|apply -k",
     "protection": r"deletion_protection|prevent_destroy|delete_protection|termination_protection|deletion_protection_enabled|deletion_policy|lock_level|force_destroy\s*=\s*false|ha_enabled|retain",
     "outputs": r"output\s+\"|ansible_inventory|terraform output|registry_address|kubeconfig",
 }
@@ -107,6 +107,8 @@ def applicable(model):
         need -= set()
     if model.single_az:
         need -= {"scaling"}
+    if model.mode == "serverless" and not model.needs_private_network:
+        need -= {"network", "firewall"}  # functions outside a VPC have nothing to wall off; the data is reached over TLS with credentials
     return need
 
 

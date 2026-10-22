@@ -6,7 +6,7 @@ profile, so the same inputs give the same review whichever AI agent runs the ski
 
   archetype      microservice, monolith, serverless, static, data or greenfield, with the evidence
   units          the separately deployable parts of the system (each gets its own service, health check, port)
-  rules          DR-01 to DR-12: design rules that are met, bent (with the accepted risk), violated or not applicable
+  rules          DR-01 to DR-13: design rules that are met, bent (with the accepted risk), violated or not applicable
   capacity       a labelled traffic estimate and the sizing it implies (Little's Law, burst factor, vCPU per user)
   profile        the user's optional answers (traffic tier, account type, compliance, region, high availability)
 
@@ -175,6 +175,65 @@ def _dockerfile_for(folder, dockerfiles):
     return None
 
 
+ENTRY_PATTERNS = (("FastAPI", re.compile(r"^(\w+)\s*(?::\s*\w+\s*)?=\s*FastAPI\(", re.M)), ("Flask", re.compile(r"^(\w+)\s*=\s*Flask\(", re.M)),
+                  ("Starlette", re.compile(r"^(\w+)\s*=\s*Starlette\(", re.M)), ("Sanic", re.compile(r"^(\w+)\s*=\s*Sanic\(", re.M)))
+ENTRY_SKIP = {"node_modules", ".git", ".venv", "venv", "__pycache__", "tests", "test", "docs", "migrations", ".solsarch", "site-packages"}
+ENTRY_PREFER = ("main", "app", "api", "server", "asgi", "wsgi", "run")
+
+
+def find_entrypoint(root, folder, frameworks):
+    """Where the application object is created, as a module path a process manager can start (for example src.api:app).
+    Looked up in the files, never guessed: returns None when no file creates one."""
+    base = Path(root) / folder if folder != "." else Path(root)
+    wanted = [p for n, p in ENTRY_PATTERNS if n in frameworks] or [p for n, p in ENTRY_PATTERNS]
+    if "Django" in frameworks:
+        for path in sorted(base.rglob("wsgi.py"), key=lambda p: len(p.parts)):
+            if not any(part in ENTRY_SKIP for part in path.relative_to(base).parts[:-1]):
+                module = ".".join(path.relative_to(base).with_suffix("").parts)
+                return {"kind": "wsgi", "target": "%s:application" % module, "file": path.relative_to(base).as_posix(), "line": 1, "verified": True}
+    candidates = []
+    if base.is_dir():
+        for path in base.rglob("*.py"):
+            rel = path.relative_to(base)
+            if len(rel.parts) > 5 or any(part in ENTRY_SKIP for part in rel.parts[:-1]):
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for rx in wanted:
+                m = rx.search(text)
+                if m:
+                    line = text.count("\n", 0, m.start()) + 1
+                    rank = (len(rel.parts), 0 if path.stem in ENTRY_PREFER else 1, rel.as_posix())
+                    candidates.append((rank, rel, m.group(1), line))
+                    break
+    if candidates:
+        _, rel, var, line = sorted(candidates)[0]
+        module = ".".join(rel.with_suffix("").parts)
+        return {"kind": "asgi", "target": "%s:%s" % (module, var), "file": rel.as_posix(), "line": line, "verified": True}
+    package = base / "package.json"
+    if package.is_file():
+        try:
+            scripts = json.loads(package.read_text(encoding="utf-8")).get("scripts", {})
+        except ValueError:
+            scripts = {}
+        if "start" in scripts:
+            return {"kind": "npm", "target": "npm start", "file": "package.json", "line": 1, "verified": True}
+    return None
+
+
+def unit_flags(scan, folder):
+    """Streaming, scheduler and environment variables that belong to the files under a unit's folder."""
+    def inside(path):
+        return folder == "." or path.startswith(folder + "/")
+    evidence = scan.get("signal_evidence", {})
+    streaming = any(inside(e["file"]) for e in evidence.get("streaming", []) if e.get("note") != "import only")
+    scheduler = any(inside(e["file"]) for e in evidence.get("scheduler", []))
+    names = [v["name"] for v in scan.get("env_vars", []) if any(inside(f) for f in v["files"])]
+    return streaming, scheduler, names
+
+
 def detect_units(root, scan, plan):
     """The separately deployable parts: one per service folder that has a framework, a worker library or a Dockerfile."""
     groups = {}
@@ -239,6 +298,13 @@ def detect_units(root, scan, plan):
             "uses": data_keys if kind in ("api", "worker", "service") else [],
             "evidence": evidence[:4],
         })
+        entry = find_entrypoint(root, folder, frameworks) if kind in ("api", "service", "worker", "web") else None
+        streaming_flag, scheduler_flag, env_names = unit_flags(scan, folder)
+        units[-1].update({"entrypoint": entry, "streaming": streaming_flag, "scheduler": scheduler_flag, "env_vars": env_names})
+    loose = [v["name"] for v in scan.get("env_vars", []) if not any(v["name"] in u["env_vars"] for u in units)]
+    for unit in units:
+        if unit["kind"] in ("api", "service", "worker") and loose:
+            unit["env_vars"] = sorted(set(unit["env_vars"]) | set(loose))
     seen, unique = {}, []
     for unit in units:
         n = seen.get(unit["name"], 0)
@@ -514,12 +580,33 @@ def eol_rule(root):
     return _rule("DR-12", name, "met", "%d pinned version(s) checked against end-of-life dates fetched %s." % (len(found["findings"]), found["fetched"]))
 
 
+FREE_TIER_TRAPS = (("database_mongo", "DocumentDB", "DocumentDB nodes are billed by the hour"),
+                   ("cache", "ElastiCache", "ElastiCache nodes are billed by the hour"),
+                   ("egress", "NAT", "A NAT gateway costs about $32 a month before any traffic"),
+                   ("secrets", "Secrets Manager", "Secrets Manager charges for every secret each month"),
+                   ("ingress", "API Gateway", "API Gateway charges per request and cuts streaming responses"))
+
+
+def free_tier_rule(plan, profile):
+    """DR-13: an always-free account must not be given services that bill by the hour or the month."""
+    name = "An always-free account only gets services that have a free allowance"
+    if (profile or {}).get("account_type") != "free_tier":
+        return _rule("DR-13", name, "not_applicable", "The account type is not always-free.")
+    own = [d for d in plan["decisions"] if d.get("provider", plan["cloud"]) == plan["cloud"]]
+    hits = [msg + " (" + d["service"] + ")" for key, word, msg in FREE_TIER_TRAPS for d in own
+            if d["key"] == key and word.lower() in d["service"].lower()] if plan["cloud"] == "aws" else []
+    if hits:
+        return _rule("DR-13", name, "violated", "; ".join(hits) + ".", "Use the free alternative the plan lists, or choose a paid account type.")
+    return _rule("DR-13", name, "met", "No service in the plan bills by the hour or the month without a free allowance.")
+
+
 def review(root, scan, plan, profile=None):
     profile = profile or dict(PROFILE_DEFAULTS)
     units, compose = detect_units(root, scan, plan)
     archetype = detect_archetype(root, scan, units, compose)
     rules = design_rules(scan, plan, units, compose, profile, archetype)
     rules.append(eol_rule(root))
+    rules.append(free_tier_rule(plan, profile))
     counts = {s: sum(1 for r in rules if r["status"] == s) for s in STATUSES}
     return {"archetype": archetype, "units": units, "compose_services": compose, "rules": rules, "rule_counts": counts,
             "capacity": capacity_model(scan, units, profile, archetype["name"]), "profile": profile,

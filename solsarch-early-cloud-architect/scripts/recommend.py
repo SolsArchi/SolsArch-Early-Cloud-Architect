@@ -28,7 +28,8 @@ BACKEND_FRAMEWORKS = ("FastAPI", "Django", "Flask", "Express", "NestJS", "Ruby o
                       "Spring Boot", "Laravel", "Gin", "Fastify", "Sinatra", "Axum", "Actix Web")
 QUEUE_LIBS = ("Celery", "BullMQ", "RQ", "Dramatiq", "Sidekiq")
 AUTH_LIBS = ("Passport", "NextAuth", "Authlib", "JWT library")
-EXTERNAL_AI = {"OpenAI SDK": "OpenAI API", "Anthropic SDK": "Anthropic API"}
+EXTERNAL_AI = {"OpenAI SDK": "OpenAI API", "Anthropic SDK": "Anthropic API", "Groq SDK": "Groq API"}
+CLOUD_KINDS_WITHOUT_FREE_CACHE = ("cloud",)
 EMBEDDED_VECTOR = ("ChromaDB", "FAISS", "LanceDB", "Qdrant", "Weaviate")
 SEARCH_ENGINES = ("Meilisearch", "Elasticsearch", "OpenSearch")
 SELF_HOSTED_AI = ("vLLM", "Ollama")
@@ -132,6 +133,15 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
     scan = Scan(scan_data)
     profile = profile or {}
     lean = profile.get("account_type") in ("free_trial", "free_tier")
+    always_free = profile.get("account_type") == "free_tier"
+    auto_choices = []
+    # An always-free account cannot pay for a database cluster or a cache node, so data goes to a provider that has a free plan.
+    for needed, provider_id, label in (("MongoDB", "mongodbatlas", "MongoDB Atlas free (M0)"), ("PostgreSQL", "neon", "Neon free")):
+        if (always_free and scan.has(needed) and provider_id not in overlays and provider_id != cloud
+                and provider_id in registry and registry[provider_id].get("overlay")
+                and registry.get(cloud, {}).get("kind", "cloud") == "cloud"):
+            overlays.append(provider_id)
+            auto_choices.append("%s was added because your account is always-free and %s has no free %s." % (label, catalog["clouds"][cloud]["name"], needed))
     cloud_info = catalog["clouds"][cloud]
     decisions, external, questions, gaps = [], [], [], []
     keys = set()
@@ -198,6 +208,13 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
 
     signals = scan_data.get("signals", {})
     streaming = signals.get("streaming", "none")
+    scheduler = signals.get("scheduler", "none")
+
+    def variant(lean_need, normal_need):
+        """The cheaper catalogue entry when the account is free and this provider has one; otherwise the normal need."""
+        if lean and catalog["services"].get(lean_need, {}).get(cloud):
+            return lean_need
+        return normal_need
     docker = scan_data.get("infrastructure", {}).get("dockerfiles", [])
     languages = scan_data.get("languages", {})
 
@@ -217,6 +234,10 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
             "The scan found streaming code (%s). Serverless platforms limit streaming and run time, "
             "so test the streaming route before committing." % (
                 "used in a route" if streaming == "used" else "imported but not yet used"))
+    if mode == "serverless" and scheduler != "none":
+        serverless_notes.append(
+            "The scan found an in-process scheduler. A function is frozen between requests, so scheduled jobs would silently stop. "
+            "The plan adds a managed schedule that calls the job instead.")
     if has_next:
         add("compute_web", "compute", "Compute", "Web front end (server-rendered)", "compute",
             file_evidence(scan.evidence("Next.js")), sentence_found(scan, ["Next.js"]), tech="Next.js",
@@ -289,7 +310,14 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
             add("vector", "vector_service", "Vector search", "Vector search", "data",
                 file_evidence(scan.evidence(*names)), sentence_found(scan, names[:2]), tech=", ".join(names))
     cache_names = [n for n in ("Redis", "Memcached") if scan.has(n)]
-    if cache_names or workers:
+    if (cache_names or workers) and always_free and cloud_info.get("kind", "cloud") in CLOUD_KINDS_WITHOUT_FREE_CACHE and not any(
+            "cache" in registry[o]["overlay"] for o in overlays):
+        gaps.append({"key": "cache", "need": "cache", "role": "Cache and job queue broker" if workers else "Cache",
+                     "message": "%s has no always-free Redis. Every cache node is billed by the hour, so none is created. Either let the code run without it "
+                                "(many apps fall back to memory), or create a free Redis at a provider such as Upstash and put its address in REDIS_URL." % cloud_info["name"]})
+        if workers:
+            questions.append("A job queue library (%s) needs a broker, and an always-free account has no free one here. Use a free hosted Redis or choose a paid account type." % workers[0])
+    elif cache_names or workers:
         broker = (" Your job queue library %s needs a Redis-compatible broker." % workers[0]) if workers else ""
         add("cache", "cache", "Cache", "Cache and job queue broker" if workers else "Cache", "data",
             file_evidence(scan.evidence(*(cache_names or workers))),
@@ -315,10 +343,11 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
             sentence_found(scan, hosted[:1]), tech=", ".join(hosted))
 
     data_keys = [d["key"] for d in decisions if d["layer"] == "data"]
-    if data_keys:
+    native_data = [d for d in decisions if d["layer"] == "data" and d["provider"] == cloud]
+    if native_data:
         add("network", "network", "Network", "Private network for data stores", "network",
             rule_evidence("Design requirement: data stores must not be reachable from the internet (SEC-002)"),
-            "Your design has " + ", ".join(d["short"] for d in decisions if d["layer"] == "data") + ".",
+            "Your design has " + ", ".join(d["short"] for d in native_data) + " inside your account.",
             confidence="inferred")
 
     # ---------------------------------------------------------------- services that stay external
@@ -342,16 +371,22 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
                          "evidence": file_evidence(scan.evidence("Clerk")),
                          "why": sentence_found(scan, ["Clerk"]) + " Sign-in is handled by Clerk, so no cloud sign-in service is added.",
                          "option": None})
-    if external and data_keys and has_compute:
+    if external and native_data and has_compute:
         add("egress", "egress", "Network", "Outbound internet for private compute", "network",
             [x["evidence"][0] for x in external if x["evidence"]][:2],
             "Your app calls " + ", ".join(x["name"] for x in external) + " from private compute.", confidence="inferred")
 
     # ---------------------------------------------------------------- ingress, edge, identity, platform
     if has_compute:
-        add("ingress", "ingress", "Ingress", "Public entry point", "ingress",
+        ingress_need = "ingress"
+        if mode == "serverless" and cloud == "aws" and catalog["services"].get("ingress_function_url", {}).get("aws") and (
+                streaming == "used" or lean):
+            ingress_need = "ingress_function_url"
+        add("ingress", ingress_need, "Ingress", "Public entry point", "ingress",
             rule_evidence("Design requirement: public traffic reaches private compute only through a managed front door (SEC-001)"),
-            "Your design has public web traffic reaching application compute.", confidence="inferred")
+            "Your design has public web traffic reaching application compute." + (
+                " The scan found streaming code, which API Gateway would buffer and cut off." if ingress_need != "ingress" and streaming == "used" else ""),
+            confidence="inferred")
         if lean:
             gaps.append({"key": "edge", "need": "edge", "role": "Content delivery and firewall",
                          "message": "Deferred for the lean design (free-trial account). Add a CDN and web application firewall "
@@ -374,9 +409,13 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
             "The scan found hardcoded credentials (values are never shown). Rotate them first, then move them here.",
             caveats=["Treat any credential that appeared in code as compromised until it is rotated."])
     else:
-        add("secrets", "secrets", "Secrets", "Credential storage", "support",
+        add("secrets", variant("secrets_lean", "secrets"), "Secrets", "Credential storage", "support",
             rule_evidence("Design requirement: credentials stay out of code (SEC-005)"),
             "Every deployment has credentials such as database passwords.", confidence="inferred")
+    if scheduler == "used" and mode == "serverless" and has_compute:
+        add("scheduler", "scheduler", "Scheduler", "Scheduled jobs", "support",
+            file_evidence(scan_data.get("signal_evidence", {}).get("scheduler", [])[:2]) or rule_evidence("An in-process scheduler was found"),
+            "The scan found a scheduler that runs inside the application process.", confidence="confirmed")
     if mode == "server" and docker:
         add("registry", "registry", "Registry", "Container image storage", "support",
             [{"kind": "file", "file": docker[0]["file"], "line": 1, "text": docker[0]["file"] + ":1"}],
@@ -392,6 +431,13 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
         questions.append("The scan found a streaming import but no route that uses it. Does the app stream responses?")
     if (scan.has("LangChain") or scan.has("LlamaIndex")) and not any(x["key"].startswith("ai_") for x in external) and not hosted:
         questions.append("An AI framework was found but no model provider SDK. Which model provider does the app use?")
+    if scan.has("Whisper"):
+        questions.append("Whisper runs a speech model inside the app. That needs a large image and a lot of memory, so it does not fit a small function. "
+                         "Use a hosted transcription API, or keep that part on always-on compute.")
+    if scan.has("MCP") and mode == "serverless":
+        questions.append("The app uses MCP. If tool servers are started as child processes, every cold start launches them again; test cold-start time or use remote MCP servers.")
+    if scheduler != "none" and mode == "server" and profile.get("high_availability") != "single_az":
+        questions.append("An in-process scheduler runs once per running copy, so with more than one copy every job runs more than once. Run one copy of that part or use a lock.")
     if (scan.has("PyTorch") or scan.has("Transformers")) and not hosted:
         questions.append("PyTorch or Transformers was found. Where do the models run? GPU hosting is not part of this plan.")
     if not has_compute and not spa:
@@ -428,6 +474,8 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
         "compute_model": mode, "compute_label": catalog["modes"][mode], "decisions": decisions,
         "gaps": gaps, "external_services": external, "open_questions": questions, "cost_drivers": costs,
         "verify_queue": queue,
+        "auto_choices": auto_choices,
+        "config_inputs": [{"name": v["name"], "category": v["category"], "required": v["required"]} for v in scan_data.get("env_vars", [])],
         "profile": {"traffic_tier": profile.get("traffic_tier") or "prototype",
                     "account_type": profile.get("account_type") or "standard",
                     "high_availability": "single_az" if lean else (profile.get("high_availability") or "multi_az"),
