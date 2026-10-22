@@ -7,18 +7,10 @@ plan marked as self-run (PostgreSQL, MongoDB, Redis, RabbitMQ) on a data host wi
 Terraform for each provider only creates the servers, network and firewall and prints an inventory, so the server
 configuration is identical on every cloud.
 """
-from iac_common import Files, T
+from iac_common import Files, T, selfrun
 from iac_k8s import dump, scalar
 
 COLLECTIONS = ["community.docker", "community.general"]
-
-
-def selfrun(model, key):
-    """True when the plan says this service runs in a container on your own server, not as a managed service."""
-    d = model.by_key.get(key)
-    if not d:
-        return False
-    return "container" in (d.get("service") or "").lower() or (d.get("short") or "").lower().startswith("self-run")
 
 
 class Ansible:

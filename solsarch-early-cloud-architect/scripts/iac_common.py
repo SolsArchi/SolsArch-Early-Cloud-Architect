@@ -82,6 +82,14 @@ class Model:
         return sorted([u for u in self.units if u["kind"] in order], key=lambda u: (order[u["kind"]], u["name"]))
 
 
+def selfrun(model, key):
+    """True when the plan says this service runs in a container on your own server, not as a managed service."""
+    d = model.by_key.get(key)
+    if not d:
+        return False
+    return "container" in (d.get("service") or "").lower() or (d.get("short") or "").lower().startswith("self-run")
+
+
 class Files:
     """The generated files of one run, keyed by their path inside the output folder."""
 

@@ -10,7 +10,7 @@ network policy, and an ingress whose proxy settings keep streaming responses ali
 import json
 import re
 
-from iac_common import Files, T
+from iac_common import Files, T, selfrun
 
 DEFAULT_REGISTRY = "REGISTRY.example.com/PROJECT"
 _PLAIN = re.compile(r"^[A-Za-z0-9_./@-][A-Za-z0-9 _./@:=+-]*$")
@@ -131,6 +131,12 @@ class K8s:
             self.files.add("%s/hpa-%s.yaml" % (base, n), self.hpa(unit))
             self.files.add("%s/pdb-%s.yaml" % (base, n), self.pdb(unit))
             resources += ["hpa-%s.yaml" % n, "pdb-%s.yaml" % n]
+        for key, builder in (("database", self.postgres), ("database_mysql", self.mysql), ("database_mongo", self.mongo),
+                             ("cache", self.redis), ("queue_rabbitmq", self.rabbitmq)):
+            if selfrun(self.m, key):
+                name, text = builder()
+                self.files.add("%s/data-%s.yaml" % (base, name), text)
+                resources.append("data-%s.yaml" % name)
         self.files.add("%s/networkpolicy.yaml" % base, self.networkpolicy())
         resources.append("networkpolicy.yaml")
         if self.public:
@@ -143,13 +149,17 @@ class K8s:
     def configmap(self):
         m = self.m
         data = {"APP_ENV": "production"}
+        host = lambda key, name, what: name if selfrun(m, key) else "REPLACE-with-the-%s" % what
         if m.db_key:
-            data.update({"DB_HOST": "REPLACE-with-the-database-host", "DB_PORT": "5432" if m.db_key == "database" else "3306",
+            name = "postgres" if m.db_key == "database" else "mysql"
+            data.update({"DB_HOST": host(m.db_key, name, "database-host"), "DB_PORT": "5432" if m.db_key == "database" else "3306",
                          "DB_NAME": "app", "DB_USER": "app"})
+        if m.has("database_mongo"):
+            data["MONGODB_HOST"] = host("database_mongo", "mongo", "mongodb-host")
         if m.has("cache"):
-            data.update({"REDIS_HOST": "REPLACE-with-the-cache-host", "REDIS_PORT": "6379"})
+            data.update({"REDIS_HOST": host("cache", "redis", "cache-host"), "REDIS_PORT": "6379"})
         if m.has("queue_rabbitmq"):
-            data["AMQP_ENDPOINT"] = "REPLACE-with-the-broker-endpoint"
+            data["AMQP_ENDPOINT"] = host("queue_rabbitmq", "rabbitmq", "broker-endpoint")
         if m.has("queue_kafka"):
             data["KAFKA_BOOTSTRAP_SERVERS"] = "REPLACE-with-the-broker-list"
         if m.has("storage"):
@@ -163,6 +173,8 @@ class K8s:
             keys.insert(0, "DB_PASSWORD")
         if m.has("cache"):
             keys.append("REDIS_PASSWORD")
+        if m.has("database_mongo"):
+            keys.append("MONGO_PASSWORD")
         if m.has("queue_rabbitmq"):
             keys.append("AMQP_PASSWORD")
         if m.has("storage"):
@@ -207,6 +219,63 @@ class K8s:
                                                                           "labelSelector": {"matchLabels": selector}}],
                                            "containers": [container],
                                            "volumes": [{"name": "tmp", "emptyDir": {"sizeLimit": "128Mi"}}]}}}})
+
+    def stateful(self, name, image, port, env=None, args=None, mount="/data", size="20Gi", writable=("/tmp",)):
+        """A single-replica StatefulSet with a volume, and the headless service in front of it."""
+        container = {"name": name, "image": image, "ports": [{"name": name, "containerPort": port}]}
+        if args:
+            container["args"] = args
+        container["env"] = env or []
+        container["resources"] = {"requests": {"cpu": "250m", "memory": "512Mi"}, "limits": {"cpu": "1", "memory": "2Gi"}}
+        container["securityContext"] = {"allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
+                                        "capabilities": {"drop": ["ALL"]}}
+        container["volumeMounts"] = [{"name": "data", "mountPath": mount}] + [
+            {"name": "scratch-%d" % i, "mountPath": p} for i, p in enumerate(writable)]
+        selector = {"app.kubernetes.io/name": name}
+        sts = {"apiVersion": "apps/v1", "kind": "StatefulSet", "metadata": self.meta(name),
+               "spec": {"serviceName": name, "replicas": 1, "selector": {"matchLabels": selector},
+                        "template": {"metadata": {"labels": dict(self.meta(name)["labels"])},
+                                     "spec": {"automountServiceAccountToken": False,
+                                              "securityContext": {"runAsNonRoot": True, "runAsUser": 999, "runAsGroup": 999, "fsGroup": 999,
+                                                                  "seccompProfile": {"type": "RuntimeDefault"}},
+                                              "containers": [container],
+                                              "volumes": [{"name": "scratch-%d" % i, "emptyDir": {}} for i, _ in enumerate(writable)]}},
+                        "volumeClaimTemplates": [{"metadata": {"name": "data"},
+                                                  "spec": {"accessModes": ["ReadWriteOnce"], "resources": {"requests": {"storage": size}}}}]}}
+        svc = {"apiVersion": "v1", "kind": "Service", "metadata": self.meta(name),
+               "spec": {"clusterIP": "None", "selector": selector, "ports": [{"name": name, "port": port, "targetPort": name}]}}
+        return name, dump(sts) + "---" + chr(10) + dump(svc)
+
+    @staticmethod
+    def secret_env(var, key):
+        return {"name": var, "valueFrom": {"secretKeyRef": {"name": "SECRET", "key": key}}}
+
+    def postgres(self):
+        image = "pgvector/pgvector:pg16" if self.m.has("vector") else "postgres:16"
+        env = [{"name": "POSTGRES_USER", "value": "app"}, {"name": "POSTGRES_DB", "value": "app"},
+               {"name": "PGDATA", "value": "/var/lib/postgresql/data/pgdata"}, self.secret_env("POSTGRES_PASSWORD", "DB_PASSWORD")]
+        return self.fix(self.stateful("postgres", image, 5432, env, mount="/var/lib/postgresql/data", writable=("/tmp", "/var/run/postgresql")))
+
+    def mysql(self):
+        env = [{"name": "MYSQL_DATABASE", "value": "app"}, {"name": "MYSQL_USER", "value": "app"},
+               self.secret_env("MYSQL_PASSWORD", "DB_PASSWORD"), self.secret_env("MYSQL_ROOT_PASSWORD", "DB_PASSWORD")]
+        return self.fix(self.stateful("mysql", "mysql:8.4", 3306, env, mount="/var/lib/mysql", writable=("/tmp", "/var/run/mysqld")))
+
+    def mongo(self):
+        env = [{"name": "MONGO_INITDB_ROOT_USERNAME", "value": "app"}, self.secret_env("MONGO_INITDB_ROOT_PASSWORD", "MONGO_PASSWORD")]
+        return self.fix(self.stateful("mongo", "mongo:7", 27017, env, mount="/data/db"))
+
+    def redis(self):
+        env = [self.secret_env("REDIS_PASSWORD", "REDIS_PASSWORD")]
+        return self.fix(self.stateful("redis", "redis:7", 6379, env, ["redis-server", "--requirepass", "$(REDIS_PASSWORD)", "--appendonly", "yes"], size="5Gi"))
+
+    def rabbitmq(self):
+        env = [{"name": "RABBITMQ_DEFAULT_USER", "value": "app"}, self.secret_env("RABBITMQ_DEFAULT_PASS", "AMQP_PASSWORD")]
+        return self.fix(self.stateful("rabbitmq", "rabbitmq:3", 5672, env, mount="/var/lib/rabbitmq", size="10Gi", writable=("/tmp", "/var/log/rabbitmq")))
+
+    def fix(self, pair):
+        name, text = pair
+        return name, text.replace("SECRET", self.ns + "-secrets")
 
     def service(self, unit):
         n = unit["name"]
