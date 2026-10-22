@@ -53,6 +53,10 @@ MODE_LABELS = {"server": "Server-based (always-on containers)", "serverless": "S
 
 
 def emit(payload, code=0):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
     sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     return code
 

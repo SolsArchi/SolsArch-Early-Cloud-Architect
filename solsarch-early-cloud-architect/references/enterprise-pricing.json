@@ -1,0 +1,71 @@
+{
+  "checked": "2026-10-14",
+  "note": "The commercial profile of each enterprise platform in the six fields a buyer needs. 'status' is published (a public page states it), quote (the vendor quotes it per customer), included/addon/preview (MCP access only) or unknown. 'confirmed' is false where the fact comes from the person who supplied the link and was not on a page that was opened. Numbers for published prices are kept in core/mcp/platform_docs.json (pricing.facts) so there is one source for them.",
+  "fields": ["base_license", "mcp_access", "api_consumption", "ai_consumption", "environment_costs", "limits_overage"],
+  "labels": {
+    "base_license": "Base licence",
+    "mcp_access": "MCP access",
+    "api_consumption": "API and tool consumption",
+    "ai_consumption": "AI consumption",
+    "environment_costs": "Environment costs",
+    "limits_overage": "Limits and overage"
+  },
+  "vendors": {
+    "sap_btp": {
+      "base_license": {"status": "quote", "confirmed": false, "text": "Integration Suite is sold as a subscription or pay-as-you-go (per the supplied link; the page blocked automated reading, so no figure is recorded).", "ask": "Which Integration Suite plan and edition, what minimum commitment, and what is the unit price for messages or connections?"},
+      "mcp_access": {"status": "included", "confirmed": false, "text": "The Integration Suite MCP Gateway is included in eligible service plans, per the supplied link. Availability depends on the plan.", "ask": "Is the MCP Gateway in our plan, or an add-on?"},
+      "api_consumption": {"status": "quote", "confirmed": false, "text": "Consumption is metered (messages, connections, API calls) by plan; no public figures were readable.", "ask": "What is metered for our plan, and what is the overage price?"},
+      "ai_consumption": {"status": "unknown", "confirmed": false, "text": "AI services (for example AI Core) have their own consumption units; none were readable.", "ask": "Which AI units apply and at what price?"},
+      "environment_costs": {"status": "unknown", "confirmed": false, "text": "Not stated on any page that was read.", "ask": "What do non-production subaccounts and sandboxes cost?"},
+      "limits_overage": {"status": "unknown", "confirmed": false, "text": "Not stated on any page that was read.", "ask": "What are the rate limits, concurrency limits and overage terms?"}
+    },
+    "pega": {
+      "base_license": {"status": "quote", "confirmed": true, "text": "The Pega pricing page publishes no prices or units; pricing is by quote.", "ask": "What is the platform subscription, the minimum commitment and the term?"},
+      "mcp_access": {"status": "unknown", "confirmed": true, "text": "The MCP page describes Infinity Build MCP and Infinity Run MCP and makes no licensing statement.", "ask": "Are Build MCP and Run MCP included in our subscription, an add-on, or in preview?"},
+      "api_consumption": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "Are DX API calls metered?"},
+      "ai_consumption": {"status": "quote", "confirmed": false, "text": "Pega describes case-based, predictable AI pricing; an illustrative figure of $0.88 per case was supplied by the person who gave the link and is not on the pricing page.", "ask": "What is the price per case for AI-assisted work, and under what assumptions?"},
+      "environment_costs": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What do development, test and production environments cost?"},
+      "limits_overage": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What are the limits on cases, users and API rate, and the overage terms?"}
+    },
+    "salesforce": {
+      "base_license": {"status": "published", "confirmed": true, "text": "Agentforce user licence $5 per user per month (requires Flex Credits); Sales, Service, Field Service and Operations add-ons $125 per user per month; Industries add-ons $150; Max editions from $550 per user per month.", "ask": null},
+      "mcp_access": {"status": "unknown", "confirmed": true, "text": "The Agentforce pricing page makes no MCP-specific statement. Salesforce-hosted MCP servers are generally available for Enterprise Edition and above (Salesforce developer blog, April 2026).", "ask": "Do hosted MCP servers or the Agentforce MCP client carry any charge beyond Agentforce credits?"},
+      "api_consumption": {"status": "quote", "confirmed": false, "text": "Each org has a daily API request allowance by edition and licences; SolsArch reads the org's actual allowance from its limits when an org is connected.", "ask": "What is our org's API request allowance and the price of more?"},
+      "ai_consumption": {"status": "published", "confirmed": true, "text": "Flex Credits $500 per 100,000 credits; a standard Agentforce action uses 20 credits (voice 30); conversations $2 each. Conversation pricing, add-ons and Agentforce 1 Editions are not available with pay-as-you-go or pre-commit.", "ask": null},
+      "environment_costs": {"status": "unknown", "confirmed": true, "text": "Sandbox pricing is not on the pricing page.", "ask": "What do sandboxes cost for our edition?"},
+      "limits_overage": {"status": "quote", "confirmed": false, "text": "Buying models are pre-purchase, pre-commit and pay-as-you-go; overage terms depend on the model.", "ask": "What happens when credits or API requests run out under our model?"}
+    },
+    "mulesoft": {
+      "base_license": {"status": "quote", "confirmed": false, "text": "Anypoint is quote-based; the vCore page covers metering, not prices, and sources disagree on whether new customers still buy vCores.", "ask": "What is the Anypoint subscription and what is it metered on (vCores, messages, API calls)?"},
+      "mcp_access": {"status": "unknown", "confirmed": false, "text": "MuleSoft MCP servers sync into Salesforce's API Catalog (per MuleSoft's blog); no licensing statement was read.", "ask": "Is MCP server hosting or the AI gateway priced separately?"},
+      "api_consumption": {"status": "quote", "confirmed": false, "text": "vCore usage is sampled hourly and the peak is used for the daily and monthly maximum (MuleSoft docs); no price is public.", "ask": "What is the price per vCore or per message under our contract?"},
+      "ai_consumption": {"status": "unknown", "confirmed": false, "text": "Not stated.", "ask": "Do agent fabric or AI features consume credits?"},
+      "environment_costs": {"status": "unknown", "confirmed": false, "text": "Not stated.", "ask": "Are sandbox and design environments included?"},
+      "limits_overage": {"status": "quote", "confirmed": false, "text": "Overage depends on the contract.", "ask": "What are the overage terms for vCores or messages?"}
+    },
+    "servicenow": {
+      "base_license": {"status": "quote", "confirmed": true, "text": "No public price list; the documentation links product tiers (Foundation, Advanced, Prime).", "ask": "Which tier and how many licences, with what term?"},
+      "mcp_access": {"status": "included", "confirmed": false, "text": "Per the supplied link, the MCP server is included in Now Assist and AI-native SKUs; the documentation says access depends on the licence.", "ask": "Is the MCP Server Console in our SKU?"},
+      "api_consumption": {"status": "unknown", "confirmed": true, "text": "REST API access (Table and CMDB APIs) works on every instance without a Now Assist entitlement; rate limits are set per instance.", "ask": "What REST rate limits are set on our instance?"},
+      "ai_consumption": {"status": "quote", "confirmed": false, "text": "Per the supplied link, AI actions consume Assist currency, so included MCP access is not unlimited AI use.", "ask": "How many Assists are in our SKU and what does an action cost?"},
+      "environment_costs": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What do sub-production instances cost?"},
+      "limits_overage": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What are the Assist and API limits and overage terms?"}
+    },
+    "workday": {
+      "base_license": {"status": "quote", "confirmed": true, "text": "Negotiated enterprise subscription; no public price.", "ask": "What is the subscription by worker count and modules?"},
+      "mcp_access": {"status": "unknown", "confirmed": true, "text": "The Agent-Ready Tools page has no licensing statement; availability per tenant should be confirmed with Workday.", "ask": "Is MCP access for Agent-Ready Tools included, an add-on or in preview for our tenant?"},
+      "api_consumption": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "Is API or tool use metered?"},
+      "ai_consumption": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "Do agent actions consume AI credits?"},
+      "environment_costs": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What do sandbox and implementation tenants cost?"},
+      "limits_overage": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What are the rate limits and overage terms?"}
+    },
+    "oracle_fusion": {
+      "base_license": {"status": "published", "confirmed": false, "text": "The Fusion Cloud global price list is a public PDF; it returned no readable text to an automated request, so no figure is recorded. OCI list prices are public (see the OCI price list).", "ask": "Which Fusion applications and metrics, and what discount applies to the list price?"},
+      "mcp_access": {"status": "unknown", "confirmed": true, "text": "No standalone MCP fee is established for the Fusion Data Intelligence MCP server; it needs the relevant Fusion Data Intelligence entitlement.", "ask": "Is the MCP server covered by our Data Intelligence entitlement?"},
+      "api_consumption": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "Are REST API calls metered?"},
+      "ai_consumption": {"status": "unknown", "confirmed": true, "text": "Not stated; OCI AI services are priced per unit in the OCI price list.", "ask": "Which AI features in our entitlement are metered?"},
+      "environment_costs": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What do test and development pods cost?"},
+      "limits_overage": {"status": "unknown", "confirmed": true, "text": "Not stated.", "ask": "What are the limits and overage terms?"}
+    }
+  }
+}

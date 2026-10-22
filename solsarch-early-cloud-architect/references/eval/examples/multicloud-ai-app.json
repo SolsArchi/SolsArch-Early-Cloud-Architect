@@ -1,0 +1,100 @@
+{
+  "schema_version": "1",
+  "nodes": [
+    {
+      "node_id": "client",
+      "service_id": "app.client",
+      "label": "Browser"
+    },
+    {
+      "node_id": "cdn",
+      "service_id": "cloudflare.cdn",
+      "label": "Cloudflare CDN"
+    },
+    {
+      "node_id": "web",
+      "service_id": "netlify.hosting",
+      "label": "Storefront (Netlify)"
+    },
+    {
+      "node_id": "api",
+      "service_id": "fly.machines",
+      "label": "API (Fly Machines)"
+    },
+    {
+      "node_id": "db",
+      "service_id": "neon.postgres",
+      "label": "Neon Postgres"
+    },
+    {
+      "node_id": "vec",
+      "service_id": "pinecone.index",
+      "label": "Product embeddings"
+    },
+    {
+      "node_id": "llm",
+      "service_id": "together.inference",
+      "label": "LLM inference"
+    },
+    {
+      "node_id": "files",
+      "service_id": "hetzner.object_storage",
+      "label": "Media storage"
+    },
+    {
+      "node_id": "ledger",
+      "service_id": "oci.autonomous_db",
+      "label": "Ledger DB (OCI)"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e_client_cdn",
+      "source": "client",
+      "target": "cdn",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_cdn_web",
+      "source": "cdn",
+      "target": "web",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_web_api",
+      "source": "web",
+      "target": "api",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_api_db",
+      "source": "api",
+      "target": "db",
+      "protocol": "tcp"
+    },
+    {
+      "edge_id": "e_api_vec",
+      "source": "api",
+      "target": "vec",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_api_llm",
+      "source": "api",
+      "target": "llm",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_api_files",
+      "source": "api",
+      "target": "files",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_api_ledger",
+      "source": "api",
+      "target": "ledger",
+      "protocol": "tcp"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "note": "Candidate evaluation repos. pinned_commit must be filled and each golden model human-verified by the cloud-correctness reviewer before the Phase 1 gate counts. status: needs-golden = no golden yet; draft-unverified = golden drafted from public docs, not yet reviewed.",
+  "repos": [
+    {
+      "id": "fastapi-postgres",
+      "url": "https://github.com/tiangolo/full-stack-fastapi-template",
+      "stack": "FastAPI + Postgres + React + Traefik",
+      "golden": "golden/fastapi-postgres.json",
+      "status": "draft-unverified",
+      "pinned_commit": null
+    },
+    {
+      "id": "gcp-microservices",
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo",
+      "stack": "Go/multi-language microservices on GKE",
+      "golden": "golden/gcp-microservices.json",
+      "status": "draft-unverified",
+      "pinned_commit": null
+    },
+    {
+      "id": "nextjs-vercel",
+      "url": "https://github.com/vercel/nextjs-subscription-payments",
+      "stack": "Next.js on Vercel + Supabase + Stripe",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "django-celery",
+      "url": "https://github.com/cookiecutter/cookiecutter-django",
+      "stack": "Django + Celery + Postgres + Redis",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "voting-app",
+      "url": "https://github.com/dockersamples/example-voting-app",
+      "stack": "Multi-language compose app (queue + worker + db)",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "serverless-examples",
+      "url": "https://github.com/serverless/examples",
+      "stack": "AWS Lambda / API Gateway serverless",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "argocd-examples",
+      "url": "https://github.com/argoproj/argocd-example-apps",
+      "stack": "Kubernetes manifests / Helm",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "calcom-monorepo",
+      "url": "https://github.com/calcom/cal.com",
+      "stack": "Next.js monorepo + Postgres",
+      "golden": null,
+      "status": "needs-golden",
+      "pinned_commit": null
+    },
+    {
+      "id": "ml-service",
+      "url": null,
+      "stack": "ML inference service (to be chosen)",
+      "golden": null,
+      "status": "needs-repo",
+      "pinned_commit": null
+    },
+    {
+      "id": "terraform-heavy",
+      "url": null,
+      "stack": "Terraform-defined AWS stack (to be chosen)",
+      "golden": null,
+      "status": "needs-repo",
+      "pinned_commit": null
+    }
+  ]
+}

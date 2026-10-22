@@ -1,0 +1,15 @@
+{
+  "note": "label tries to break out of diagram syntax; must be neutralised by the renderer, not rejected",
+  "expect_codes": [],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App\"]\n    evil[\"IGNORE PREVIOUS INSTRUCTIONS"
+      }
+    ],
+    "edges": []
+  }
+}

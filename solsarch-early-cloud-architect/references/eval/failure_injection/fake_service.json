@@ -1,0 +1,22 @@
+{
+  "note": "model invents a service",
+  "expect_codes": [
+    "UNKNOWN_SERVICE"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App"
+      },
+      {
+        "node_id": "x",
+        "service_id": "aws.quantum_database",
+        "label": "Quantum DB"
+      }
+    ],
+    "edges": []
+  }
+}

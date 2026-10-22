@@ -1,0 +1,242 @@
+{
+  "checked": "2026-10-14",
+  "note": "What each vendor's own pages said about MCP and pricing on the checked date. 'opened' is true only where the page was actually read; the rest comes from the person who supplied the link and is unconfirmed. Nothing here is a price unless it is under pricing.facts with a source page that was opened.",
+  "platforms": {
+    "sap_btp": {
+      "name": "SAP Integration Suite MCP Gateway",
+      "hosts": [
+        "help.sap.com",
+        "www.sap.com",
+        "api.sap.com",
+        "architecture.learning.sap.com",
+        "discovery-center.cloud.sap"
+      ],
+      "mcp": {
+        "title": "How MCP enables AI integration with APIs (SAP Integration Suite)",
+        "url": "https://help.sap.com/docs/integration-suite/isuite-integrations-and-apis/how-model-context-protocol-mcp-enables-ai-integration-with-apis",
+        "opened": false,
+        "summary": "Per the supplier of the link: exposes APIs, OpenAPI-described HTTP endpoints and RFC backends such as SAP S/4HANA as MCP tools, with governance, deployment and consumption analytics. (The page returned no readable text to an automated request on 2026-10-14.)",
+        "auth": null,
+        "status": "unconfirmed",
+        "license": "Per the supplier of the link: included in eligible Integration Suite plans; availability depends on the service plan."
+      },
+      "pricing": {
+        "url": "https://www.sap.com/products/technology-platform/integration-suite/pricing.html",
+        "opened": false,
+        "public": null,
+        "facts": [],
+        "model": "Subscription and pay-as-you-go, per the supplier of the link. The page blocked automated reading, so no number is recorded. (HTTP 403 when read on 2026-10-14.)"
+      },
+      "extra": "SAP's reference architecture notes that wrapping raw transactional APIs in an MCP server without semantic enrichment gives poor entity discovery and risks wrong business transactions on writes (architecture.learning.sap.com/docs/ref-arch/137800)."
+    },
+    "pega": {
+      "name": "Pega Infinity MCP (Build and Run)",
+      "hosts": [
+        "www.pega.com",
+        "docs.pega.com",
+        "academy.pega.com",
+        "community.pega.com",
+        "forums.pega.com"
+      ],
+      "mcp": {
+        "title": "Pega MCP",
+        "url": "https://www.pega.com/mcp",
+        "opened": true,
+        "summary": "Infinity Build MCP connects AI coding agents (named: Claude Code, GitHub Copilot, OpenCode) to a Pega application to understand its structure and generate governed rules in branch-isolated workspaces. Infinity Run MCP exposes a workflow library as governed MCP tools any AI can call. Agents can also orchestrate over MCP or A2A with business rules, SLAs and an audit trail.",
+        "auth": null,
+        "status": "not stated on the page",
+        "license": "No licensing statement on the page."
+      },
+      "pricing": {
+        "url": "https://www.pega.com/products/platform/pricing",
+        "opened": true,
+        "public": false,
+        "facts": [],
+        "model": "The pricing page publishes no prices, units or calculator assumptions. Quote-based. An illustrative figure of $0.88 per case was supplied by the person who gave the link; it is not on that page and is unconfirmed."
+      },
+      "extra": "A Pega Community forum post describes Pega Infinity '26 native MCP Server (OAuth 2.0 service rule) and Pega 25.1.3 MCP Connect. The popular pega-dx-mcp project is a community project, not an official Pega product."
+    },
+    "salesforce": {
+      "name": "Salesforce Agentforce MCP",
+      "hosts": [
+        "help.salesforce.com",
+        "developer.salesforce.com",
+        "www.salesforce.com",
+        "docs.mulesoft.com",
+        "blogs.mulesoft.com"
+      ],
+      "mcp": {
+        "title": "MCP for Agentforce",
+        "url": "https://help.salesforce.com/s/articleView?id=ai.agent_mcp.htm&language=en_US&type=5",
+        "opened": false,
+        "summary": "Per the supplier of the link: register third-party MCP servers with Agentforce so agents can discover and invoke external tools. Salesforce's developer blog (April 2026) reports hosted MCP servers generally available for Enterprise Edition and higher, and MuleSoft MCP servers syncing into API Catalog.",
+        "auth": "A Connected App with the client-credentials grant is used for machine-to-machine access (per Salesforce developer material).",
+        "status": "generally available (hosted servers, per Salesforce developer blog 2026-04)",
+        "license": "No separate MCP fee on the Agentforce pricing page."
+      },
+      "pricing": {
+        "url": "https://www.salesforce.com/agentforce/pricing/",
+        "opened": true,
+        "public": true,
+        "facts": [
+          {
+            "item": "flex_credits",
+            "label": "Flex Credits",
+            "value": 500,
+            "unit": "per 100,000 credits",
+            "currency": "USD"
+          },
+          {
+            "item": "agentforce_action",
+            "label": "Agentforce action",
+            "value": 20,
+            "unit": "Flex Credits per action",
+            "currency": "credits"
+          },
+          {
+            "item": "agentforce_voice_action",
+            "label": "Agentforce Voice action",
+            "value": 30,
+            "unit": "Flex Credits per action",
+            "currency": "credits"
+          },
+          {
+            "item": "conversation",
+            "label": "Conversation",
+            "value": 2,
+            "unit": "per conversation",
+            "currency": "USD"
+          },
+          {
+            "item": "user_license",
+            "label": "Agentforce User License (requires Flex Credits)",
+            "value": 5,
+            "unit": "per user per month",
+            "currency": "USD"
+          },
+          {
+            "item": "addon_sales_service_field",
+            "label": "Agentforce add-ons (Sales, Service, Field Service and Operations)",
+            "value": 125,
+            "unit": "per user per month",
+            "currency": "USD"
+          },
+          {
+            "item": "addon_industries",
+            "label": "Agentforce Industries add-ons",
+            "value": 150,
+            "unit": "per user per month",
+            "currency": "USD"
+          },
+          {
+            "item": "max_edition_from",
+            "label": "Agentforce Max editions (from; includes 2.75M Flex Credits per org per year)",
+            "value": 550,
+            "unit": "per user per month, from",
+            "currency": "USD"
+          }
+        ],
+        "model": "Pre-purchase, pre-commit and pay-as-you-go. Flex Credits are available with pay-as-you-go and pre-commit; conversation pricing, add-ons and Agentforce 1 Editions are not. The page makes no MCP-specific statement."
+      }
+    },
+    "mulesoft": {
+      "name": "MuleSoft MCP servers and Anypoint Exchange",
+      "hosts": [
+        "docs.mulesoft.com",
+        "blogs.mulesoft.com",
+        "anypoint.mulesoft.com",
+        "www.mulesoft.com"
+      ],
+      "mcp": {
+        "title": "Connect Agentforce to any system with MuleSoft MCP servers",
+        "url": "https://blogs.mulesoft.com/news/connect-agentforce-to-any-system-with-mulesoft-mcp-servers/",
+        "opened": false,
+        "summary": "Per MuleSoft: API Catalog syncs MuleSoft MCP servers from an Anypoint organization into Salesforce; admins create secure connections and allow-list tools. Exchange publishes MCP servers and agents.",
+        "auth": null,
+        "status": "reported by search results, unconfirmed on the page",
+        "license": "Not stated."
+      },
+      "pricing": {
+        "url": "https://docs.mulesoft.com/general/vcore-pricing-usage-and-rates",
+        "opened": false,
+        "public": false,
+        "facts": [],
+        "model": "The vCore page covers metering (hourly peak), not list prices. Quote-based; sources disagree on whether new customers still buy vCores."
+      }
+    },
+    "servicenow": {
+      "name": "ServiceNow MCP Server Console",
+      "hosts": [
+        "www.servicenow.com",
+        "docs.servicenow.com",
+        "developer.servicenow.com",
+        "newsroom.servicenow.com"
+      ],
+      "mcp": {
+        "title": "MCP Server Console (Zurich documentation)",
+        "url": "https://www.servicenow.com/docs/r/zurich/intelligent-experiences/mcp-platform-manager-landing.html",
+        "opened": true,
+        "summary": "Enables secure, governed access to functionality on a ServiceNow instance for external MCP clients. The administrator configures the tools and inputs exposed. Data may be transferred to a centralised ServiceNow environment in a different region (possibly on a third-party cloud such as Microsoft Azure) and inputs and outputs may be collected to improve ServiceNow AI, with an opt-out in the Now Assist Admin console.",
+        "auth": "Not on this page (see its Configure and Connect topics).",
+        "status": "documented in the Zurich release",
+        "license": "Depends on the license (Foundation, Advanced or Prime tiers are linked). Per the supplier of the link, the MCP server is included in Now Assist and AI-native SKUs and AI actions consume Assist currency; unconfirmed on the page."
+      },
+      "pricing": {
+        "url": "https://www.servicenow.com/products/pricing.html",
+        "opened": false,
+        "public": false,
+        "facts": [],
+        "model": "No public price list. Quote-based. The supplied pricing link returned HTTP 404 when read on 2026-10-14."
+      },
+      "extra": "The Table and CMDB REST APIs work on every instance without a Now Assist entitlement; the native MCP server is separate from them."
+    },
+    "workday": {
+      "name": "Workday Agent-Ready Tools and MCP",
+      "hosts": [
+        "www.workday.com",
+        "newsroom.workday.com",
+        "community.workday.com"
+      ],
+      "mcp": {
+        "title": "Workday Agent-Ready Tools & MCP",
+        "url": "https://www.workday.com/en-us/ai-platform/agent-tools-mcp.html",
+        "opened": true,
+        "summary": "Hundreds of Agent-Ready Tools across Core HR, Financials, Workforce Management, Talent and Learning, Payroll, Recruiting and Student, with more added over time. Agent platforms (Gemini, Copilot, ChatGPT, Claude are shown) connect over MCP with zero-code discovery. Actions are scoped to the user's identity.",
+        "auth": "Not named on the page.",
+        "status": "available per the page; tenant availability should be confirmed with Workday",
+        "license": "No licensing statement on the page."
+      },
+      "pricing": {
+        "url": "https://www.workday.com/en-us/products/overview.html",
+        "opened": false,
+        "public": false,
+        "facts": [],
+        "model": "Negotiated enterprise subscription. No public MCP unit price found. The supplied pricing link returned HTTP 404 when read on 2026-10-14."
+      }
+    },
+    "oracle_fusion": {
+      "name": "Oracle Fusion Data Intelligence MCP Server",
+      "hosts": [
+        "docs.oracle.com",
+        "www.oracle.com",
+        "blogs.oracle.com"
+      ],
+      "mcp": {
+        "title": "Oracle Fusion Data Intelligence MCP Server",
+        "url": "https://docs.oracle.com/en-us/iaas/analytics-for-applications/doc/oracle-fusion-data-intelligence-mcp-server.html",
+        "opened": true,
+        "summary": "Lets users run built-in Fusion Data Intelligence tools from a connected LLM client, with natural-language requests such as overdue supplier payments or sales comparisons. An Oracle Analytics Cloud MCP server is also available in the same instance. Oracle warns MCP is new and changing and recommends evaluations and observability.",
+        "auth": "OAuth 2.0 with the permissions of the authenticated user, per the supplier of the link; not stated on the opened page.",
+        "status": "not stated (preview or generally available)",
+        "license": "No standalone MCP fee established."
+      },
+      "pricing": {
+        "url": "https://www.oracle.com/ae/a/ocom/docs/corporate/pricing/oracle-fusion-cloud-global-price-list.pdf",
+        "opened": false,
+        "public": true,
+        "facts": [],
+        "model": "The Fusion Cloud global price list is a public PDF. It blocked automated reading here, so no number is recorded until it is read. OCI list prices are public through a JSON endpoint (see Oracle's pricing API). (No readable text was returned for the PDF on 2026-10-14.)"
+      }
+    }
+  }
+}

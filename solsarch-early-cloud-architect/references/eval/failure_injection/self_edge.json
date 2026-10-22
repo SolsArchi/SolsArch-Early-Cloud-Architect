@@ -1,0 +1,24 @@
+{
+  "note": "node connected to itself",
+  "expect_codes": [
+    "SELF_EDGE"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App"
+      }
+    ],
+    "edges": [
+      {
+        "edge_id": "e1",
+        "source": "app",
+        "target": "app",
+        "protocol": "http"
+      }
+    ]
+  }
+}

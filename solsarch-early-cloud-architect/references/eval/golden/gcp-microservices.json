@@ -1,0 +1,94 @@
+{
+  "schema_version": "1",
+  "nodes": [
+    {
+      "node_id": "client",
+      "service_id": "app.client",
+      "label": "User"
+    },
+    {
+      "node_id": "lb",
+      "service_id": "gcp.cloud_load_balancing",
+      "label": "Load balancer"
+    },
+    {
+      "node_id": "gke",
+      "service_id": "gcp.gke",
+      "label": "GKE cluster"
+    },
+    {
+      "node_id": "frontend",
+      "service_id": "app.service",
+      "label": "frontend",
+      "parent": "gke"
+    },
+    {
+      "node_id": "cart",
+      "service_id": "app.service",
+      "label": "cartservice",
+      "parent": "gke"
+    },
+    {
+      "node_id": "checkout",
+      "service_id": "app.service",
+      "label": "checkoutservice",
+      "parent": "gke"
+    },
+    {
+      "node_id": "catalog",
+      "service_id": "app.service",
+      "label": "productcatalogservice",
+      "parent": "gke"
+    },
+    {
+      "node_id": "redis",
+      "service_id": "oss.redis",
+      "label": "redis-cart",
+      "parent": "gke"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e_client_lb",
+      "source": "client",
+      "target": "lb",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_lb_frontend",
+      "source": "lb",
+      "target": "frontend",
+      "protocol": "http"
+    },
+    {
+      "edge_id": "e_frontend_cart",
+      "source": "frontend",
+      "target": "cart",
+      "protocol": "grpc"
+    },
+    {
+      "edge_id": "e_frontend_checkout",
+      "source": "frontend",
+      "target": "checkout",
+      "protocol": "grpc"
+    },
+    {
+      "edge_id": "e_frontend_catalog",
+      "source": "frontend",
+      "target": "catalog",
+      "protocol": "grpc"
+    },
+    {
+      "edge_id": "e_checkout_cart",
+      "source": "checkout",
+      "target": "cart",
+      "protocol": "grpc"
+    },
+    {
+      "edge_id": "e_cart_redis",
+      "source": "cart",
+      "target": "redis",
+      "protocol": "tcp"
+    }
+  ]
+}

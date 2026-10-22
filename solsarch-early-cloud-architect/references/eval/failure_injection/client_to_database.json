@@ -1,0 +1,29 @@
+{
+  "note": "browser connects straight to a database",
+  "expect_codes": [
+    "EDGE_NOT_ALLOWED"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "c",
+        "service_id": "app.client",
+        "label": "Browser"
+      },
+      {
+        "node_id": "db",
+        "service_id": "oss.postgres",
+        "label": "DB"
+      }
+    ],
+    "edges": [
+      {
+        "edge_id": "e1",
+        "source": "c",
+        "target": "db",
+        "protocol": "tcp"
+      }
+    ]
+  }
+}

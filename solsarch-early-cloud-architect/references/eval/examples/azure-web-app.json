@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "nodes": [
+    { "node_id": "client", "service_id": "app.client", "label": "Browser" },
+    { "node_id": "fd", "service_id": "azure.front_door", "label": "Front Door" },
+    { "node_id": "web", "service_id": "azure.app_service", "label": "Web app" },
+    { "node_id": "cache", "service_id": "azure.cache_redis", "label": "Session cache" },
+    { "node_id": "files", "service_id": "azure.blob_storage", "label": "Uploads" },
+    { "node_id": "bus", "service_id": "azure.service_bus", "label": "Order queue" },
+    { "node_id": "db", "service_id": "azure.postgres_flexible", "label": "Orders DB" }
+  ],
+  "edges": [
+    { "edge_id": "e_client_fd", "source": "client", "target": "fd", "protocol": "https" },
+    { "edge_id": "e_fd_web", "source": "fd", "target": "web", "protocol": "https" },
+    { "edge_id": "e_web_cache", "source": "web", "target": "cache", "protocol": "tcp" },
+    { "edge_id": "e_web_files", "source": "web", "target": "files", "protocol": "https" },
+    { "edge_id": "e_web_bus", "source": "web", "target": "bus", "protocol": "https" },
+    { "edge_id": "e_web_db", "source": "web", "target": "db", "protocol": "tcp" }
+  ]
+}

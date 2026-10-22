@@ -1,0 +1,56 @@
+{
+  "schema_version": "1",
+  "nodes": [
+    {
+      "node_id": "client",
+      "service_id": "app.client",
+      "label": "Browser"
+    },
+    {
+      "node_id": "proxy",
+      "service_id": "oss.reverse_proxy",
+      "label": "Traefik proxy"
+    },
+    {
+      "node_id": "frontend",
+      "service_id": "app.service",
+      "label": "React frontend"
+    },
+    {
+      "node_id": "backend",
+      "service_id": "app.service",
+      "label": "FastAPI backend"
+    },
+    {
+      "node_id": "db",
+      "service_id": "oss.postgres",
+      "label": "PostgreSQL"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "e_client_proxy",
+      "source": "client",
+      "target": "proxy",
+      "protocol": "https"
+    },
+    {
+      "edge_id": "e_proxy_frontend",
+      "source": "proxy",
+      "target": "frontend",
+      "protocol": "http"
+    },
+    {
+      "edge_id": "e_proxy_backend",
+      "source": "proxy",
+      "target": "backend",
+      "protocol": "http"
+    },
+    {
+      "edge_id": "e_backend_db",
+      "source": "backend",
+      "target": "db",
+      "protocol": "tcp"
+    }
+  ]
+}

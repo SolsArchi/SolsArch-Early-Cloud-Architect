@@ -1,0 +1,474 @@
+{
+ "checked": "2026-10-09",
+ "note": "Where each provider publishes an MCP server, and what was seen on the checked date. Only usable entries are ever called, only read-only tools on the allow-list.",
+ "sources": [
+  {
+   "provider": "aws",
+   "name": "AWS Labs MCP servers",
+   "url": "https://github.com/awslabs/mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "azure",
+   "name": "Azure MCP Server",
+   "url": "https://github.com/Azure/azure-mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "Entra ID",
+   "usable": true
+  },
+  {
+   "provider": "gcp",
+   "name": "Google Cloud MCP servers",
+   "url": "https://docs.cloud.google.com/mcp/overview",
+   "kind": "documented",
+   "http_status": 200,
+   "auth": "IAM",
+   "usable": true
+  },
+  {
+   "provider": "oracle",
+   "name": "Oracle MCP",
+   "url": "https://github.com/oracle/mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "alibaba",
+   "name": "Alibaba Cloud (aliyun)",
+   "url": "https://github.com/aliyun",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "ibm",
+   "name": "IBM",
+   "url": "https://github.com/IBM",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "tencent",
+   "name": "Tencent Cloud",
+   "url": "https://github.com/TencentCloud",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "huawei",
+   "name": "Huawei Cloud",
+   "url": "https://github.com/HuaweiCloudDeveloper",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "vercel",
+   "name": "Vercel MCP",
+   "url": "https://mcp.vercel.com",
+   "kind": "hosted_endpoint",
+   "http_status": 401,
+   "auth": "Vercel sign-in",
+   "usable": false
+  },
+  {
+   "provider": "render",
+   "name": "Render MCP server",
+   "url": "https://render.com/docs/mcp-server",
+   "kind": "documented",
+   "http_status": 200,
+   "auth": "API key",
+   "usable": true
+  },
+  {
+   "provider": "railway",
+   "name": "Railway",
+   "url": "https://github.com/railwayapp",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "fly",
+   "name": "Fly.io",
+   "url": "https://github.com/superfly",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "netlify",
+   "name": "Netlify",
+   "url": "https://github.com/netlify",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "heroku",
+   "name": "Heroku",
+   "url": "https://github.com/heroku",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "koyeb",
+   "name": "Koyeb",
+   "url": "https://github.com/koyeb",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "coolify",
+   "name": "Coolify",
+   "url": "https://github.com/coollabsio",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "dokku",
+   "name": "Dokku",
+   "url": "https://github.com/dokku",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "digitalocean",
+   "name": "DigitalOcean",
+   "url": "https://github.com/digitalocean",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "hetzner",
+   "name": "Hetzner Cloud",
+   "url": "https://github.com/hetznercloud",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "linode",
+   "name": "Linode (Akamai Cloud)",
+   "url": "https://github.com/linode",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "scaleway",
+   "name": "Scaleway",
+   "url": "https://github.com/scaleway",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "vultr",
+   "name": "Vultr",
+   "url": "https://github.com/vultr",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "upcloud",
+   "name": "UpCloud",
+   "url": "https://github.com/UpCloudLtd",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "ovh",
+   "name": "OVHcloud",
+   "url": "https://github.com/ovh",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "ionos",
+   "name": "IONOS Cloud",
+   "url": "https://github.com/ionos-cloud",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "contabo",
+   "name": "Contabo",
+   "url": "https://github.com/contabo",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "runpod",
+   "name": "RunPod",
+   "url": "https://github.com/runpod",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "lambda",
+   "name": "Lambda Labs",
+   "url": "https://github.com/lambdal",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "coreweave",
+   "name": "CoreWeave",
+   "url": "https://github.com/coreweave",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "nebius",
+   "name": "Nebius AI",
+   "url": "https://github.com/nebius",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "crusoe",
+   "name": "Crusoe Cloud",
+   "url": "https://github.com/crusoecloud",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "together",
+   "name": "Together AI",
+   "url": "https://github.com/togethercomputer",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "replicate",
+   "name": "Replicate",
+   "url": "https://github.com/replicate",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "fal",
+   "name": "Fal.ai",
+   "url": "https://github.com/fal-ai",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "cloudflare",
+   "name": "Cloudflare MCP server",
+   "url": "https://github.com/cloudflare/mcp-server-cloudflare",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "API token",
+   "usable": true
+  },
+  {
+   "provider": "fastly",
+   "name": "Fastly",
+   "url": "https://github.com/fastly",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "akamai",
+   "name": "Akamai",
+   "url": "https://github.com/akamai",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "deno",
+   "name": "Deno Deploy",
+   "url": "https://github.com/denoland",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "supabase",
+   "name": "Supabase MCP",
+   "url": "https://github.com/supabase-community/supabase-mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "access token",
+   "usable": true
+  },
+  {
+   "provider": "firebase",
+   "name": "Firebase MCP",
+   "url": "https://github.com/gannonh/firebase-mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "Google credentials",
+   "usable": true
+  },
+  {
+   "provider": "neon",
+   "name": "Neon MCP server",
+   "url": "https://github.com/neondatabase/mcp-server-neon",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "API key",
+   "usable": true
+  },
+  {
+   "provider": "planetscale",
+   "name": "PlanetScale MCP",
+   "url": "https://github.com/planetscale/mcp",
+   "kind": "not_found",
+   "http_status": 404,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "mongodb",
+   "name": "MongoDB MCP server",
+   "url": "https://github.com/mongodb-js/mongodb-mcp-server",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "pinecone",
+   "name": "Pinecone MCP",
+   "url": "https://github.com/pinecone-io/pinecone-mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": "API key",
+   "usable": true
+  },
+  {
+   "provider": "weaviate",
+   "name": "Weaviate MCP server",
+   "url": "https://github.com/weaviate/mcp-server-weaviate",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "qdrant",
+   "name": "Qdrant MCP server",
+   "url": "https://github.com/qdrant/mcp-server-qdrant",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "milvus",
+   "name": "Milvus MCP server",
+   "url": "https://github.com/zilliztech/mcp-server-milvus",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "zilliz",
+   "name": "Zilliz Cloud (same server as Milvus)",
+   "url": "https://github.com/zilliztech/mcp-server-milvus",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "pgvector",
+   "name": "pgvector",
+   "url": "https://github.com/pgvector/pgvector",
+   "kind": "not_an_mcp",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "chroma",
+   "name": "Chroma MCP",
+   "url": "https://github.com/chroma-core/chroma-mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  },
+  {
+   "provider": "databricks",
+   "name": "Databricks",
+   "url": "https://github.com/databricks",
+   "kind": "organisation",
+   "http_status": 200,
+   "auth": null,
+   "usable": false
+  },
+  {
+   "provider": "snowflake",
+   "name": "Snowflake Labs MCP server",
+   "url": "https://github.com/Snowflake-Labs/mcp",
+   "kind": "mcp_repository",
+   "http_status": 200,
+   "auth": null,
+   "usable": true
+  }
+ ]
+}

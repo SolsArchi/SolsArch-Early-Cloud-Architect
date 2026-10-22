@@ -6,7 +6,7 @@ profile, so the same inputs give the same review whichever AI agent runs the ski
 
   archetype      microservice, monolith, serverless, static, data or greenfield, with the evidence
   units          the separately deployable parts of the system (each gets its own service, health check, port)
-  rules          DR-01 to DR-11: design rules that are met, bent (with the accepted risk), violated or not applicable
+  rules          DR-01 to DR-12: design rules that are met, bent (with the accepted risk), violated or not applicable
   capacity       a labelled traffic estimate and the sizing it implies (Little's Law, burst factor, vCPU per user)
   profile        the user's optional answers (traffic tier, account type, compliance, region, high availability)
 
@@ -495,11 +495,30 @@ def design_rules(scan, plan, units, compose, profile, archetype):
     return rules
 
 
+def eol_rule(root):
+    """DR-12: no runtime, framework or base image the code names is past end of life."""
+    import eol_check
+    found = eol_check.check(root)
+    dead, soon = found["end_of_life"], found["ending_soon"]
+    name = "Runtimes and base images are still supported"
+    if dead:
+        detail = "; ".join("%s %s (%s:%d, ended %s)" % (r["name"], r["version"], r["file"], r["line"], r["eol"]) for r in dead[:6])
+        return _rule("DR-12", name, "violated", detail + ".", "Move to a supported release (latest: %s)." % ", ".join(sorted({"%s %s" % (r["name"], r["latest"]) for r in dead if r.get("latest")})[:4]),
+                     ["%s:%d" % (r["file"], r["line"]) for r in dead])
+    if soon:
+        detail = "; ".join("%s %s ends %s (%s:%d)" % (r["name"], r["version"], r["eol"], r["file"], r["line"]) for r in soon[:6])
+        return _rule("DR-12", name, "bent", detail + ".", "Plan the upgrade before the date.", ["%s:%d" % (r["file"], r["line"]) for r in soon])
+    if not found["findings"]:
+        return _rule("DR-12", name, "not_applicable", "No pinned runtime or image version was found in the repository.")
+    return _rule("DR-12", name, "met", "%d pinned version(s) checked against end-of-life dates fetched %s." % (len(found["findings"]), found["fetched"]))
+
+
 def review(root, scan, plan, profile=None):
     profile = profile or dict(PROFILE_DEFAULTS)
     units, compose = detect_units(root, scan, plan)
     archetype = detect_archetype(root, scan, units, compose)
     rules = design_rules(scan, plan, units, compose, profile, archetype)
+    rules.append(eol_rule(root))
     counts = {s: sum(1 for r in rules if r["status"] == s) for s in STATUSES}
     return {"archetype": archetype, "units": units, "compose_services": compose, "rules": rules, "rule_counts": counts,
             "capacity": capacity_model(scan, units, profile, archetype["name"]), "profile": profile,

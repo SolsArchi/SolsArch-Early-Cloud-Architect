@@ -1,0 +1,22 @@
+{
+  "note": "two nodes share an id",
+  "expect_codes": [
+    "DUPLICATE_ID"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App"
+      },
+      {
+        "node_id": "app",
+        "service_id": "oss.postgres",
+        "label": "DB"
+      }
+    ],
+    "edges": []
+  }
+}

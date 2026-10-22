@@ -1,0 +1,24 @@
+{
+  "note": "edge to a node that does not exist",
+  "expect_codes": [
+    "DANGLING_EDGE"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App"
+      }
+    ],
+    "edges": [
+      {
+        "edge_id": "e1",
+        "source": "app",
+        "target": "ghost",
+        "protocol": "http"
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "note": "database reached over http",
+  "expect_codes": [
+    "PROTOCOL_NOT_ALLOWED"
+  ],
+  "model": {
+    "schema_version": "1",
+    "nodes": [
+      {
+        "node_id": "app",
+        "service_id": "app.service",
+        "label": "App"
+      },
+      {
+        "node_id": "db",
+        "service_id": "oss.postgres",
+        "label": "DB"
+      }
+    ],
+    "edges": [
+      {
+        "edge_id": "e1",
+        "source": "app",
+        "target": "db",
+        "protocol": "http"
+      }
+    ]
+  }
+}
