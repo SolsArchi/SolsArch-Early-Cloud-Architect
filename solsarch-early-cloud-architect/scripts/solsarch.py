@@ -465,10 +465,10 @@ GUIDE = {
     "steps": [
         {"id": "questions", "command": "solsarch.py questions --repo REPO",
          "do": "Ask exactly the questions listed in 'ask'. Skip any already answered."},
-        {"id": "profile", "command": "solsarch.py profile --repo REPO --set account_type=free_trial|free_tier|pay_as_you_go|standard",
-         "do": "Record the account type before the plan step; it shapes the design (lean for free accounts) and the deploy guide."},
         {"id": "scan", "command": "solsarch.py scan --repo REPO",
          "do": "Reads the code. If components is empty, ask the user to describe the system and stop."},
+        {"id": "profile", "command": "solsarch.py profile --repo REPO --set account_type=free_trial|free_tier|pay_as_you_go|standard",
+         "do": "Record the account type before the plan step; it shapes the design (lean for free accounts) and the deploy guide."},
         {"id": "compare", "command": "solsarch.py compare --repo REPO --compute server", "optional": True,
          "do": "Only when the user asks which cloud fits best: AWS, Azure and GCP side by side."},
         {"id": "plan", "command": "solsarch.py plan --repo REPO --cloud aws|azure|gcp --compute server|serverless [--assumed]",

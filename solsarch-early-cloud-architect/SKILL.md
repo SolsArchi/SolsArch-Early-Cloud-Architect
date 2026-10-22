@@ -84,7 +84,7 @@ that names the service; record it with
 `python scripts/solsarch.py facts add --repo REPO --key KEY --url URL --quote "SENTENCE" --verdict confirmed`.
 Verdicts: `confirmed`, `changed` (renamed or replaced; add `--note`), `unavailable` (add `--note`). If a record is rejected, fix the
 record; do not look for a way around it. Each record stores a SHA-256 of the sentence; `facts recheck` later fetches the pages again and
-reports any sentence that has disappeared. With no web search at all: `facts skip --repo REPO --reason "no web search tool available"`.
+reports any sentence that has disappeared. With no web search at all: `python scripts/solsarch.py facts skip --repo REPO --reason "no web search tool available"`.
 
 ## Step 5: Build everything
 
