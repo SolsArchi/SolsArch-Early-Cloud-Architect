@@ -94,7 +94,7 @@ class PipelineTests(unittest.TestCase):
     def test_questions_ask_only_cloud_and_compute(self):
         repo = repo_in(self.tmp, "shop", helpers.build_demo)
         code, out = helpers.cli("questions", "--repo", repo)
-        self.assertEqual([q["id"] for q in out["ask"]], ["cloud", "compute"])
+        self.assertEqual([q["id"] for q in out["ask"]], ["cloud", "compute", "account_type"])
         values = [o["value"] for o in out["ask"][0]["options"]]
         self.assertEqual(values[:3], ["aws", "azure", "gcp"])
         self.assertTrue({"vercel", "hetzner", "supabase", "cloudflare"} <= set(values))
@@ -108,11 +108,14 @@ class PipelineTests(unittest.TestCase):
     def test_confirmed_answers_are_not_asked_again_but_assumed_ones_are(self):
         repo = repo_in(self.tmp, "shop", helpers.build_demo)
         helpers.pipeline(repo, "aws", "server", assumed=True)
-        self.assertEqual(len(helpers.cli("questions", "--repo", repo)[1]["ask"]), 2)
+        self.assertEqual(len(helpers.cli("questions", "--repo", repo)[1]["ask"]), 3)
         helpers.pipeline(repo, "aws", "server", assumed=False)
         out = helpers.cli("questions", "--repo", repo)[1]
+        self.assertEqual([q["id"] for q in out["ask"]], ["account_type"])
+        helpers.cli("profile", "--repo", repo, "--set", "account_type=standard")
+        out = helpers.cli("questions", "--repo", repo)[1]
         self.assertEqual(out["ask"], [])
-        self.assertEqual(out["already_known"], {"cloud": "aws", "compute": "server"})
+        self.assertEqual(out["already_known"], {"cloud": "aws", "compute": "server", "account_type": "standard"})
 
     def test_default_cloud_follows_the_code(self):
         def build(root):

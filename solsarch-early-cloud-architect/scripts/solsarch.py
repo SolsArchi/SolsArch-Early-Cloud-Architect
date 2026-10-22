@@ -113,8 +113,18 @@ def cmd_questions(args):
     if "compute" not in known:
         questions.append({"id": "compute", "question": "Should the app run on servers or serverless?",
                           "options": [{"value": k, "label": v} for k, v in MODE_LABELS.items()]})
+    saved = read_json(architect.profile_path(args.repo)) if architect.profile_path(args.repo).exists() else None
+    if saved and saved.get("account_type") in architect.ACCOUNT_TYPES and (saved.get("account_type") != "standard" or saved.get("account_type_confirmed")):
+        known["account_type"] = saved["account_type"]
+    else:
+        questions.append({"id": "account_type", "question": "What kind of cloud account do you have?",
+                          "options": [{"value": "free_trial", "label": "Free trial (credits for a limited time)"},
+                                      {"value": "free_tier", "label": "Always-free tier (small limits, no credit)"},
+                                      {"value": "pay_as_you_go", "label": "Pay as you go (card on file, billed for use)"},
+                                      {"value": "standard", "label": "Standard paid account (company or team)"}],
+                          "then": "Run: solsarch.py profile --repo REPO --set account_type=VALUE  before the plan step. Free trial and free tier give a smaller, cheaper design; the deploy guide is written for the account type."})
     payload = {"status": "ok", "ask": questions, "already_known": known,
-               "if_user_cannot_answer": {"cloud": suggested or "aws", "compute": "server", "mark_as": "assumed"},
+               "if_user_cannot_answer": {"cloud": suggested or "aws", "compute": "server", "account_type": "standard", "mark_as": "assumed"},
                "rule": "Ask only these questions. Do not ask about region, budget or compliance."}
     if warning:
         payload["warning"] = warning
@@ -205,6 +215,8 @@ def cmd_profile(args):
             return emit({"status": "error", "message": str(error)}, 2)
         changed.append(key.strip())
     if changed:
+        if "account_type" in changed:
+            profile["account_type_confirmed"] = True
         state_dir(args.repo).mkdir(parents=True, exist_ok=True)
         architect.save_profile(args.repo, profile)
     return emit({"status": "updated" if changed else "ok", "changed": changed, "profile": profile,

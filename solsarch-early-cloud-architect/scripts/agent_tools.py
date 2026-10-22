@@ -89,6 +89,31 @@ TOOLS = [
                        + (["--compute", a["compute"]] if a.get("compute") else [])
                        + (["--also", a["also"]] if a.get("also") else [])
                        + (["--icon-dir", a["icon_dir"]] if a.get("icon_dir") else [])},
+    {"name": "solsarch_profile",
+     "description": "Record optional answers that shape the design and the deploy guide: account_type (standard, free_trial, free_tier, pay_as_you_go), traffic_tier, high_availability, compliance, region, monthly_budget. Run plan again after changing account_type.",
+     "properties": {"repo": REPO, "set": _prop("string", "Comma-separated KEY=VALUE pairs, for example account_type=free_trial,region=us-east-1.")},
+     "required": [],
+     "argv": lambda a: ["profile", "--repo", a.get("repo", ".")] + [x for pair in (a.get("set") or "").split(",") if pair.strip() for x in ("--set", pair.strip())]},
+    {"name": "solsarch_costs", "description": "Write the monthly cost estimate (live vendor prices where available, estimates labelled). Needs scan, plan and finish or evidence first.",
+     "properties": {"repo": REPO, "offline": _prop("boolean", "Use the saved price book only; no network."), "refresh": _prop("boolean", "Read fresh vendor prices.")},
+     "required": [],
+     "argv": lambda a: ["costs", "--repo", a.get("repo", ".")] + (["--offline"] if a.get("offline") else []) + (["--refresh"] if a.get("refresh") else [])},
+    {"name": "solsarch_iac", "description": "Write the infrastructure code for the chosen provider (Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform config, CI pipeline) and the capability report. Needs scan, plan and evidence.",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["iac", "--repo", a.get("repo", ".")]},
+    {"name": "solsarch_deploy_guide", "description": "Write the step-by-step deployment guide for a person who has never deployed (terminal and console paths, matched to the account type).",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["deploy-guide", "--repo", a.get("repo", ".")]},
+    {"name": "solsarch_validate", "description": "Check the generated infrastructure code with the real tools (terraform/tofu, TFLint, Trivy, Checkov, kubectl, ansible-lint); repairs formatting and reports the rest. Tools that are not installed are reported as not run.",
+     "properties": {"repo": REPO, "engine": _prop("string", "Which engine to use.", enum=["auto", "terraform", "tofu"]),
+                    "offline": _prop("boolean", "Do not download providers.")}, "required": [],
+     "argv": lambda a: ["validate", "--repo", a.get("repo", ".")] + (["--engine", a["engine"]] if a.get("engine") else []) + (["--offline"] if a.get("offline") else [])},
+    {"name": "solsarch_knowledge", "description": "Search the architecture reference library (16 chapters and 7 specialist playbooks) for guidance on a topic.",
+     "properties": {"query": _prop("string", "What to look up, for example 'terraform state locking'."), "limit": _prop("string", "How many results (1 to 10).")},
+     "required": ["query"], "argv": lambda a: ["knowledge", "search", a["query"], "--limit", str(a.get("limit") or 5)]},
+    {"name": "solsarch_eol", "description": "List runtimes, frameworks and base images in the project that are past or near end of life.",
+     "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["eol", "--repo", a.get("repo", ".")]},
+    {"name": "solsarch_mcp", "description": "List where each provider publishes an MCP server and the open-source infrastructure servers and tools that can be used.",
+     "properties": {"action": _prop("string", "What to show.", enum=["list", "discover", "tools"]), "provider": _prop("string", "Provider id (discover or list).")},
+     "required": [], "argv": lambda a: ["mcp", a.get("action", "list")] + (["--provider", a["provider"]] if a.get("provider") else [])},
 ]
 BY_NAME = {t["name"]: t for t in TOOLS}
 
@@ -126,7 +151,7 @@ def validate(tool, args):
                 return "argument '%s' must be a string" % name
             if "enum" in spec and value not in spec["enum"]:
                 return "argument '%s' must be one of: %s" % (name, ", ".join(spec["enum"]))
-            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds") and value.startswith("-"):
+            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds", "query", "provider") and value.startswith("-"):
                 return "argument '%s' must not start with '-'" % name
     return None
 
