@@ -8,7 +8,7 @@ Message Queue for Kafka and RabbitMQ, files go to OSS with server-side encryptio
 secrets in KMS Secrets Manager, and logs in Simple Log Service. The app is created in a second step (var.deploy_app),
 after the images exist in the registry.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 DEFAULT_REGION = "cn-hangzhou"
 CPU = [(0.5, 500), (1.0, 1000), (2.0, 2000), (4.0, 4000), (8.0, 8000)]
@@ -38,6 +38,7 @@ class Alibaba:
         m = self.m
         self.versions()
         self.variables()
+        add_app_env_files(self.files, self.m)
         self.network()
         self.registry()
         if self.serverless:
@@ -266,6 +267,7 @@ class Alibaba:
             out += [("REDIS_HOST", "alicloud_kvstore_instance.main.connection_domain"), ("REDIS_PORT", '"6379"')]
         if self.storage:
             out += [("OSS_BUCKET", "alicloud_oss_bucket.assets.bucket"), ("OSS_REGION", "var.region")]
+        out += settings_pairs(self.m)
         return out
 
     def sae(self):
@@ -414,9 +416,7 @@ class Alibaba:
                     security_group_id = alicloud_security_group.app.id
                   }
 
-                  environment_variables = {
-                    APP_ENV = "production"
-                  }
+                  environment_variables = @@envs@@
 
                   depends_on = [alicloud_cr_ee_repo.@@n@@]
                 }
@@ -432,7 +432,7 @@ class Alibaba:
                     methods  = ["GET", "POST", "PUT", "DELETE"]
                   })
                 }
-            """, n=n, name=u["name"], image=self.image(u), port=u["port"] or 8080))
+            """, n=n, name=u["name"], image=self.image(u), port=u["port"] or 8080, envs=merged_env(self.m, '{ APP_ENV = "production" }')))
         self.files.add("terraform/functions.tf", tf(*parts))
 
     def data_services(self):

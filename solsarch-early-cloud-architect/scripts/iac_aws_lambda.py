@@ -21,6 +21,117 @@ from iac_common import Files, T, fmt_hcl, ident, tf
 API_URL_NAME = re.compile(r"(API|BACKEND|SERVER).*(URL|URI|HOST|ENDPOINT)|(URL|URI|HOST|ENDPOINT).*(API|BACKEND)", re.I)
 
 
+def function_url_resources(public_units):
+    """A Function URL per public unit (response streaming for the units that stream), with the two permissions it needs."""
+    parts = []
+    for u in public_units:
+        n = ident(u["name"])
+        mode = "RESPONSE_STREAM" if u.get("streaming") else "BUFFERED"
+        parts.append(T("""
+            resource "aws_lambda_function_url" "@@n@@" {
+              function_name      = aws_lambda_function.@@n@@.function_name
+              authorization_type = "NONE"
+              invoke_mode        = "@@mode@@"
+
+              cors {
+                allow_origins = var.cors_allowed_origins
+                allow_methods = ["*"]
+                allow_headers = ["*"]
+                max_age       = 86400
+              }
+            }
+
+            resource "aws_lambda_permission" "url_@@n@@" {
+              statement_id           = "AllowPublicFunctionUrl"
+              action                 = "lambda:InvokeFunctionUrl"
+              function_name          = aws_lambda_function.@@n@@.function_name
+              principal              = "*"
+              function_url_auth_type = "NONE"
+            }
+
+            resource "aws_lambda_permission" "url_invoke_@@n@@" {
+              statement_id             = "AllowInvokeViaFunctionUrl"
+              action                   = "lambda:InvokeFunction"
+              function_name            = aws_lambda_function.@@n@@.function_name
+              principal                = "*"
+              invoked_via_function_url = true
+            }
+        """, n=n, mode=mode))
+    return parts
+
+
+def scheduler_resources(units):
+    """An EventBridge Scheduler role and one schedule per unit whose code starts a scheduler inside the app."""
+    parts = [T("""
+        data "aws_iam_policy_document" "scheduler_assume" {
+          statement {
+            actions = ["sts:AssumeRole"]
+
+            principals {
+              type        = "Service"
+              identifiers = ["scheduler.amazonaws.com"]
+            }
+          }
+        }
+
+        resource "aws_iam_role" "scheduler" {
+          name               = "${local.name}-scheduler"
+          assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
+        }
+    """)]
+    for u in units:
+        if not u.get("scheduler"):
+            continue
+        n = ident(u["name"])
+        parts.append(T("""
+            data "aws_iam_policy_document" "scheduler_invoke_@@n@@" {
+              statement {
+                actions   = ["lambda:InvokeFunction"]
+                resources = [aws_lambda_function.@@n@@.arn]
+              }
+            }
+
+            resource "aws_iam_role_policy" "scheduler_@@n@@" {
+              name   = "invoke-@@name@@"
+              role   = aws_iam_role.scheduler.id
+              policy = data.aws_iam_policy_document.scheduler_invoke_@@n@@.json
+            }
+
+            resource "aws_scheduler_schedule" "@@n@@" {
+              name                = "${local.name}-@@name@@"
+              description         = "Calls POST /internal/scheduled on @@name@@. Move the work your in-process scheduler did into that route."
+              schedule_expression = var.schedule_expression
+
+              flexible_time_window {
+                mode = "OFF"
+              }
+
+              target {
+                arn      = aws_lambda_function.@@n@@.arn
+                role_arn = aws_iam_role.scheduler.arn
+                input    = jsonencode({ source = "solsarch.scheduler", job = "scheduled" })
+              }
+            }
+        """, n=n, name=u["name"]))
+    return parts
+
+
+SCHEDULE_VARIABLES = """
+variable "schedule_expression" {
+  type        = string
+  description = "How often the scheduled job runs, for example rate(15 minutes) or cron(0 6 * * ? *)."
+  default     = "rate(15 minutes)"
+}
+"""
+CORS_VARIABLE = """
+variable "cors_allowed_origins" {
+  type        = list(string)
+  description = "Web addresses allowed to call the function URLs from a browser. Narrow this to your front end's address."
+  default     = ["*"]
+}
+"""
+
+
 class AwsLambda:
     def __init__(self, model, region, bootstrap_text):
         self.m = model
@@ -394,39 +505,7 @@ class AwsLambda:
     def ingress(self):
         parts = []
         if self.function_url:
-            for u in self.public:
-                n = ident(u["name"])
-                mode = "RESPONSE_STREAM" if u.get("streaming") else "BUFFERED"
-                parts.append(T("""
-                    resource "aws_lambda_function_url" "@@n@@" {
-                      function_name      = aws_lambda_function.@@n@@.function_name
-                      authorization_type = "NONE"
-                      invoke_mode        = "@@mode@@"
-
-                      cors {
-                        allow_origins = var.cors_allowed_origins
-                        allow_methods = ["*"]
-                        allow_headers = ["*"]
-                        max_age       = 86400
-                      }
-                    }
-
-                    resource "aws_lambda_permission" "url_@@n@@" {
-                      statement_id           = "AllowPublicFunctionUrl"
-                      action                 = "lambda:InvokeFunctionUrl"
-                      function_name          = aws_lambda_function.@@n@@.function_name
-                      principal              = "*"
-                      function_url_auth_type = "NONE"
-                    }
-
-                    resource "aws_lambda_permission" "url_invoke_@@n@@" {
-                      statement_id             = "AllowInvokeViaFunctionUrl"
-                      action                   = "lambda:InvokeFunction"
-                      function_name            = aws_lambda_function.@@n@@.function_name
-                      principal                = "*"
-                      invoked_via_function_url = true
-                    }
-                """, n=n, mode=mode))
+            parts = function_url_resources(self.public)
         else:
             parts.append(T("""
                 resource "aws_apigatewayv2_api" "main" {
@@ -485,57 +564,7 @@ class AwsLambda:
         self.files.add("terraform/ingress.tf", tf(*parts))
 
     def scheduler(self):
-        parts = [T("""
-            data "aws_iam_policy_document" "scheduler_assume" {
-              statement {
-                actions = ["sts:AssumeRole"]
-
-                principals {
-                  type        = "Service"
-                  identifiers = ["scheduler.amazonaws.com"]
-                }
-              }
-            }
-
-            resource "aws_iam_role" "scheduler" {
-              name               = "${local.name}-scheduler"
-              assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
-            }
-        """)]
-        for u in self.units:
-            if not u.get("scheduler"):
-                continue
-            n = ident(u["name"])
-            parts.append(T("""
-                data "aws_iam_policy_document" "scheduler_invoke_@@n@@" {
-                  statement {
-                    actions   = ["lambda:InvokeFunction"]
-                    resources = [aws_lambda_function.@@n@@.arn]
-                  }
-                }
-
-                resource "aws_iam_role_policy" "scheduler_@@n@@" {
-                  name   = "invoke-@@name@@"
-                  role   = aws_iam_role.scheduler.id
-                  policy = data.aws_iam_policy_document.scheduler_invoke_@@n@@.json
-                }
-
-                resource "aws_scheduler_schedule" "@@n@@" {
-                  name                = "${local.name}-@@name@@"
-                  description         = "Calls POST /internal/scheduled on @@name@@. Move the work your in-process scheduler did into that route."
-                  schedule_expression = var.schedule_expression
-
-                  flexible_time_window {
-                    mode = "OFF"
-                  }
-
-                  target {
-                    arn      = aws_lambda_function.@@n@@.arn
-                    role_arn = aws_iam_role.scheduler.arn
-                    input    = jsonencode({ source = "solsarch.scheduler", job = "scheduled" })
-                  }
-                }
-            """, n=n, name=u["name"]))
+        parts = scheduler_resources(self.units)
         self.files.add("terraform/schedule.tf", tf(*parts))
 
     def settings(self):

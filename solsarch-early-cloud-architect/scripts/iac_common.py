@@ -81,6 +81,31 @@ class Model:
         return self.mode == "server" or data_here or "network" in self.by_key
 
     @property
+    def direct_ingress(self):
+        """True when public traffic reaches the functions or services at the platform's own HTTPS address, with no gateway in front."""
+        return (self.by_key.get("ingress") or {}).get("need") == "ingress_function_url"
+
+    @property
+    def settings(self):
+        """Every environment variable the code reads: [{name, required, category}], sorted by name."""
+        return sorted(({"name": i["name"], "required": bool(i["required"]), "category": i["category"]} for i in self.config_inputs), key=lambda i: i["name"])
+
+    @property
+    def required_settings(self):
+        """Names the app cannot start without: marked required in the code, or the connection to a database another provider hosts."""
+        external = {d["key"] for d in self.external_decisions}
+        names = set()
+        for i in self.settings:
+            n = i["name"]
+            if i["required"]:
+                names.add(n)
+            elif "database_mongo" in external and "MONGO" in n and i["category"] == "connection":
+                names.add(n)
+            elif "database" in external and ("DATABASE_URL" in n or "POSTGRES" in n):
+                names.add(n)
+        return sorted(names)
+
+    @property
     def replicas(self):
         return self.sizing["replicas_per_unit"]
 
@@ -299,3 +324,56 @@ def T(template, **kw):
 def tf(*parts):
     """Join template parts and format them as canonical HCL."""
     return fmt_hcl(chr(10).join(p.rstrip(chr(10)) + chr(10) for p in parts if p))
+
+
+def app_env_variable(model):
+    """The Terraform variable that carries the app's settings and secrets, with a check that the required ones are present."""
+    required = model.required_settings
+    validation = ""
+    if required:
+        validation = chr(10) * 2 + T("""
+              validation {
+                condition     = alltrue([for k in [@@required@@] : contains(keys(var.app_env), k)])
+                error_message = "app_env must contain: @@names@@."
+              }
+        """, required=", ".join('"%s"' % n for n in required), names=", ".join(required)).rstrip(chr(10))
+    return T("""
+        variable "app_env" {
+          type        = map(string)
+          sensitive   = true
+          description = "Settings and secrets the application reads from its environment (API keys, connection strings)."
+          default     = {}@@validation@@
+        }
+    """, validation=validation)
+
+
+def app_env_example(model):
+    """tfvars lines that show which keys to fill in. Values are never written."""
+    names = sorted(set(model.required_settings) | {i["name"] for i in model.settings if i["category"] != "config"})
+    if not names:
+        return ""
+    lines = ["# Settings and secrets the application reads. Fill these in; do not commit real values.", "# app_env = {"]
+    lines += ['#   %s = "REPLACE-me"' % n for n in names] + ["# }"]
+    return chr(10).join(lines) + chr(10)
+
+
+def settings_pairs(model, secrets_apart=False):
+    """[(name, hcl_expression)] for every setting the code reads, taken from the app_env variable. With secrets_apart, returns
+    (plain, secret) lists so a platform with encrypted variables can keep the two kinds apart."""
+    pairs = [(i["name"], 'lookup(var.app_env, "%s", "")' % i["name"], i["category"] != "config") for i in model.settings]
+    if secrets_apart:
+        return [(n, e) for n, e, sec in pairs if not sec], [(n, e) for n, e, sec in pairs if sec]
+    return [(n, e) for n, e, _ in pairs]
+
+
+def add_app_env_files(files, model):
+    """The app_env variable and an example of the keys to fill in, as their own files so any generator can add them."""
+    if not model.settings:
+        return
+    files.add("terraform/app_env.tf", tf(app_env_variable(model)))
+    files.add("terraform/app_env.tfvars.example", app_env_example(model), header=False)
+
+
+def merged_env(model, base):
+    """An HCL map of environment variables: the fixed ones, plus every entry of app_env when the code reads settings."""
+    return "merge(%s, var.app_env)" % base if model.settings else base

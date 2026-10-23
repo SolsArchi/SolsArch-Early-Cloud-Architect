@@ -99,7 +99,8 @@ class Paas:
                 svc["healthCheckPath"] = u["health_path"] or "/"
                 svc["numInstances"] = self.m.replicas if self.ha else 1
             svc["envVars"] = [{"key": "PORT", "value": str(self.port(u))}, {"key": "APP_ENV", "value": "production"}] + db_env + [
-                {"key": "APP_SECRETS_JSON", "sync": False}]
+                {"key": "APP_SECRETS_JSON", "sync": False}] + [
+                {"key": i["name"], "sync": False} for i in self.m.settings]  # sync: false = you type the value once in the dashboard
             services.append(svc)
         for u in self.statics:
             services.append({"type": "web", "name": u["name"], "runtime": "static", "buildCommand": "REPLACE-with-your-build-command",
@@ -201,7 +202,8 @@ class Paas:
                 addons.append({"plan": "heroku-kafka:basic-0"})
             formation = {("worker" if worker else "web"): {"quantity": 1 if worker else (self.m.replicas if self.ha else 1), "size": "standard-1x" if self.ha else "basic"}}
             app_json = {"name": app, "stack": "container", "formation": formation, "addons": addons,
-                        "env": {"APP_ENV": {"value": "production"}, "PORT": {"value": str(self.port(u))}, "APP_SECRETS_JSON": {"required": False}}}
+                        "env": dict({"APP_ENV": {"value": "production"}, "PORT": {"value": str(self.port(u))}, "APP_SECRETS_JSON": {"required": False}},
+                                    **{i["name"]: {"required": i["required"]} for i in self.m.settings})}
             self.files.add("heroku/%s/app.json" % n, json.dumps(app_json, indent=2))
             self.files.add("heroku/%s/heroku.yml" % n, dump({"build": {"docker": {("worker" if worker else "web"): self.docker(u)}}}))
             script.append("heroku apps:create %s --stack container || true" % app)
@@ -410,8 +412,37 @@ class Paas:
             "Create it: `curl -X POST https://api.together.xyz/v1/endpoints -H \"Authorization: Bearer $TOGETHER_API_KEY\" -H \"Content-Type: application/json\" -d @together/endpoint.json`."],
             ["Together AI hosts models, not your containers; your application runs elsewhere and calls the endpoint."])
 
+    # folder each platform's files go in, and the command that stores one setting from a KEY=value file (None = the dashboard only)
+    SETTINGS = {
+        "render": ("render", None), "flyio": ("fly", 'fly secrets import < "$ENV_FILE"'),
+        "railway": ("railway", 'railway variables $(sed "s/^/--set /" "$ENV_FILE" | tr "\\n" " ")'),
+        "heroku": ("heroku", 'heroku config:set $(grep -v "^#" "$ENV_FILE" | tr "\\n" " ")'),
+        "vercel": ("vercel", 'while IFS="=" read -r k v; do printf "%s" "$v" | vercel env add "$k" production; done < "$ENV_FILE"'),
+        "netlify": ("netlify", 'netlify env:import "$ENV_FILE"'),
+        "cloudflare": ("cloudflare", 'while IFS="=" read -r k v; do printf "%s" "$v" | wrangler secret put "$k"; done < "$ENV_FILE"'),
+        "denodeploy": ("deno", None), "fastly": ("fastly", None), "firebase": ("firebase", None), "supabase": ("supabase", 'supabase secrets set --env-file "$ENV_FILE"'),
+        "databricks": ("databricks", None), "coreweave": ("coreweave", None), "lambdalabs": ("lambdalabs", None), "runpod": ("runpod", None),
+    }
+
+    def app_settings(self):
+        """Every setting the code reads: an example file of KEY names, and where this platform stores the values."""
+        spec = self.SETTINGS.get(self.p)
+        if not spec or not self.m.settings:
+            return
+        folder, command = spec
+        lines = ["# Settings and secrets the application reads. Copy to app-settings.env, fill in the values, never commit that copy."]
+        for i in self.m.settings:
+            lines.append("# %s%s" % (i["category"], ", required" if i["required"] else ""))
+            lines.append("%s=REPLACE-me" % i["name"])
+        self.files.add("%s/app-settings.env.example" % folder, chr(10).join(lines) + chr(10), header=False)
+        if command:
+            self.files.add("%s/set-app-settings.sh" % folder, chr(10).join([
+                "#!/usr/bin/env bash", "set -euo pipefail", "# Stores the values from app-settings.env on the platform. The file is read here and never printed.",
+                'ENV_FILE="${1:-app-settings.env}"', command]) + chr(10))
+
     def generate(self):
         getattr(self, self.p)()
+        self.app_settings()
         return self.files
 
 

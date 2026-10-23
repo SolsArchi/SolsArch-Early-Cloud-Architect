@@ -9,7 +9,7 @@ code really serves.
 """
 import textwrap
 
-from iac_common import Files, T, fmt_hcl, ident, tf
+from iac_common import Files, T, app_env_example, app_env_variable, fmt_hcl, ident, settings_pairs, tf
 
 AZ_REGION_DEFAULT = "eastus"
 PG_SKU = {"small": "B_Standard_B2s", "medium": "GP_Standard_D4ds_v5", "large": "GP_Standard_D8ds_v5"}
@@ -26,6 +26,8 @@ class Azure:
         self.default_unit = self.public[0] if self.public else None
         self.use_edge = model.has("edge")
         self.functions = model.mode == "serverless"
+        self.direct = self.functions and model.direct_ingress  # the function app's own HTTPS address, no API Management in front
+        self.net = not (self.functions and not model.needs_private_network)  # no virtual network or NAT when nothing private needs one
         self.region = model.region or AZ_REGION_DEFAULT
         self.zones = not model.single_az
 
@@ -36,7 +38,8 @@ class Azure:
         self.providers()
         self.variables()
         self.core()
-        self.network()
+        if self.net:
+            self.network()
         self.registry_and_identity()
         self.vault()
         self.data_stores()
@@ -63,7 +66,7 @@ class Azure:
             use_azuread_auth     = true
         """, project=m.project))
         self.files.add("terraform/bootstrap/main.tf", self.bootstrap())
-        self.files.add("terraform/terraform.tfvars.example", fmt_hcl('project_name = "%s"\nenvironment  = "production"\nlocation     = "%s"\n' % (m.project, self.region)))
+        self.files.add("terraform/terraform.tfvars.example", fmt_hcl('project_name = "%s"\nenvironment  = "production"\nlocation     = "%s"\n' % (m.project, self.region)) + app_env_example(m))
         self.files.add("terraform/README.md", self.readme())
         return self.files
 
@@ -178,6 +181,8 @@ class Azure:
                   default     = @@count@@
                 }
             """, n=n, name=unit["name"], count=1 if unit["kind"] == "worker" else m.replicas))
+        if m.settings:
+            out.append(app_env_variable(m))
         self.files.add("terraform/variables.tf", tf(*out))
 
     def core(self):
@@ -795,6 +800,7 @@ class Azure:
             items.append(("STORAGE_ACCOUNT", "value", "azurerm_storage_account.app.name"))
         if m.has("queue_kafka"):
             items.append(("KAFKA_BOOTSTRAP_SERVERS", "value", '"${azurerm_eventhub_namespace.main.name}.servicebus.windows.net:9093"'))
+        items += [(n, "value", e) for n, e in settings_pairs(m)]
         blocks = []
         for name, kind, value in items:
             blocks.append("\n\n      env {\n        name  = \"%s\"\n        %s = %s\n      }" % (name, kind, value) if kind == "value" else
@@ -1071,7 +1077,8 @@ class Azure:
               }
             }
         """, health=(self.default_unit or {}).get("health_path") or "/",
-                 origin=('replace(azurerm_api_management.main.gateway_url, "https://", "")' if self.functions
+                 origin=(("azurerm_function_app_flex_consumption.%s.default_hostname" % ident(self.default_unit["name"]) if self.direct
+                          else 'replace(azurerm_api_management.main.gateway_url, "https://", "")') if self.functions
                          else "azurerm_public_ip.gateway.ip_address"))))
 
     # ------------------------------------------------------------- Functions
@@ -1144,9 +1151,7 @@ class Azure:
                     application_insights_connection_string = azurerm_application_insights.main.connection_string
                   }
 
-                  app_settings = {
-                    APP_ENV = var.environment
-                  }
+                  app_settings = @@settings@@
                 }
 
                 resource "azurerm_role_assignment" "@@n@@_deploy" {
@@ -1154,8 +1159,9 @@ class Azure:
                   role_definition_name = "Storage Blob Data Contributor"
                   principal_id         = azurerm_function_app_flex_consumption.@@n@@.identity[0].principal_id
                 }
-            """, n=n, name=name, runtime=runtime, version=version, mem=2048 if m.sizing["unit_memory_gb"] > 1 else 512))
-        if self.public:
+            """, n=n, name=name, runtime=runtime, version=version, mem=2048 if m.sizing["unit_memory_gb"] > 1 else 512,
+                 settings="merge({ APP_ENV = var.environment }, var.app_env)" if m.settings else "{ APP_ENV = var.environment }"))
+        if self.public and not self.direct:
             out.append(T("""
                 resource "azurerm_api_management" "main" {
                   name                = "apim-${local.name}-${local.suffix}"
@@ -1301,6 +1307,14 @@ class Azure:
                   value       = azurerm_cdn_frontdoor_endpoint.main.host_name
                 }
             """))
+        if self.direct:
+            for unit in self.public:
+                out.append(T("""
+                    output "@@n@@_url" {
+                      description = "Public HTTPS address of @@name@@ (the function app's own address, no gateway in front)."
+                      value       = "https://${azurerm_function_app_flex_consumption.@@n@@.default_hostname}"
+                    }
+                """, n=ident(unit["name"]), name=unit["name"]))
         if self.public and not self.functions:
             out.append(T("""
                 output "gateway_ip" {

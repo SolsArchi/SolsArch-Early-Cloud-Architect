@@ -870,6 +870,32 @@
             }
           ]
         }
+      },
+      "gcp": {
+        "any": {
+          "service": "Cloud Run built-in HTTPS URL",
+          "short": "Cloud Run URL",
+          "why": "Every Cloud Run service already has an HTTPS address, so there is no gateway to pay for. Requests can stream and run for up to 60 minutes.",
+          "alternatives": [
+            {
+              "service": "Google Cloud API Gateway",
+              "reason": "Adds per-request charges and API keys, and cuts streaming responses off."
+            }
+          ]
+        }
+      },
+      "azure": {
+        "any": {
+          "service": "Azure Functions built-in HTTPS endpoint",
+          "short": "Functions URL",
+          "why": "Every HTTP-triggered function already has an HTTPS address, so there is no gateway to pay for.",
+          "alternatives": [
+            {
+              "service": "Azure API Management",
+              "reason": "Adds a monthly gateway charge and API policies; use it when you need keys, quotas or a developer portal."
+            }
+          ]
+        }
       }
     }
   }

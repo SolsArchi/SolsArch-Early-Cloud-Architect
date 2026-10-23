@@ -12,7 +12,8 @@ import json
 import re
 import textwrap
 
-from iac_common import Files, Model, T, fmt_hcl, ident, q, slug, tf
+from iac_aws_lambda import CORS_VARIABLE, SCHEDULE_VARIABLES, function_url_resources, scheduler_resources
+from iac_common import Files, Model, T, add_app_env_files, fmt_hcl, ident, q, settings_pairs, slug, tf
 
 AWS_DB_CLASS = {"small": "db.t4g.medium", "medium": "db.r6g.large", "large": "db.r6g.2xlarge"}
 AWS_CACHE_NODE = {1: "cache.t4g.small", 4: "cache.t4g.medium"}
@@ -33,6 +34,7 @@ class Aws:
         self.default_unit = self.public[0] if self.public else None
         self.use_cdn = model.has("edge")
         self.lambda_mode = model.mode == "serverless"
+        self.fnurl = self.lambda_mode and model.direct_ingress  # Function URLs instead of API Gateway: streaming answers, no per-request gateway charge
         self.az_count = 2
         self.nat_count = 1 if model.single_az else 2
         self.kms = model.regulated
@@ -44,6 +46,7 @@ class Aws:
         self.versions()
         self.providers()
         self.variables()
+        add_app_env_files(self.files, m)
         self.network()
         self.security_groups()
         if self.lambda_mode:
@@ -210,6 +213,10 @@ class Aws:
                       default     = "@@cls@@"
                     }
                 """, cls=AWS_DB_CLASS[m.sizing["db_class"]]))
+        if self.fnurl:
+            out.append(CORS_VARIABLE)
+        if self.lambda_mode and m.scheduled:
+            out.append(SCHEDULE_VARIABLES)
         self.files.add("terraform/variables.tf", tf(*out))
 
     # -------------------------------------------------------------- network
@@ -865,6 +872,7 @@ class Aws:
             items.append(("S3_BUCKET", "aws_s3_bucket.app.id"))
         if m.has("identity"):
             items += [("COGNITO_USER_POOL_ID", "aws_cognito_user_pool.main.id"), ("COGNITO_CLIENT_ID", "aws_cognito_user_pool_client.main.id")]
+        items += settings_pairs(m)
         return "\n".join('                      { name = "%s", value = %s },' % kv for kv in items)
 
     def container_secrets(self):
@@ -1162,7 +1170,9 @@ class Aws:
               role   = aws_iam_role.lambda.id
               policy = data.aws_iam_policy_document.lambda_secrets.json
             }
-
+        """, arns=", ".join(arns)))
+        if not self.fnurl:
+            out.append(T("""
             resource "aws_apigatewayv2_api" "main" {
               name          = local.name
               protocol_type = "HTTP"
@@ -1190,7 +1200,7 @@ class Aws:
                 })
               }
             }
-        """, arns=", ".join(arns)))
+            """))
         default_unit = self.default_unit
         for unit in m.units:
             if unit["kind"] == "static":
@@ -1208,7 +1218,7 @@ class Aws:
                   role          = aws_iam_role.lambda.arn
                   package_type  = "Image"
                   image_uri     = coalesce(var.@@n@@_image, "${aws_ecr_repository.@@n@@.repository_url}:${var.image_tag}")
-                  timeout       = 30
+                  timeout       = @@timeout@@
                   memory_size   = @@mem@@
 
                   tracing_config {
@@ -1228,8 +1238,9 @@ class Aws:
 
                   depends_on = [aws_cloudwatch_log_group.@@n@@]
                 }
-            """, n=n, name=name, mem=max(512, int(self.m.sizing["unit_memory_gb"] * 1024)), env=env))
-            if unit in self.public:
+            """, n=n, name=name, mem=max(512, int(self.m.sizing["unit_memory_gb"] * 1024)), env=env,
+                         timeout=300 if (unit.get("streaming") or unit.get("scheduler")) else 30))
+            if unit in self.public and not self.fnurl:
                 prefix = path_prefix(unit, default_unit)
                 route = "$default" if prefix is None else "ANY " + prefix.replace("/*", "/{proxy+}")
                 out.append(T("""
@@ -1254,11 +1265,15 @@ class Aws:
                       source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
                     }
                 """, n=n, N=re.sub(r"[^A-Za-z0-9]", "", name.title()), route=route))
+        if self.fnurl:
+            out += function_url_resources([u for u in self.public if u["kind"] != "static"])
         self.files.add("terraform/compute.tf", tf(*out))
+        if m.scheduled:
+            self.files.add("terraform/schedule.tf", tf(*scheduler_resources(m.units)))
 
     def lambda_env(self, unit):
         return [(k, v) for k, v in [item for item in (
-            [("APP_ENV", "var.environment")] + [(name, value) for name, value in self._data_env()])]]
+            [("APP_ENV", "var.environment")] + [(name, value) for name, value in self._data_env()] + settings_pairs(self.m))]]
 
     def _data_env(self):
         m = self.m
@@ -1537,6 +1552,8 @@ class Aws:
     def edge(self):
         m = self.m
         origin_domain = "aws_lb.main.dns_name" if not self.lambda_mode else 'replace(aws_apigatewayv2_api.main.api_endpoint, "https://", "")'
+        if self.fnurl:
+            origin_domain = 'trimsuffix(replace(aws_lambda_function_url.%s.function_url, "https://", ""), "/")' % ident(self.default_unit["name"])
         header = ""
         if not self.lambda_mode:
             header = T("""
@@ -1844,7 +1861,15 @@ class Aws:
                   value       = aws_lb.main.dns_name
                 }
             """))
-        if self.lambda_mode:
+        if self.fnurl:
+            for unit in self.public:
+                out.append(T("""
+                    output "@@n@@_url" {
+                      description = "Public HTTPS address of @@name@@ (a Lambda Function URL, no gateway in front)."
+                      value       = aws_lambda_function_url.@@n@@.function_url
+                    }
+                """, n=ident(unit["name"]), name=unit["name"]))
+        elif self.lambda_mode:
             out.append(T("""
                 output "api_endpoint" {
                   description = "Address of the HTTP API."

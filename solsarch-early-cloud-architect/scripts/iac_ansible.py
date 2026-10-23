@@ -109,6 +109,8 @@ class Ansible:
             keys["vault_redis_password"] = "REPLACE-me"
         if "rabbitmq" in self.data:
             keys["vault_rabbitmq_password"] = "REPLACE-me"
+        for item in self.m.settings:  # one entry per setting the code reads
+            keys["vault_app_%s" % item["name"].lower()] = "REPLACE-me"
         keys["vault_backup_access_key"] = "REPLACE-me"
         keys["vault_backup_secret_key"] = "REPLACE-me"
         keys["vault_grafana_admin_password"] = "REPLACE-me"
@@ -222,7 +224,7 @@ class Ansible:
             {% if 'rabbitmq' in data_services %}
             AMQP_URL=amqp://app:{{ vault_rabbitmq_password }}@{{ data_host_private_address }}:5672/
             {% endif %}
-        """))
+        """) + "".join("%s={{ vault_app_%s }}" % (i["name"], i["name"].lower()) + chr(10) for i in self.m.settings))
         caddy = T("""
             {
             {% if tls_mode != 'caddy' or not public_domain %}

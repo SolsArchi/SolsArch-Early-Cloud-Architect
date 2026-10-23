@@ -5,7 +5,7 @@ Containers run on App Platform from a private Container Registry, inside a VPC, 
 MongoDB, Valkey, Kafka) behind a database firewall, and Spaces for files. The app is created in a second step, after the
 images exist in the registry (var.deploy_app), so the first apply never fails on a missing image.
 """
-from iac_common import Files, T, fmt_hcl, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, tf
 
 DEFAULT_REGION = "nyc3"
 SIZES = [(0.5, "apps-s-1vcpu-0.5gb"), (1.0, "apps-s-1vcpu-1gb"), (2.0, "apps-s-1vcpu-2gb"), (1e9, "apps-d-2vcpu-4gb")]
@@ -36,6 +36,7 @@ class DigitalOcean:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.core()
         self.databases()
@@ -232,6 +233,7 @@ class DigitalOcean:
         if self.storage:
             out += [("S3_BUCKET", "digitalocean_spaces_bucket.assets.name", False),
                     ("S3_ENDPOINT", '"https://${var.region}.digitaloceanspaces.com"', False)]
+        out += [(i["name"], 'lookup(var.app_env, "%s", "")' % i["name"], i["category"] != "config") for i in self.m.settings]
         return out
 
     def app(self):

@@ -47,6 +47,8 @@ COMPILED = [(re.compile(p), key, billable) for p, key, billable in TYPE_RULES]
 ALSO_SATISFIES = {"storage": ("static_site", "storage"), "ingress": ("ingress", "static_site", "edge"), "edge": ("edge", "ingress")}
 # A container image repository belongs to whatever runs the image; it is not a plan decision of its own for functions.
 IMPLIED_BY_COMPUTE = ("registry",)
+# Supporting resources a platform requires next to the compute service (Azure Functions keep their runtime state in a storage account).
+IMPLIED_TYPES = ("azurerm_storage_account",)
 RESOURCE_RE = re.compile(r'^resource\s+"([a-z0-9_]+)"\s+"([A-Za-z0-9_.-]+)"', re.M)
 
 
@@ -84,6 +86,8 @@ def decision_for(rtype, plan_keys):
     key, _ = classify(rtype)
     if key is None:
         return None
+    if rtype in IMPLIED_TYPES and "storage" not in plan_keys:
+        return next((k for k in sorted(plan_keys) if k.startswith("compute_")), None)
     if key == "compute" or (key in IMPLIED_BY_COMPUTE and key not in plan_keys):
         return next((k for k in sorted(plan_keys) if k.startswith("compute_")), None)
     if key in plan_keys:
@@ -117,10 +121,14 @@ def build(repo):
     resources = []
     for r in manifest.get("resources", []):
         key, billable = classify(r["type"])
+        if r["type"] == "aws_s3_bucket" and re.search(r"log", r["name"], re.I):  # access-log bucket of the load balancer or CDN
+            key = "observability"
         if "/bootstrap/" in "/" + r["file"]:  # the bucket that keeps Terraform state is plumbing, not part of the design
             key, billable = "state", False
         resources.append({"type": r["type"], "name": r["name"], "file": r["file"], "billable": billable,
-                          "decision": None if key == "state" else decision_for(r["type"], keys), "category": key})
+                          "decision": None if key == "state" else (
+                              next((k for k in ("ingress", "edge", "observability") if k in keys), None) if r["type"] == "aws_s3_bucket" and key == "observability"
+                              else decision_for(r["type"], keys)), "category": key})
 
     priced = {}
     for l in costs.get("lines", []):

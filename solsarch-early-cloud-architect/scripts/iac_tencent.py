@@ -7,7 +7,7 @@ Service (CLS) beside it, and the application runs from ../kubernetes. Serverless
 container-image functions behind API Gateway. Everything is created in a VPC; the image-dependent parts wait for
 var.deploy_app.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 DEFAULT_REGION = "ap-singapore"
 NODE_TYPES = [(1.5, "S5.LARGE8"), (3.0, "S5.2XLARGE16"), (6.0, "S5.4XLARGE32"), (1e9, "S5.8XLARGE64")]
@@ -33,6 +33,7 @@ class Tencent:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.network()
         self.registry()
@@ -271,12 +272,10 @@ class Tencent:
                     image_port = @@port@@
                   }
 
-                  environment = {
-                    APP_ENV = "production"
-                    PORT    = "@@port@@"
-                  }
+                  environment = @@envs@@
                 }
-            """, n=n, name=u["name"], mem=int(max(128, min(self.m.sizing["unit_memory_gb"] * 1024, 3072)) // 64 * 64), port=u["port"] or 8080))
+            """, n=n, name=u["name"], mem=int(max(128, min(self.m.sizing["unit_memory_gb"] * 1024, 3072)) // 64 * 64), port=u["port"] or 8080,
+                         envs=merged_env(self.m, '{ APP_ENV = "production", PORT = "%d" }' % (u["port"] or 8080))))
         if self.public:
             parts.append(T("""
                 resource "tencentcloud_api_gateway_service" "main" {

@@ -30,6 +30,9 @@ QUEUE_LIBS = ("Celery", "BullMQ", "RQ", "Dramatiq", "Sidekiq")
 AUTH_LIBS = ("Passport", "NextAuth", "Authlib", "JWT library")
 EXTERNAL_AI = {"OpenAI SDK": "OpenAI API", "Anthropic SDK": "Anthropic API", "Groq SDK": "Groq API"}
 CLOUD_KINDS_WITHOUT_FREE_CACHE = ("cloud",)
+# Clouds whose generated code puts always-on containers in private subnets behind a NAT gateway, and clouds whose code always builds one.
+PRIVATE_SERVER_CLOUDS = ("aws", "azure", "gcp", "alibaba", "huawei", "oci", "tencent")
+NAT_ALWAYS_CLOUDS = ("alibaba", "huawei", "oci", "tencent")
 EMBEDDED_VECTOR = ("ChromaDB", "FAISS", "LanceDB", "Qdrant", "Weaviate")
 SEARCH_ENGINES = ("Meilisearch", "Elasticsearch", "OpenSearch")
 SELF_HOSTED_AI = ("vLLM", "Ollama")
@@ -371,21 +374,27 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
                          "evidence": file_evidence(scan.evidence("Clerk")),
                          "why": sentence_found(scan, ["Clerk"]) + " Sign-in is handled by Clerk, so no cloud sign-in service is added.",
                          "option": None})
-    if external and native_data and has_compute:
-        add("egress", "egress", "Network", "Outbound internet for private compute", "network",
-            [x["evidence"][0] for x in external if x["evidence"]][:2],
-            "Your app calls " + ", ".join(x["name"] for x in external) + " from private compute.", confidence="inferred")
+    # Private compute reaches the internet through a NAT gateway, which bills every hour. The plan states it whenever the generated
+    # network contains one, so the cost report and the quality gates see the same design the code builds.
+    private_server = mode == "server" and cloud in PRIVATE_SERVER_CLOUDS
+    if has_compute and ((external and native_data) or private_server or cloud in NAT_ALWAYS_CLOUDS):
+        reasons = [x["evidence"][0] for x in external if x["evidence"]][:2] or rule_evidence(
+            "Design requirement: always-on compute sits in private subnets (SEC-001), so it reaches the internet through a gateway")
+        add("egress", "egress", "Network", "Outbound internet for private compute", "network", reasons,
+            ("Your app calls " + ", ".join(x["name"] for x in external) + " from private compute.") if external else
+            "Always-on containers run in private subnets, so reaching the internet (image pulls, package mirrors, model APIs) needs a gateway.",
+            confidence="inferred")
 
     # ---------------------------------------------------------------- ingress, edge, identity, platform
     if has_compute:
         ingress_need = "ingress"
-        if mode == "serverless" and cloud == "aws" and catalog["services"].get("ingress_function_url", {}).get("aws") and (
+        if mode == "serverless" and catalog["services"].get("ingress_function_url", {}).get(cloud) and (
                 streaming == "used" or lean):
             ingress_need = "ingress_function_url"
         add("ingress", ingress_need, "Ingress", "Public entry point", "ingress",
             rule_evidence("Design requirement: public traffic reaches private compute only through a managed front door (SEC-001)"),
             "Your design has public web traffic reaching application compute." + (
-                " The scan found streaming code, which API Gateway would buffer and cut off." if ingress_need != "ingress" and streaming == "used" else ""),
+                " The scan found streaming code, which a gateway in front of the functions would buffer and cut off." if ingress_need != "ingress" and streaming == "used" else ""),
             confidence="inferred")
         if lean:
             gaps.append({"key": "edge", "need": "edge", "role": "Content delivery and firewall",

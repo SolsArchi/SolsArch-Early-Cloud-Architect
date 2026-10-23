@@ -37,6 +37,7 @@ BANDS = [(90, "Excellent", "Production candidate, subject to validation"), (85, 
          (70, "Conditional", "Resolve important findings"), (50, "Weak", "Architecture revision required"),
          (0, "Critical", "Regenerate architecture")]
 CAP_SCORE = 84
+NOT_AN_APP_HOST = ("togetherai", "snowflake", "mongodbatlas", "neon")
 # Resource types that bill every hour or month whether or not anyone uses the app. None may appear on an always-free plan.
 ALWAYS_BILLING = re.compile(r"aws_nat_gateway|aws_docdb|aws_elasticache|aws_lb$|aws_alb$|aws_db_instance|aws_rds_cluster|aws_mq_broker|aws_msk|"
                             r"aws_kms_key$|aws_secretsmanager_secret$|aws_wafv2_web_acl$|aws_api_gateway_rest_api|aws_apigatewayv2_api|"
@@ -92,7 +93,7 @@ class Inputs:
         root = s / "iac"
         if root.is_dir():
             for p in sorted(root.rglob("*")):
-                if p.is_file() and (p.suffix in (".tf", ".yml", ".yaml", ".hcl", ".example", ".json", ".md", "") or p.name.startswith("Dockerfile")) and p.stat().st_size < 400000:
+                if p.is_file() and ".terraform" not in p.parts and p.suffix not in (".png", ".svg", ".zip", ".pptx", ".pdf", ".ico") and p.stat().st_size < 400000:
                     try:
                         self.iac[p.relative_to(root).as_posix()] = p.read_text(encoding="utf-8")
                     except (OSError, UnicodeDecodeError):
@@ -158,11 +159,19 @@ def gate2(i):
                        "%s carries streaming answers." % ingress, [], blocker=bad, criterion="compatible"))
     else:
         out.append(chk("A1", "architecture", 2, "The entry point does not cut or buffer streaming responses", NA, "No streaming code, or not a function platform."))
-    if i.signals.get("scheduler", "none") != "none" and i.serverless:
+    if i.signals.get("scheduler", "none") != "none" and i.serverless and i.plan["cloud"] not in NOT_AN_APP_HOST:
         has = "scheduler" in i.native
-        out.append(chk("A2", "architecture", 2, "In-process scheduled work has a cloud schedule", PASS if has else FAIL,
-                       "A managed schedule (%s) calls the job." % i.native["scheduler"]["service"] if has else
-                       "The code starts a scheduler inside the app, which stops when the function is frozen.", [], blocker=not has, criterion="compatible"))
+        gap = next((g for g in i.plan.get("gaps", []) if g["key"] == "scheduler"), None)
+        if has:
+            out.append(chk("A2", "architecture", 2, "In-process scheduled work has a cloud schedule", PASS,
+                           "A managed schedule (%s) calls the job." % i.native["scheduler"]["service"], [], criterion="compatible"))
+        elif gap:
+            out.append(chk("A2", "architecture", 2, "In-process scheduled work has a cloud schedule", WARNING,
+                           "No managed schedule exists in the catalogue for this provider, and the plan says so: %s" % gap["message"], criterion="compatible"))
+        else:
+            out.append(chk("A2", "architecture", 2, "In-process scheduled work has a cloud schedule", FAIL,
+                           "The code starts a scheduler inside the app, which stops when the function is frozen, and the plan neither adds a schedule nor mentions it.",
+                           [], blocker=True, criterion="compatible"))
     else:
         out.append(chk("A2", "architecture", 2, "In-process scheduled work has a cloud schedule", NA, "No in-process scheduler, or always-on compute."))
     r9 = i.rules.get("DR-09")
@@ -247,16 +256,28 @@ def gate4(i):
                        "%.1f%% met; gaps: %s." % (s, ", ".join(cap["gaps"]) or "none")))
     else:
         out.append(chk("I2", "infrastructure", 4, "Capability checklist (network, secrets, logs, identity, state...)", NOT_VERIFIED, "No infrastructure code was generated."))
-    if not i.iac:
+    if i.plan["cloud"] in NOT_AN_APP_HOST:
+        out.append(chk("I3", "infrastructure", 4, "Every setting the code reads is carried into the deployment", NA,
+                       "This provider hosts models or data, not the application, so the application's settings are set where the application runs."))
+    elif not i.iac:
         out.append(chk("I3", "infrastructure", 4, "Every setting the code reads is carried into the deployment", NOT_VERIFIED, "No generated files to search."))
     else:
         text = "\n".join(i.iac.values())
-        need = [v["name"] for v in (i.scan or {}).get("env_vars", []) if v["required"]]
+        allv = (i.scan or {}).get("env_vars", [])
+        need = [v["name"] for v in allv if v["required"]]
         missing = [n for n in need if n not in text]
+        optional_missing = [v["name"] for v in allv if not v["required"] and v["name"] not in text]
         secret_missing = [n for n in missing if any(w in n.lower() for w in SECRET_WORDS)]
-        out.append(chk("I3", "infrastructure", 4, "Every setting the code reads is carried into the deployment", NA if not need else (PASS if not missing else FAIL),
-                       "All %d required variables appear in the generated configuration." % len(need) if need and not missing else
-                       ("Missing: %s." % ", ".join(missing)) if missing else "No required variable.", missing, blocker=bool(secret_missing)))
+        if not allv:
+            st, detail = NA, "No environment variable reads were found in the code."
+        elif missing:
+            st, detail = FAIL, "Required variable(s) not carried into the deployment: %s." % ", ".join(missing)
+        elif optional_missing:
+            st, detail = WARNING, "Optional variable(s) not carried into the deployment: %s." % ", ".join(optional_missing)
+        else:
+            st, detail = PASS, "All %d variable(s) the code reads appear in the generated configuration." % len(allv)
+        out.append(chk("I3", "infrastructure", 4, "Every setting the code reads is carried into the deployment", st, detail, missing + optional_missing,
+                       blocker=bool(secret_missing)))
     files = {p: t for p, t in i.iac.items() if re.search(r"(^|/)Dockerfile[^/]*$", p)}
     if not files:
         out.append(chk("I4", "infrastructure", 4, "Images the tool writes run as a non-root user and have a start command", NA, "No Dockerfile was generated."))

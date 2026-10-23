@@ -6,7 +6,7 @@ serverless design) from a private Container Registry, connected to a private net
 managed services on the same private network, files go to Object Storage, and application secrets live in Secret Manager.
 Containers are created with deploy turned off, so the first apply works before any image exists.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 DEFAULT_REGION = "fr-par"
 CPU = [70, 140, 280, 560, 1120, 2240, 4000]
@@ -33,6 +33,7 @@ class Scaleway:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.core()
         self.data_services()
@@ -305,6 +306,7 @@ class Scaleway:
             out += [("MONGODB_HOST", "scaleway_mongodb_instance.main.public_network[0].dns_record", False)]
         if self.storage:
             out += [("S3_BUCKET", "scaleway_object_bucket.assets.name", False), ("S3_ENDPOINT", "scaleway_object_bucket.assets.api_endpoint", False)]
+        out += [(n, e, False) for n, e in settings_pairs(self.m, secrets_apart=True)[0]]
         return out
 
     def secret_env(self):
@@ -313,6 +315,7 @@ class Scaleway:
             out.append(("DB_PASSWORD", "random_password.database.result"))
         if self.mongo:
             out.append(("MONGODB_PASSWORD", "random_password.mongodb.result"))
+        out += settings_pairs(self.m, secrets_apart=True)[1]
         return out
 
     def containers(self):

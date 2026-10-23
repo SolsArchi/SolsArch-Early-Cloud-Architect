@@ -83,7 +83,7 @@ class PlanTests(unittest.TestCase):
 
     def test_saas_server_plan(self):
         plan = plan_of(scan_of(helpers.build_saas))
-        self.assertEqual(keys(plan), {"compute_web", "compute_worker", "database", "cache", "network", "ingress",
+        self.assertEqual(keys(plan), {"compute_web", "compute_worker", "database", "cache", "network", "egress", "ingress",
                                       "edge", "secrets", "registry", "observability"})
         by = {d["key"]: d for d in plan["decisions"]}
         self.assertEqual(by["compute_web"]["service"], "Amazon ECS on AWS Fargate")

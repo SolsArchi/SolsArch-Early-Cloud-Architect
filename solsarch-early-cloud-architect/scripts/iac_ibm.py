@@ -7,7 +7,7 @@ Streams for Kafka, Cloud Object Storage for files, Secrets Manager, Cloud Logs, 
 plan uses them, all inside one resource group with a VPC and public gateway beside them. Apps are created in a second step
 (var.deploy_app), after the images exist in the registry.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 DEFAULT_REGION = "us-south"
 SCALE_CPU = [0.125, 0.25, 0.5, 1, 2, 4, 6, 8]
@@ -37,6 +37,7 @@ class Ibm:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.core()
         self.apps()
@@ -226,6 +227,7 @@ class Ibm:
                     ("MONGODB_PORT", "data.ibm_database_connection.mongodb.mongodb[0].hosts[0].port")]
         if self.storage:
             out += [("COS_BUCKET", "ibm_cos_bucket.assets.bucket_name"), ("COS_ENDPOINT", '"s3.private.${var.region}.cloud-object-storage.appdomain.cloud"')]
+        out += settings_pairs(self.m)
         return out
 
     def apps(self):

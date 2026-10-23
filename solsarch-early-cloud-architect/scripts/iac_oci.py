@@ -8,7 +8,7 @@ OCI Database with PostgreSQL, OCI Cache with Redis, Object Storage, a Vault with
 Streaming (Kafka compatible), and a log group. Instances are created in a second step (var.deploy_app), after the images
 exist in the registry.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 
 class Oci:
@@ -32,6 +32,7 @@ class Oci:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.network()
         self.registry()
@@ -379,6 +380,7 @@ class Oci:
             out.append(("KAFKA_BOOTSTRAP_SERVERS", "oci_streaming_stream_pool.main.kafka_settings[0].bootstrap_servers"))
         if self.storage:
             out += [("S3_BUCKET", "oci_objectstorage_bucket.assets.name"), ("S3_NAMESPACE", "data.oci_objectstorage_namespace.ns.namespace")]
+        out += settings_pairs(self.m)
         return out
 
     def containers(self):

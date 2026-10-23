@@ -164,6 +164,9 @@ class K8s:
             data["KAFKA_BOOTSTRAP_SERVERS"] = "REPLACE-with-the-broker-list"
         if m.has("storage"):
             data.update({"S3_ENDPOINT": "REPLACE-with-the-object-storage-endpoint", "S3_BUCKET": "REPLACE-with-the-bucket"})
+        for item in m.settings:  # every setting the code reads; secrets go in the Secret, not here
+            if item["category"] == "config" and item["name"] not in data:
+                data[item["name"]] = "REPLACE-me"
         return dump({"apiVersion": "v1", "kind": "ConfigMap", "metadata": self.meta(self.ns + "-config", labels=False), "data": data})
 
     def secret_example(self):
@@ -179,6 +182,7 @@ class K8s:
             keys.append("AMQP_PASSWORD")
         if m.has("storage"):
             keys += ["S3_ACCESS_KEY", "S3_SECRET_KEY"]
+        keys += [i["name"] for i in m.settings if i["category"] != "config" and i["name"] not in keys]
         head = ("# This file shows the secret keys the workloads read. Do not put real values here or commit them.\n"
                 "# Create the real secret with: kubectl -n %s create secret generic %s-secrets --from-literal=KEY=value ...\n"
                 "# or with an external secrets operator that reads your provider's secret store.\n") % (self.ns, self.ns)

@@ -7,7 +7,7 @@ private data tier, a managed front door, encryption and backups on every data st
 is on, secrets in Secret Manager, service accounts with narrow roles, logs and alerts, and health checks that use the
 path the code really serves.
 """
-from iac_common import Files, T, fmt_hcl, ident, tf
+from iac_common import Files, T, app_env_example, app_env_variable, fmt_hcl, ident, tf
 
 GCP_REGION_DEFAULT = "us-central1"
 SQL_TIER = {"small": "db-custom-1-3840", "medium": "db-custom-2-7680", "large": "db-custom-8-30720"}
@@ -24,7 +24,9 @@ class Gcp:
         self.serverless = model.mode == "serverless"
         self.region = model.region or GCP_REGION_DEFAULT
         self.ha = not model.single_az
-        self.api_gateway = self.serverless and bool(self.public)
+        self.direct = self.serverless and model.direct_ingress  # Cloud Run's own HTTPS address, no gateway in front
+        self.api_gateway = self.serverless and bool(self.public) and not self.direct
+        self.net = not (self.serverless and not model.needs_private_network)  # no VPC, router or NAT when nothing private needs one
         self.lb = (not self.serverless) and bool(self.public)
 
     def generate(self):
@@ -33,7 +35,8 @@ class Gcp:
         self.providers()
         self.variables()
         self.core()
-        self.network()
+        if self.net:
+            self.network()
         self.registry_and_identity()
         self.secrets()
         self.data_stores()
@@ -54,7 +57,7 @@ class Gcp:
             prefix = "@@project@@/production"
         """, project=m.project))
         self.files.add("terraform/bootstrap/main.tf", self.bootstrap())
-        self.files.add("terraform/terraform.tfvars.example", fmt_hcl('project_id   = "REPLACE-with-your-project-id"\nproject_name = "%s"\nenvironment  = "production"\nregion       = "%s"\n' % (m.project, self.region)))
+        self.files.add("terraform/terraform.tfvars.example", fmt_hcl('project_id   = "REPLACE-with-your-project-id"\nproject_name = "%s"\nenvironment  = "production"\nregion       = "%s"\n' % (m.project, self.region)) + app_env_example(m))
         self.files.add("terraform/README.md", self.readme())
         return self.files
 
@@ -190,6 +193,8 @@ class Gcp:
                   default     = @@count@@
                 }
             """, n=n, name=unit["name"], count=0 if self.serverless else (1 if unit["kind"] == "worker" else m.replicas)))
+        if m.settings:
+            out.append(app_env_variable(m))
         self.files.add("terraform/variables.tf", tf(*out))
 
     def core(self):
@@ -270,7 +275,7 @@ class Gcp:
                 metadata             = "INCLUDE_ALL_METADATA"
               }
         """).rstrip("\n") if m.regulated else "")]
-        if m.db_key:
+        if m.db_key or m.has("cache"):  # Cloud SQL and Memorystore both reach the network through the private services peering
             out.append(T("""
                 resource "google_compute_global_address" "private_services" {
                   name          = "${local.name}-private-services"
@@ -371,6 +376,34 @@ class Gcp:
               member    = "serviceAccount:${google_service_account.apps.email}"
             }
         """)]
+        if m.settings:
+            out.append(T("""
+                # Every entry of app_env becomes its own secret, which Cloud Run hands to the container as an environment variable.
+                resource "google_secret_manager_secret" "setting" {
+                  for_each  = nonsensitive(toset(keys(var.app_env)))
+                  secret_id = "${local.name}-${lower(replace(each.key, "_", "-"))}"
+                  labels    = local.labels
+
+                  replication {
+                    auto {}
+                  }
+
+                  depends_on = [google_project_service.apis]
+                }
+
+                resource "google_secret_manager_secret_version" "setting" {
+                  for_each    = nonsensitive(toset(keys(var.app_env)))
+                  secret      = google_secret_manager_secret.setting[each.key].id
+                  secret_data = var.app_env[each.key]
+                }
+
+                resource "google_secret_manager_secret_iam_member" "setting" {
+                  for_each  = nonsensitive(toset(keys(var.app_env)))
+                  secret_id = google_secret_manager_secret.setting[each.key].id
+                  role      = "roles/secretmanager.secretAccessor"
+                  member    = "serviceAccount:${google_service_account.apps.email}"
+                }
+            """))
         if m.db_key:
             out.append(T("""
                 resource "random_password" "db" {
@@ -580,6 +613,12 @@ class Gcp:
         if m.db_key:
             out += ('\n\n        env {\n          name = "DB_PASSWORD"\n\n          value_source {\n            secret_key_ref {\n'
                     '              secret  = google_secret_manager_secret.db_password.secret_id\n              version = "latest"\n            }\n          }\n        }')
+        if m.settings:
+            lines = ["", "        dynamic \"env\" {", "          for_each = nonsensitive(toset(keys(var.app_env)))", "", "          content {",
+                     "            name = env.value", "", "            value_source {", "              secret_key_ref {",
+                     "                secret  = google_secret_manager_secret.setting[env.value].secret_id",
+                     "                version = \"latest\"", "              }", "            }", "          }", "        }"]
+            out += chr(10) + chr(10).join(lines)
         return out
 
     def run_services(self):
@@ -596,6 +635,22 @@ class Gcp:
             health = unit["health_path"] or "/"
             ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" if (is_public and self.lb) else (
                 "INGRESS_TRAFFIC_ALL" if is_public else "INGRESS_TRAFFIC_INTERNAL_ONLY")
+            vpc = ""
+            if self.net:
+                block = T("""
+                    vpc_access {
+                      egress = "ALL_TRAFFIC"
+
+                      network_interfaces {
+                        network    = google_compute_network.main.id
+                        subnetwork = google_compute_subnetwork.apps.id
+                      }
+                    }
+                """).rstrip(chr(10))
+                vpc = chr(10).join(("                    " + l) if l else l for l in block.split(chr(10))) + chr(10) + chr(10)
+            # a streamed answer or a scheduled job can run longer than Cloud Run's default request limit
+            timeout = (chr(10) + '                    timeout                          = "300s"') if (unit.get("streaming") or unit.get("scheduler")) else ""
+            deps = (chr(10) + "                    google_secret_manager_secret_iam_member.setting,") if m.settings else ""
             probes = ""
             ports = ""
             if unit["kind"] != "worker":
@@ -630,23 +685,14 @@ class Gcp:
 
                   template {
                     service_account                  = google_service_account.apps.email
-                    max_instance_request_concurrency = 80
+                    max_instance_request_concurrency = 80@@timeout@@
 
                     scaling {
                       min_instance_count = var.@@n@@_min_instances
                       max_instance_count = max(var.@@n@@_min_instances * 4, 10)
                     }
 
-                    vpc_access {
-                      egress = "ALL_TRAFFIC"
-
-                      network_interfaces {
-                        network    = google_compute_network.main.id
-                        subnetwork = google_compute_subnetwork.apps.id
-                      }
-                    }
-
-                    containers {
+@@vpc@@                    containers {
                       name  = "@@name@@"
                       image = coalesce(var.@@n@@_image, "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.main.repository_id}/@@name@@:${var.image_tag}")@@ports@@
 
@@ -663,10 +709,10 @@ class Gcp:
 
                   depends_on = [
                     google_project_service.apis,
-                    google_secret_manager_secret_iam_member.app,
+                    google_secret_manager_secret_iam_member.app,@@deps@@
                   ]
                 }
-            """, n=n, name=name, ingress=ingress, cpu=cpu, mem=mem, ports=("\n\n" + ports) if ports else "", env=self.env_blocks(unit),
+            """, n=n, name=name, ingress=ingress, vpc=vpc, timeout=timeout, deps=deps, cpu=cpu, mem=mem, ports=("\n\n" + ports) if ports else "", env=self.env_blocks(unit),
                          probes=probes, idle="true" if (self.serverless or unit["kind"] != "worker") else "false"))
             if is_public:
                 out.append(T("""
@@ -1043,6 +1089,14 @@ class Gcp:
               value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.main.repository_id}"
             }
         """)]
+        if self.direct:
+            for unit in self.public:
+                out.append(T("""
+                    output "@@n@@_url" {
+                      description = "Public HTTPS address of @@name@@ (Cloud Run's own address, no gateway in front)."
+                      value       = google_cloud_run_v2_service.@@n@@.uri
+                    }
+                """, n=ident(unit["name"]), name=unit["name"]))
         if self.lb:
             out.append(T("""
                 output "load_balancer_ip" {

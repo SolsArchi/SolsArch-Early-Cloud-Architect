@@ -7,7 +7,7 @@ for PostgreSQL, DCS for Redis, DDS for MongoDB, DMS for Kafka and RabbitMQ; file
 logs to LTS. Image-dependent parts wait for var.deploy_app. Flavor and storage codes change by region, so they are
 variables with common defaults and the README says how to list the current ones.
 """
-from iac_common import Files, T, fmt_hcl, selfrun, tf
+from iac_common import Files, T, add_app_env_files, fmt_hcl, merged_env, selfrun, settings_pairs, tf
 
 DEFAULT_REGION = "ap-southeast-3"
 
@@ -31,6 +31,7 @@ class Huawei:
     def generate(self):
         m = self.m
         self.versions()
+        add_app_env_files(self.files, self.m)
         self.variables()
         self.network()
         self.registry()
@@ -219,6 +220,7 @@ class Huawei:
             out += [("REDIS_HOST", "huaweicloud_dcs_instance.main.private_ip"), ("REDIS_PORT", '"6379"')]
         if self.storage:
             out += [("OBS_BUCKET", "huaweicloud_obs_bucket.assets.bucket"), ("OBS_ENDPOINT", '"obs.${var.region}.myhuaweicloud.com"')]
+        out += settings_pairs(self.m)
         return out
 
     def cci(self):
@@ -353,14 +355,12 @@ class Huawei:
                     url = @@image@@
                   }
 
-                  user_data = jsonencode({
-                    APP_ENV = "production"
-                    PORT    = "@@port@@"
-                  })
+                  user_data = jsonencode(@@envs@@)
 
                   depends_on = [huaweicloud_swr_repository.@@n@@]
                 }
-            """, n=n, name=u["name"], image=self.image(u), port=u["port"] or 8080))
+            """, n=n, name=u["name"], image=self.image(u), port=u["port"] or 8080,
+                         envs=merged_env(self.m, '{ APP_ENV = "production", PORT = "%d" }' % (u["port"] or 8080))))
         self.files.add("terraform/functions.tf", tf(*parts))
 
     def data_services(self):
