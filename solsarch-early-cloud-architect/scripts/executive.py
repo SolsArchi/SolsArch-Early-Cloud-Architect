@@ -17,7 +17,7 @@ import json
 import sys
 import zipfile
 from pathlib import Path
-from xml.sax.saxutils import escape
+from xmltext import escape
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))

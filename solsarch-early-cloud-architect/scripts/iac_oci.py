@@ -130,7 +130,7 @@ class Oci:
             variable "image_tag" {
               description = "Tag of the container images in the registry."
               type        = string
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "deploy_app" {
@@ -850,4 +850,8 @@ class Oci:
 
 
 def generate(model):
+    import iac_static
+    if iac_static.has_static_only(model):  # a site of only static files needs a bucket and a CDN, not a network and a container service
+        import iac_static_more
+        return iac_static_more.oci(model)
     return Oci(model).generate()

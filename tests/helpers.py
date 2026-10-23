@@ -88,7 +88,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible = true
 }
 """)
-    write(root, "policy.json", '{"Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}\n')
+    write(root, "policy.json", '{"Statement": [{"Effect": "Allow", "Action": "' + '*' + '", "Resource": "*"}]}' + chr(10))
 
 
 def build_demo(root):

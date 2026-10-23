@@ -5,9 +5,20 @@ description = "Agent Skill that designs cloud architecture for a local codebase,
 requires-python = ">=3.8"
 license = { text = "MIT OR Apache-2.0" }
 
+[project.urls]
+Homepage = "https://solsarch.com/"
+Repository = "https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-p no:cacheprovider"
 
 [tool.ruff]
 line-length = 120
+
+[tool.bandit]
+# B105 reports names such as "vault_registry_password" that are given the placeholder CHANGE_ME in generated example files.
+# B108 reports "/tmp" inside the Kubernetes manifests the tool writes for other people's clusters; the tool itself uses no fixed temp path.
+# B404 and B603 report that the tool starts other programs (git, terraform, the checkers). It always passes a list of arguments, never a shell string,
+# and tests/test_security.py checks that no shell=True, eval or exec appears anywhere in the scripts.
+skips = ["B105", "B108", "B404", "B603"]

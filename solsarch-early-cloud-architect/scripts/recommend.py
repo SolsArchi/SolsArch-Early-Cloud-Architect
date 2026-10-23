@@ -30,6 +30,11 @@ QUEUE_LIBS = ("Celery", "BullMQ", "RQ", "Dramatiq", "Sidekiq")
 AUTH_LIBS = ("Passport", "NextAuth", "Authlib", "JWT library")
 EXTERNAL_AI = {"OpenAI SDK": "OpenAI API", "Anthropic SDK": "Anthropic API", "Groq SDK": "Groq API"}
 CLOUD_KINDS_WITHOUT_FREE_CACHE = ("cloud",)
+# The region each generator uses when the profile names none. The plan states it as an assumption instead of leaving it open.
+REGION_DEFAULTS = {"aws": "us-east-1", "azure": "eastus", "gcp": "us-central1", "alibaba": "cn-hangzhou", "huawei": "ap-southeast-3",
+                   "ibm": "us-south", "oci": "us-ashburn-1", "tencent": "ap-singapore", "digitalocean": "nyc3", "hetzner": "fsn1",
+                   "linode": "us-east", "akamai": "us-east", "vultr": "ewr", "scaleway": "fr-par", "ovhcloud": "GRA11",
+                   "civo": "NYC1", "upcloud": "de-fra1", "exoscale": "ch-gva-2"}
 # Clouds whose generated code puts always-on containers in private subnets behind a NAT gateway, and clouds whose code always builds one.
 PRIVATE_SERVER_CLOUDS = ("aws", "azure", "gcp", "alibaba", "huawei", "oci", "tencent")
 NAT_ALWAYS_CLOUDS = ("alibaba", "huawei", "oci", "tencent")
@@ -257,9 +262,18 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
             tech=", ".join(sorted(languages)), caveats=serverless_notes, confidence="inferred")
     has_compute = any(k.startswith("compute_") for k in keys)
     if spa:
-        add("static_site", "static_site", "Static hosting", "Front end (built static files)", "compute",
-            file_evidence(scan.evidence("React", "Vue")), sentence_found(scan, [n for n in ("React", "Vue") if scan.has(n)]),
-            tech="React or Vue", confidence="inferred")
+        placed = add("static_site", "static_site", "Static hosting", "Front end (built static files)", "compute",
+                     file_evidence(scan.evidence("React", "Vue")), sentence_found(scan, [n for n in ("React", "Vue") if scan.has(n)]),
+                     tech="React or Vue", confidence="inferred")
+        if not placed and not has_compute and cloud_info.get("kind", "cloud") == "cloud":
+            # no static hosting here: the files are served by a small web server container, which is a compute decision of its own
+            if add("compute_app", "compute", "Compute", "Static site server", "compute",
+                   file_evidence(scan.evidence("React", "Vue")), "This cloud has no static website hosting, so a small nginx container serves the built files.",
+                   tech="nginx", confidence="inferred"):
+                has_compute = True
+            questions.append("%s has no static website hosting, so this single-page app would be served by a small container on the infrastructure written "
+                             "for it. A static host costs far less: add one with --also cloudflare, or choose Netlify, Vercel or Cloudflare as the platform."
+                             % cloud_info["name"])
     workers = [n for n in QUEUE_LIBS if scan.has(n)]
     if workers and has_compute:
         add("compute_worker", "compute", "Compute", "Background worker", "compute",
@@ -434,8 +448,14 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
         "Failures need to be visible after deployment.", confidence="inferred")
 
     # ---------------------------------------------------------------- questions and costs
-    questions.append("Region: none was chosen. Pick the region closest to your users, and check data-residency "
-                     "rules if the app stores personal data.")
+    assumptions = []
+    if not profile.get("region"):
+        default = REGION_DEFAULTS.get(cloud)
+        assumptions.append({"key": "region", "value": default,
+                            "text": ("Region: none was chosen, so %s is assumed. Set one with `profile --set region=...` if your users are elsewhere, "
+                                     "and check data-residency rules if the app stores personal data." % default) if default else
+                            "Region: none was chosen. This platform picks the region in its dashboard or CLI; choose the one closest to your users, "
+                            "and check data-residency rules if the app stores personal data."})
     if streaming == "import-only":
         questions.append("The scan found a streaming import but no route that uses it. Does the app stream responses?")
     if (scan.has("LangChain") or scan.has("LlamaIndex")) and not any(x["key"].startswith("ai_") for x in external) and not hosted:
@@ -481,7 +501,7 @@ def build_plan(scan_data, catalog, cloud, mode, also=(), profile=None):
         "provider_kind": cloud_info.get("kind", "cloud"), "overlays": overlays,
         "overlay_names": [catalog["clouds"][o]["name"] for o in overlays],
         "compute_model": mode, "compute_label": catalog["modes"][mode], "decisions": decisions,
-        "gaps": gaps, "external_services": external, "open_questions": questions, "cost_drivers": costs,
+        "gaps": gaps, "external_services": external, "open_questions": questions, "assumptions": assumptions, "cost_drivers": costs,
         "verify_queue": queue,
         "auto_choices": auto_choices,
         "config_inputs": [{"name": v["name"], "category": v["category"], "required": v["required"]} for v in scan_data.get("env_vars", [])],

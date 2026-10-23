@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import brand as solsarch_brand  # noqa: E402
 from pathlib import Path
-from xml.sax.saxutils import escape
+from xmltext import escape
 
 PALETTE = Path(__file__).resolve().parent.parent / "assets" / "cloud-vendor-palette.json"
 INK, MUTED, LINE, PAPER, CARD = "#14202e", "#5a6878", "#c9d3de", "#ffffff", "#f4f7fa"

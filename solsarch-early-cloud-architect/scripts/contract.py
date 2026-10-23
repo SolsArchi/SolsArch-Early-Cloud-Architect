@@ -24,9 +24,9 @@ TYPE_RULES = [
      r"google_compute_url_map|google_compute_forwarding_rule|_load_balancer$|cloudfront_distribution|azurerm_cdn|azurerm_frontdoor", "ingress", True),
     (r"aws_wafv2_web_acl|google_compute_security_policy|azurerm_web_application_firewall", "edge", True),
     (r"aws_docdb|azurerm_cosmosdb_account|mongodbatlas_advanced_cluster|mongodbatlas_cluster|mongodbatlas_serverless_instance", "database_mongo", True),
-    (r"mysql", "database_mysql", True),
+    (r"mysql|upcloud_managed_database_mysql", "database_mysql", True),
     (r"aws_db_instance|aws_rds_cluster|azurerm_postgresql|google_sql_database_instance|neon_project|"
-     r"digitalocean_database_cluster|linode_database|vultr_database|scaleway_rdb_instance|alicloud_db_instance|tencentcloud_postgresql|"
+     r"digitalocean_database_cluster|linode_database|vultr_database|civo_database|upcloud_managed_database_postgresql|exoscale_dbaas|scaleway_rdb_instance|alicloud_db_instance|tencentcloud_postgresql|"
      r"huaweicloud_rds_instance|ibm_database|oci_psql_db_system", "database", True),
     (r"aws_elasticache|azurerm_redis|google_redis|_redis_", "cache", True),
     (r"aws_mq_broker", "queue_rabbitmq", True),
@@ -89,7 +89,8 @@ def decision_for(rtype, plan_keys):
     if rtype in IMPLIED_TYPES and "storage" not in plan_keys:
         return next((k for k in sorted(plan_keys) if k.startswith("compute_")), None)
     if key == "compute" or (key in IMPLIED_BY_COMPUTE and key not in plan_keys):
-        return next((k for k in sorted(plan_keys) if k.startswith("compute_")), None)
+        # a site of only static files is served by the "static_site" decision where there is no application compute
+        return next((k for k in sorted(plan_keys) if k.startswith("compute_")), None) or ("static_site" if "static_site" in plan_keys else None)
     if key in plan_keys:
         return key
     for alt in ALSO_SATISFIES.get(key, ()):

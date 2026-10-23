@@ -33,11 +33,16 @@ def function_url_resources(public_units):
               authorization_type = "NONE"
               invoke_mode        = "@@mode@@"
 
-              cors {
-                allow_origins = var.cors_allowed_origins
-                allow_methods = ["*"]
-                allow_headers = ["*"]
-                max_age       = 86400
+              # Browsers may call this address only from the origins listed in cors_allowed_origins. Empty (the default) allows none.
+              dynamic "cors" {
+                for_each = length(var.cors_allowed_origins) == 0 ? [] : [1]
+
+                content {
+                  allow_origins = var.cors_allowed_origins
+                  allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+                  allow_headers = ["content-type", "authorization"]
+                  max_age       = 86400
+                }
               }
             }
 
@@ -126,8 +131,8 @@ variable "schedule_expression" {
 CORS_VARIABLE = """
 variable "cors_allowed_origins" {
   type        = list(string)
-  description = "Web addresses allowed to call the function URLs from a browser. Narrow this to your front end's address."
-  default     = ["*"]
+  description = "Web addresses allowed to call the function URLs from a browser, for example https://app.example.com. Empty means no browser on another site may call them."
+  default     = []
 }
 """
 
@@ -244,7 +249,7 @@ class AwsLambda:
             variable "image_tag" {
               type        = string
               description = "Tag of the container images in the repositories created here."
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "log_retention_days" {
@@ -261,8 +266,8 @@ class AwsLambda:
 
             variable "cors_allowed_origins" {
               type        = list(string)
-              description = "Web addresses allowed to call the function URLs from a browser. Narrow this to your front end's address."
-              default     = ["*"]
+              description = "Web addresses allowed to call the function URLs from a browser, for example https://app.example.com. Empty means no browser on another site may call them."
+              default     = []
             }
 
             variable "app_env" {
@@ -316,7 +321,7 @@ class AwsLambda:
             parts.append(T("""
                 resource "aws_ecr_repository" "@@n@@" {
                   name                 = "${local.name}/@@name@@"
-                  image_tag_mutability = "MUTABLE"
+                  image_tag_mutability = "IMMUTABLE"
                   force_delete         = false
 
                   image_scanning_configuration {
@@ -581,7 +586,7 @@ class AwsLambda:
                   for_each = nonsensitive(toset(keys(var.app_env)))
 
                   name  = "/${local.name}/env/${each.key}"
-                  type  = contains(local.plain_setting_names, each.key) ? "String" : "SecureString"
+                  type  = "SecureString"
                   tier  = "Standard"
                   value = var.app_env[each.key]
                 }
@@ -687,7 +692,7 @@ class AwsLambda:
 
     def tfvars(self):
         return fmt_hcl('project_name = "%s"\nenvironment  = "production"\nregion       = "%s"\n\n# Settings and secrets the application reads. Fill these in; do not commit real values.\n'
-                       '# app_env = {\n%s# }\n' % (self.m.project, self.region, "".join('#   %s = "REPLACE-me"\n' % n for n in sorted(set(self.required) | {i["name"] for i in self.m.config_inputs if i["category"] != "config"}))))
+                       '# app_env = {\n%s# }\n' % (self.m.project, self.region, "".join('#   %s = "CHANGE_ME"\n' % n for n in sorted(set(self.required) | {i["name"] for i in self.m.config_inputs if i["category"] != "config"}))))
 
     def readme(self):
         m = self.m
@@ -729,6 +734,7 @@ class AwsLambda:
 
             - Whether the in-process pieces fit a function: a scheduler (@@schedule_note@@), streaming time limits (a function can stream for up to 15 minutes), and anything that starts child processes.
             - A domain name (put a CloudFront distribution in front when you want one).
+            - `cors_allowed_origins`: the web addresses of your front end, if a browser on another site calls the function URLs. It starts empty, which allows none.
         """, project=m.project, fp=m.fingerprint, units=", ".join(u["name"] for u in self.units), ext=ext,
                  ingress=("A **Function URL** per public unit; units that stream use response streaming, which has no 30-second cut-off."
                           if self.function_url else "An HTTP API (API Gateway) in front of the functions."),

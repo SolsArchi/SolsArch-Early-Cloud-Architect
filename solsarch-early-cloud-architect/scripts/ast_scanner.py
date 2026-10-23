@@ -21,6 +21,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import history_scan  # noqa: E402
 import structure_scanner  # noqa: E402
 
 SCANNER_VERSION = "1.0.0"
@@ -237,7 +238,7 @@ SECRET_HINT_RE = re.compile(
 DB_URL_RE = re.compile(
     r"(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis)://[^:/\s\"']+:([^@\s\"']{6,})@")
 PLACEHOLDERS = (
-    "your", "example", "changeme", "change-me", "xxxx", "dummy", "sample", "placeholder",
+    "your", "example", "changeme", "change-me", "change_me", "xxxx", "dummy", "sample", "placeholder",
     "replace", "todo", "fake", "redacted", "insert", "<", "secret_here", "token_here",
 )
 DB_URL_PLACEHOLDER_PASSWORDS = {
@@ -974,8 +975,24 @@ def scan(root, max_files=DEFAULT_MAX_FILES):
     scheduler = "used" if live_scheduler else ("import-only" if (collector.components.get(("scheduler", "APScheduler")) or
                                                                   collector.components.get(("scheduler", "node-cron"))) else "none")
     env_vars = [dict(v, category=env_category(v["name"])) for v in sorted(collector.env_vars.values(), key=lambda x: x["name"])]
+    findings = build_findings(collector)
+    history = {"status": "not_run", "reason": "turned off with SOLSARCH_NO_HISTORY", "commits": 0, "truncated": False, "hits": []}
+    if not os.environ.get("SOLSARCH_NO_HISTORY"):
+        history = history_scan.scan(root, SECRET_PATTERNS, GENERIC_ASSIGN_RE, DB_URL_RE, is_placeholder, DB_URL_PLACEHOLDER_PASSWORDS)
+    if history["hits"]:
+        critical = any(h["label"] in ("AWS access key id", "Private key block") for h in history["hits"])
+        findings.append({
+            "id": "SEC-006", "severity": "critical" if critical else "high", "confidence": "confirmed",
+            "title": "Secret committed in git history",
+            "detail": ("%d secret(s) were added to the repository at some point (%s). Deleting the file does not remove them: anyone who can clone "
+                       "can read them. Values are not shown here." % (len(history["hits"]), ", ".join(sorted({h["label"] for h in history["hits"]})))),
+            "fix": "Rotate every exposed credential now, then remove it from history (git filter-repo or BFG) if the repository is shared.",
+            "evidence": [{"file": h["file"], "line": 1, "note": "commit %s, %s%s" % (h["commit"], h["label"], "" if h["in_working_tree"] else ", file since removed")}
+                         for h in history["hits"][:MAX_EVIDENCE]],
+        })
     return {
         "scanner_version": SCANNER_VERSION,
+        "history": dict({k: history[k] for k in ("status", "reason", "commits", "truncated")}, secrets_found=len(history["hits"])),
         "root": root.name,
         "stats": {
             "files_scanned": scanned,
@@ -1000,7 +1017,7 @@ def scan(root, max_files=DEFAULT_MAX_FILES):
             "deploy_configs": collector.deploy_configs,
         },
         "provider_hints": dict(sorted(collector.provider_hits.items())),
-        "findings": build_findings(collector),
+        "findings": findings,
         "advisories": collector.advisories,
         "structure": structure_scanner.scan_structure(root),
     }

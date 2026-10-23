@@ -247,6 +247,8 @@ def build(repo, scan, plan, memory, facts, narrative, output):
             questions.append("%s: the web check says %s. %s Review before relying on this choice." % (
                 f["service"], f["verdict"], f.get("note", "")))
     out += ["## 10. Open questions", ""] + ["- " + q for q in questions] + [""]
+    if plan.get("assumptions"):
+        out += ["### Assumptions made", ""] + ["- " + a["text"] for a in plan["assumptions"]] + [""]
 
     stats = scan.get("stats", {})
     out += ["## 11. Coverage and limits", "",
@@ -254,8 +256,9 @@ def build(repo, scan, plan, memory, facts, narrative, output):
                                       if stats.get("truncated") else ""),
             "- Languages: %s" % (", ".join("%s (%s)" % kv for kv in scan.get("languages", {}).items()) or "none detected"),
             "- %s" % NOT_COVERED,
-            "- Lite edition: one repository, static analysis only. No live cloud account inspection, no priced cost model, "
-            "no compliance mapping, no Terraform.",
+            "- Static analysis of one repository. Nothing here inspects a live cloud account; the generated drift workflow does that inside "
+            "your own pipeline with your own credentials. Costs, infrastructure code and quality checks are in their own files "
+            "(solsarch-costs.md, solsarch-iac.md, solsarch-quality.md).",
             "- The same scan, cloud and compute model always produce the same plan, diagrams and tables "
             "(fingerprint %s)." % plan["fingerprint"], ""]
     return "\n".join(out).rstrip() + "\n", blocker_count, verdict_text, diagrams

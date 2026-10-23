@@ -24,7 +24,7 @@ LOCAL_USE_RE = re.compile(r"\blocal\.([a-zA-Z_][a-zA-Z0-9_-]*)")
 LOCAL_DECL_RE = re.compile(r"^\s{2}([a-zA-Z_][a-zA-Z0-9_-]*)\s*=", re.M)
 RES_DECL_RE = re.compile(r'^(resource|data)\s+"([a-z0-9_]+)"\s+"([A-Za-z0-9_.-]+)"', re.M)
 # a reference to another resource: type.name followed by a dot, a bracket or the end of the token
-RES_USE_RE = re.compile(r"\b((?:aws|azurerm|google|hcloud|linode|vultr|digitalocean|scaleway|ovh|oci|alicloud|tencentcloud|huaweicloud|ibm|"
+RES_USE_RE = re.compile(r"\b((?:aws|azurerm|google|hcloud|linode|vultr|digitalocean|scaleway|ovh|oci|alicloud|tencentcloud|huaweicloud|ibm|civo|upcloud|exoscale|"
                         r"mongodbatlas|neon|random|tls|null|time)_[a-z0-9_]+)\.([A-Za-z_][A-Za-z0-9_-]*)(?=[\.\[\s,)\]}\"]|$)")
 DATA_USE_RE = re.compile(r"\bdata\.([a-z0-9_]+)\.([A-Za-z_][A-Za-z0-9_-]*)")
 STRING_RE = re.compile(r'"(?:[^"\\\n]|\\.)*"')

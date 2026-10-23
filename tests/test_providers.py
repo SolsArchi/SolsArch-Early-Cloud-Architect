@@ -18,9 +18,9 @@ import test_matrix
 PROMISED = {
     "Global clouds": ["Alibaba Cloud", "AWS", "Azure", "Google Cloud", "Huawei Cloud", "IBM Cloud",
                       "Oracle Cloud Infrastructure (OCI)", "Tencent Cloud"],
-    "App platforms": ["Fly.io", "Heroku", "Netlify", "Railway", "Render", "Vercel"],
+    "App platforms": ["Cloud Foundry", "Fly.io", "Heroku", "Hugging Face Spaces", "Koyeb", "Netlify", "Railway", "Render", "Vercel"],
     "Edge": ["Akamai", "Cloudflare", "Deno Deploy", "Fastly"],
-    "Other clouds": ["DigitalOcean", "Hetzner Cloud", "Linode", "OVHcloud", "Scaleway", "Vultr"],
+    "Other clouds": ["Civo", "DigitalOcean", "Exoscale", "Hetzner Cloud", "Linode", "OVHcloud", "Scaleway", "UpCloud", "Vultr"],
     "AI and GPU": ["CoreWeave", "Lambda", "RunPod", "Together AI"],
     "Data": ["Databricks", "Firebase", "MongoDB Atlas", "Neon", "Snowflake", "Supabase"],
     "Enterprise platforms": ["SAP", "Salesforce", "ServiceNow", "Pega", "MuleSoft", "Workday", "Oracle Fusion"],

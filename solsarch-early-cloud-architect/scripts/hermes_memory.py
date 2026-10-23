@@ -26,8 +26,8 @@ CLOUDS = ("aws", "azure", "gcp", "multi")
 try:
     import providers as _providers
     CLOUDS = tuple(_providers.hosting_ids()) + ("multi",)
-except Exception:  # the registry is optional for memory commands
-    pass
+except (ImportError, OSError, ValueError) as _error:  # the registry is optional for memory commands
+    _REGISTRY_ERROR = str(_error)
 STATUSES = ("PROPOSED", "APPROVED", "REJECTED", "SUPERSEDED")
 NO_VALUE = ("none", "unset", "null", "n/a", "")
 COMPUTE_MODELS = ("server", "serverless")

@@ -109,7 +109,7 @@ class DigitalOcean:
             variable "image_tag" {
               description = "Tag of the container images in the registry."
               type        = string
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "deploy_app" {
@@ -342,4 +342,8 @@ class DigitalOcean:
 
 
 def generate(model):
+    import iac_static
+    if iac_static.has_static_only(model):  # static files are built and served by App Platform; no registry, database or network is needed
+        import iac_static_more
+        return iac_static_more.digitalocean(model)
     return DigitalOcean(model).generate()

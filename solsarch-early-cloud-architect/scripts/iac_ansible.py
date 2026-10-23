@@ -7,7 +7,7 @@ plan marked as self-run (PostgreSQL, MongoDB, Redis, RabbitMQ) on a data host wi
 Terraform for each provider only creates the servers, network and firewall and prints an inventory, so the server
 configuration is identical on every cloud.
 """
-from iac_common import Files, T, selfrun
+from iac_common import IMAGE_TAG, Files, T, selfrun
 from iac_k8s import dump, scalar
 
 COLLECTIONS = ["community.docker", "community.general"]
@@ -84,7 +84,7 @@ class Ansible:
         units = []
         for u in self.units:
             item = {"name": u["name"], "kind": u["kind"], "port": u["port"] or 8080, "health_path": u["health_path"] or "/",
-                    "image": "%s/%s" % (self.registry, u["name"]), "tag": "latest", "replicas": 1 if u["kind"] == "worker" else m.replicas,
+                    "image": "%s/%s" % (self.registry, u["name"]), "tag": IMAGE_TAG, "replicas": 1 if u["kind"] == "worker" else m.replicas,
                     "public": u in self.public}
             units.append(item)
         first = self.public[0]["name"] if self.public else ""
@@ -98,22 +98,22 @@ class Ansible:
 
     def vault_example(self):
         m = self.m
-        keys = {"vault_registry_password": "REPLACE-me"}
+        keys = {"vault_registry_password": "CHANGE_ME"}
         if "postgres" in self.data:
-            keys["vault_postgres_password"] = "REPLACE-me"
+            keys["vault_postgres_password"] = "CHANGE_ME"
         if "mysql" in self.data:
-            keys["vault_mysql_password"] = "REPLACE-me"
+            keys["vault_mysql_password"] = "CHANGE_ME"
         if "mongo" in self.data:
-            keys["vault_mongo_password"] = "REPLACE-me"
+            keys["vault_mongo_password"] = "CHANGE_ME"
         if "redis" in self.data:
-            keys["vault_redis_password"] = "REPLACE-me"
+            keys["vault_redis_password"] = "CHANGE_ME"
         if "rabbitmq" in self.data:
-            keys["vault_rabbitmq_password"] = "REPLACE-me"
+            keys["vault_rabbitmq_password"] = "CHANGE_ME"
         for item in self.m.settings:  # one entry per setting the code reads
-            keys["vault_app_%s" % item["name"].lower()] = "REPLACE-me"
-        keys["vault_backup_access_key"] = "REPLACE-me"
-        keys["vault_backup_secret_key"] = "REPLACE-me"
-        keys["vault_grafana_admin_password"] = "REPLACE-me"
+            keys["vault_app_%s" % item["name"].lower()] = "CHANGE_ME"
+        keys["vault_backup_access_key"] = "CHANGE_ME"
+        keys["vault_backup_secret_key"] = "CHANGE_ME"
+        keys["vault_grafana_admin_password"] = "CHANGE_ME"
         return ("# Copy to vault.yml, fill it in, then encrypt it: ansible-vault encrypt group_vars/all/vault.yml\n"
                 "# Never commit the unencrypted file.\n" + dump(keys))
 
@@ -424,14 +424,14 @@ class Ansible:
         self.role_file("monitoring", "templates", "monitoring-compose.yml.j2", T("""
             services:
               node-exporter:
-                image: prom/node-exporter:latest
+                image: prom/node-exporter:v1.8.2
                 restart: unless-stopped
                 network_mode: host
                 pid: host
                 volumes: ["/:/host:ro,rslave"]
                 command: ["--path.rootfs=/host"]
               cadvisor:
-                image: gcr.io/cadvisor/cadvisor:latest
+                image: gcr.io/cadvisor/cadvisor:v0.49.1
                 restart: unless-stopped
                 ports: ["127.0.0.1:8081:8080"]
                 volumes:
@@ -441,14 +441,14 @@ class Ansible:
                   - /var/lib/docker/:/var/lib/docker:ro
             {% if 'app' in group_names %}
               prometheus:
-                image: prom/prometheus:latest
+                image: prom/prometheus:v2.55.1
                 restart: unless-stopped
                 ports: ["127.0.0.1:9090:9090"]
                 volumes:
                   - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
                   - prometheus_data:/prometheus
               grafana:
-                image: grafana/grafana:latest
+                image: grafana/grafana:11.3.0
                 restart: unless-stopped
                 ports: ["127.0.0.1:3000:3000"]
                 environment:

@@ -10,7 +10,7 @@ network policy, and an ingress whose proxy settings keep streaming responses ali
 import json
 import re
 
-from iac_common import Files, T, selfrun
+from iac_common import IMAGE_TAG, Files, T, selfrun
 
 DEFAULT_REGISTRY = "REGISTRY.example.com/PROJECT"
 _PLAIN = re.compile(r"^[A-Za-z0-9_./@-][A-Za-z0-9 _./@:=+-]*$")
@@ -166,7 +166,7 @@ class K8s:
             data.update({"S3_ENDPOINT": "REPLACE-with-the-object-storage-endpoint", "S3_BUCKET": "REPLACE-with-the-bucket"})
         for item in m.settings:  # every setting the code reads; secrets go in the Secret, not here
             if item["category"] == "config" and item["name"] not in data:
-                data[item["name"]] = "REPLACE-me"
+                data[item["name"]] = "CHANGE_ME"
         return dump({"apiVersion": "v1", "kind": "ConfigMap", "metadata": self.meta(self.ns + "-config", labels=False), "data": data})
 
     def secret_example(self):
@@ -187,13 +187,13 @@ class K8s:
                 "# Create the real secret with: kubectl -n %s create secret generic %s-secrets --from-literal=KEY=value ...\n"
                 "# or with an external secrets operator that reads your provider's secret store.\n") % (self.ns, self.ns)
         return head + dump({"apiVersion": "v1", "kind": "Secret", "metadata": self.meta(self.ns + "-secrets", labels=False),
-                            "type": "Opaque", "stringData": {k: "REPLACE-me" for k in keys}})
+                            "type": "Opaque", "stringData": {k: "CHANGE_ME" for k in keys}})
 
     def deployment(self, unit):
         n, port = unit["name"], unit["port"] or 8080
         health = unit["health_path"] or "/"
         worker = unit["kind"] == "worker"
-        container = {"name": n, "image": "%s/%s:latest" % (self.registry, n), "imagePullPolicy": "IfNotPresent"}
+        container = {"name": n, "image": "%s/%s:%s" % (self.registry, n, IMAGE_TAG), "imagePullPolicy": "Always"}
         if not worker:
             container["ports"] = [{"name": "http", "containerPort": port}]
             probe = {"httpGet": {"path": health, "port": "http"}}
@@ -210,7 +210,9 @@ class K8s:
         container["volumeMounts"] = [{"name": "tmp", "mountPath": "/tmp"}]
         selector = {"app.kubernetes.io/name": n}
         return dump({
-            "apiVersion": "apps/v1", "kind": "Deployment", "metadata": self.meta(n),
+            "apiVersion": "apps/v1", "kind": "Deployment", "metadata": self.meta(n, annotations={
+                "checkov.io/skip1": "CKV_K8S_43=A digest is known only after the image is built; the pipeline pins the version tag",
+                "checkov.io/skip2": "CKV_K8S_35=Settings arrive as environment variables because that is how the application reads them"}),
             "spec": {"replicas": 1 if worker else self.reps, "revisionHistoryLimit": 5,
                      "strategy": {"type": "RollingUpdate", "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1}},
                      "selector": {"matchLabels": selector},
@@ -226,7 +228,10 @@ class K8s:
 
     def stateful(self, name, image, port, env=None, args=None, mount="/data", size="20Gi", writable=("/tmp",)):
         """A single-replica StatefulSet with a volume, and the headless service in front of it."""
-        container = {"name": name, "image": image, "ports": [{"name": name, "containerPort": port}]}
+        container = {"name": name, "image": image, "imagePullPolicy": "Always", "ports": [{"name": name, "containerPort": port}]}
+        probe = {"tcpSocket": {"port": name}, "periodSeconds": 10, "failureThreshold": 6}
+        container["readinessProbe"] = dict(probe, initialDelaySeconds=5)
+        container["livenessProbe"] = dict(probe, initialDelaySeconds=30)
         if args:
             container["args"] = args
         container["env"] = env or []
@@ -236,7 +241,10 @@ class K8s:
         container["volumeMounts"] = [{"name": "data", "mountPath": mount}] + [
             {"name": "scratch-%d" % i, "mountPath": p} for i, p in enumerate(writable)]
         selector = {"app.kubernetes.io/name": name}
-        sts = {"apiVersion": "apps/v1", "kind": "StatefulSet", "metadata": self.meta(name),
+        sts = {"apiVersion": "apps/v1", "kind": "StatefulSet", "metadata": self.meta(name, annotations={
+                   "checkov.io/skip1": "CKV_K8S_43=A digest is known only after the image is pulled; the version tag is pinned",
+                   "checkov.io/skip2": "CKV_K8S_35=The database image reads its password from an environment variable",
+                   "checkov.io/skip3": "CKV_K8S_40=Database images run as the non-root user their image defines"}),
                "spec": {"serviceName": name, "replicas": 1, "selector": {"matchLabels": selector},
                         "template": {"metadata": {"labels": dict(self.meta(name)["labels"])},
                                      "spec": {"automountServiceAccountToken": False,
@@ -337,7 +345,7 @@ class K8s:
     def kustomization(self, resources):
         return dump({"apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization", "namespace": self.ns,
                      "resources": resources,
-                     "images": [{"name": "%s/%s" % (self.registry, u["name"]), "newTag": "latest"} for u in self.units]})
+                     "images": [{"name": "%s/%s" % (self.registry, u["name"]), "newTag": IMAGE_TAG} for u in self.units]})
 
     def readme(self):
         return T("""
@@ -369,9 +377,9 @@ def helm_chart(model, registry=None):
     files.add(root + "/Chart.yaml", "apiVersion: v2\nname: %s\ndescription: Generated by SolsArch for %s\ntype: application\nversion: 0.1.0\nappVersion: \"1.0.0\"\n" % (model.project, model.project))
     units = []
     for unit in k.units:
-        units.append("  - name: %s\n    kind: %s\n    port: %d\n    healthPath: %s\n    replicas: %d\n    public: %s\n    path: %s\n    image:\n      repository: %s/%s\n      tag: latest" % (
+        units.append("  - name: %s\n    kind: %s\n    port: %d\n    healthPath: %s\n    replicas: %d\n    public: %s\n    path: %s\n    image:\n      repository: %s/%s\n      tag: %s" % (
             unit["name"], unit["kind"], unit["port"] or 8080, yq(unit["health_path"] or "/"), 1 if unit["kind"] == "worker" else k.reps,
-            "true" if unit in k.public else "false", yq(k.path_for(unit)) if unit in k.public else '""', k.registry, unit["name"]))
+            "true" if unit in k.public else "false", yq(k.path_for(unit)) if unit in k.public else '""', k.registry, unit["name"], IMAGE_TAG))
     files.add(root + "/values.yaml", ("# Values for %s. Replace the registry and tags, then helm install.\nnamespace: %s\nresources:\n  requests:\n    cpu: %s\n    memory: %s\n"
                                       "  limits:\n    cpu: %s\n    memory: %s\ningress:\n  className: %s\n  streaming: %s\nunits:\n%s\n") % (
         model.project, k.ns, yq("%dm" % int(k.cpu * 250)), yq("%dMi" % int(k.mem * 512)), yq("%dm" % int(k.cpu * 1000)), yq("%dMi" % int(k.mem * 1024)),

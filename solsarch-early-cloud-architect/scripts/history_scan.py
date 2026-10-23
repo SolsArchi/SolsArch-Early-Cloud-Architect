@@ -8,6 +8,7 @@ stored: a finding holds the short commit id, the file, the kind of secret and no
 It needs git and a repository. When either is missing it says so ("not_run") and reports nothing, never a clean result.
 Bounded: the newest 300 commits and 12 MB of patch text, so a large repository cannot stall the scan.
 """
+import os
 import re
 import shutil
 import subprocess
@@ -19,8 +20,22 @@ TIMEOUT = 60
 TEXT_SKIP = re.compile(r"\.(png|jpe?g|gif|ico|svg|pdf|zip|gz|woff2?|ttf|lock|map|min\.js)$", re.I)
 
 
+# The repository being read is not trusted. Its .git/config and .gitattributes can name programs git would run (a fsmonitor hook, a
+# textconv or external diff driver, a pager, an ssh command). These settings switch all of them off, and the environment is cut
+# down to what git needs, so reading history cannot run anything the repository supplies.
+SAFE_CONFIG = ["-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false", "-c", "core.pager=cat", "-c", "core.hooksPath=",
+               "-c", "diff.external=", "-c", "core.sshCommand=false", "-c", "protocol.ext.allow=never", "-c", "core.attributesFile="]
+SAFE_ENV_KEYS = ("PATH", "SYSTEMROOT", "TEMP", "TMP", "HOME", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "LANG", "COMSPEC", "PATHEXT")
+
+
+def safe_env():
+    env = {k: v for k, v in os.environ.items() if k in SAFE_ENV_KEYS}
+    env.update(GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1", GIT_OPTIONAL_LOCKS="0", GIT_PAGER="cat")
+    return env
+
+
 def run_git(root, args):
-    return subprocess.run(["git", "-C", str(root)] + args, capture_output=True, timeout=TIMEOUT)
+    return subprocess.run(["git"] + SAFE_CONFIG + ["-C", str(root)] + args, capture_output=True, timeout=TIMEOUT, env=safe_env())
 
 
 def scan(root, patterns, generic, db_url, is_placeholder, placeholder_passwords=()):
@@ -35,7 +50,7 @@ def scan(root, patterns, generic, db_url, is_placeholder, placeholder_passwords=
     try:
         counted = run_git(root, ["rev-list", "--count", "--all"])
         total = int((counted.stdout or b"0").decode().strip() or 0) if counted.returncode == 0 else 0
-        done = run_git(root, ["log", "-n", str(MAX_COMMITS), "--all", "--no-color", "--no-ext-diff", "-U0", "--diff-filter=AM",
+        done = run_git(root, ["log", "-n", str(MAX_COMMITS), "--all", "--no-color", "--no-ext-diff", "--no-textconv", "-U0", "--diff-filter=AM",
                               "--format=@@commit %h", "-p", "--", "."])
     except (OSError, subprocess.SubprocessError, ValueError) as error:
         return {"status": "not_run", "reason": "git could not be read (%s)" % type(error).__name__, "commits": 0, "truncated": False, "hits": []}

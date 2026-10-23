@@ -1,0 +1,3 @@
+# Settings for Checkov. tests/fixtures holds sample projects with deliberately unsafe files so the tests can prove SolsArch reports them.
+skip-path:
+  - tests/fixtures

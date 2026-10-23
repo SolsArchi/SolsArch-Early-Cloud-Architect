@@ -29,10 +29,11 @@ TERRAFORM = {
     "aws": "iac_aws", "azure": "iac_azure", "gcp": "iac_gcp", "hetzner": "iac_hetzner", "linode": "iac_linode", "akamai": "iac_linode",
     "vultr": "iac_vultr", "digitalocean": "iac_digitalocean", "scaleway": "iac_scaleway", "ovhcloud": "iac_ovhcloud", "oci": "iac_oci",
     "alibaba": "iac_alibaba", "tencent": "iac_tencent", "huawei": "iac_huawei", "ibm": "iac_ibm",
+    "civo": "iac_civo", "upcloud": "iac_upcloud", "exoscale": "iac_exoscale",
 }
 DATA_MODULES = {"neon": "neon", "mongodbatlas": "mongodbatlas"}
 # Providers whose application runs on Kubernetes; they also get the manifests, the Helm chart and the add-ons playbook.
-KUBERNETES = {"linode": "nginx", "akamai": "nginx", "vultr": "nginx", "ovhcloud": "nginx", "coreweave": "nginx"}
+KUBERNETES = {"linode": "nginx", "akamai": "nginx", "vultr": "nginx", "ovhcloud": "nginx", "coreweave": "nginx", "civo": "nginx", "upcloud": "nginx", "exoscale": "nginx"}
 KUBERNETES_SERVERLESS_EXCLUDED = {"tencent"}  # Tencent's serverless design uses functions, not a cluster
 SERVER_ANSIBLE = {"hetzner", "lambdalabs"}
 
@@ -103,7 +104,7 @@ def next_steps(provider, kind, files):
     if any(p.startswith("ansible/roles") for p in files):
         steps.append("Copy the Terraform ansible_inventory output into ansible/inventory/production.ini and run the playbook.")
     for family in ("render", "fly", "railway", "heroku", "vercel", "netlify", "cloudflare", "deno", "fastly", "firebase", "supabase",
-                   "databricks", "snowflake", "coreweave", "lambdalabs", "runpod", "together"):
+                   "databricks", "snowflake", "coreweave", "lambdalabs", "runpod", "together", "huggingface", "cloudfoundry", "koyeb"):
         if "%s/README.md" % family in files:
             steps.append("Follow %s/README.md." % family)
     if ".github/workflows/deploy.yml" in files:
@@ -115,8 +116,11 @@ def write(files, out_dir):
     """Write the files under out_dir with Unix line endings, in a fixed order."""
     from pathlib import Path
     root = Path(out_dir)
+    base = root.resolve()
     for path in sorted(files):
         target = root / path
+        if base not in target.resolve().parents:  # defence in depth: never write outside the output folder
+            raise ValueError('refusing to write outside %s: %s' % (root, path))
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(files[path].encode("utf-8"))
     return sorted(files)

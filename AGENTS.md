@@ -1,7 +1,7 @@
 # SolsArch Early Cloud Architect: instructions for AI agents
 
 This repository is an Agent Skill that designs cloud architecture for a local codebase and delivers it ready to deploy:
-34 clouds and platforms (AWS, Azure, Google Cloud, Hetzner, Render, Vercel, Railway and more), with Terraform, Ansible,
+40 clouds and platforms (AWS, Azure, Google Cloud, Hetzner, Render, Vercel, Railway and more), with Terraform, Ansible,
 Kubernetes, platform config files, a CI pipeline, a cost estimate and a step-by-step deploy guide.
 The skill lives in `solsarch-early-cloud-architect/`; `SKILL.md` there has the full rules. These instructions work
 the same in Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf and custom agents.
@@ -44,6 +44,7 @@ for the user.
 ```bash
 python -m pytest tests          # about 5 minutes; add -k "not every_repo_shape" for a quick run
 SOLSARCH_TEST_TERRAFORM=1 python -m pytest tests/test_iac.py   # also runs terraform validate on every cloud
+python -m pytest tests/test_security.py   # hostile-repository and supply-chain checks; read SECURITY.md before changing how paths or names are used
 python solsarch-early-cloud-architect/scripts/validate_skill.py solsarch-early-cloud-architect
 ```
 

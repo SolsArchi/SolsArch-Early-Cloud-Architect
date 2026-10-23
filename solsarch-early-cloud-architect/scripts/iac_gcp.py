@@ -139,7 +139,7 @@ class Gcp:
             variable "image_tag" {
               type        = string
               description = "Tag of the container images in the repository created here."
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "alarm_email" {
@@ -888,6 +888,17 @@ class Gcp:
                     match {
                       expr {
                         expression = "evaluatePreconfiguredWaf('xss-v33-stable')"
+                      }
+                    }
+                  }
+
+                  rule {
+                    action   = "deny(403)"
+                    priority = 1002
+
+                    match {
+                      expr {
+                        expression = "evaluatePreconfiguredExpr('cve-canary')"
                       }
                     }
                   }

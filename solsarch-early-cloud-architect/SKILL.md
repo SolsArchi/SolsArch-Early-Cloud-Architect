@@ -1,6 +1,6 @@
 ---
 name: solsarch-early-cloud-architect
-description: Designs cloud architecture from a local codebase and delivers it ready to deploy. Scans the repo, picks services with fixed rules on 34 clouds and platforms (AWS, Azure, GCP, Hetzner, Render, Vercel, Railway and more), draws C4 and icon diagrams, writes Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform configs and a CI pipeline, estimates cost, scores ops maturity, runs a pre-deploy gate, exports to Backstage, Structurizr and draw.io, and writes a step-by-step deploy guide for non-technical people matched to their account type (free trial, free tier, pay as you go, paid). Use when the user asks to design cloud architecture, choose or compare clouds, deploy an app to AWS, Azure, GCP, Vercel, Render, Railway or any listed provider, generate Terraform or Ansible, draw a C4 diagram, review an architecture, check deployment blockers, or explain how to deploy step by step.
+description: Designs cloud architecture from a local codebase and delivers it ready to deploy. Scans the repo, picks services with fixed rules on 40 clouds and platforms (AWS, Azure, GCP, Hetzner, Render, Vercel, Railway and more), draws C4 and icon diagrams, writes Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform configs and a CI pipeline, estimates cost, scores ops maturity, runs a pre-deploy gate, exports to Backstage, Structurizr and draw.io, and writes a step-by-step deploy guide for non-technical people matched to their account type (free trial, free tier, pay as you go, paid). Use when the user asks to design cloud architecture, choose or compare clouds, deploy an app to AWS, Azure, GCP, Vercel, Render, Railway or any listed provider, generate Terraform or Ansible, draw a C4 diagram, review an architecture, check deployment blockers, or explain how to deploy step by step.
 compatibility: Needs Python 3.8 or newer with the standard library only. Web search, Terraform, Docker and the security scanners are used when present and reported as not run when absent. Works in Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf, MCP clients and custom agents.
 license: MIT OR Apache-2.0
 metadata:
@@ -126,10 +126,10 @@ them to share a key with you. If a step fails, ask for the first red line of the
 
 ## What you get, by provider type
 
-- **Terraform, validated with the real tools:** AWS, Azure, GCP, Hetzner, DigitalOcean, Linode and Akamai, Vultr, Scaleway, OVHcloud, Oracle,
-  Alibaba, Tencent, Huawei, IBM. A site with no running service gets a static-site layout (storage, CDN, headers) instead of a network and cluster.
-- **Kubernetes manifests, Helm chart and Ansible add-ons:** Linode, Akamai, Vultr, OVHcloud, Tencent, CoreWeave. **Ansible server setup:** Hetzner.
-- **The platform's own config file and a deploy script:** Render, Fly.io, Railway, Heroku, Vercel, Netlify, Cloudflare, Deno Deploy, Fastly,
+- **Terraform, validated with the real tools:** AWS, Azure, GCP, Hetzner, DigitalOcean, Linode and Akamai, Vultr, Scaleway, OVHcloud, Civo, UpCloud, Exoscale, Oracle,
+  Alibaba, Tencent, Huawei, IBM. A site with no running service gets a static-site layout (bucket, CDN where the cloud has one, headers) instead of a network and cluster on AWS, Azure, GCP, Oracle, Alibaba, Tencent, Huawei, IBM, Scaleway and DigitalOcean; a cloud with no static hosting says so in the plan.
+- **Kubernetes manifests, Helm chart and Ansible add-ons:** Linode, Akamai, Vultr, OVHcloud, Civo, UpCloud, Exoscale, Tencent, CoreWeave. **Ansible server setup:** Hetzner.
+- **The platform's own config file and a deploy script:** Render, Fly.io, Railway, Heroku, Vercel, Netlify, Koyeb, Hugging Face Spaces, Cloud Foundry, Cloudflare, Deno Deploy, Fastly,
   Firebase, Supabase, Databricks, Snowflake, RunPod, Lambda, Together AI. **Terraform data modules:** Neon, MongoDB Atlas.
 - **Always-free AWS, serverless:** free-tier accounts get MongoDB Atlas M0 instead of DocumentDB, no cache node, Parameter Store instead of Secrets Manager,
   Lambda Function URLs with response streaming instead of API Gateway, an EventBridge schedule instead of an in-process scheduler, no VPC or NAT gateway,
@@ -164,7 +164,7 @@ servers and open-source tools are listed by `python scripts/solsarch.py mcp tool
 
 ## Scope
 
-Does: static analysis of a repository, a cited service plan on 34 clouds and platforms, validated diagrams, infrastructure code and a
+Does: static analysis of a repository, a cited service plan on 40 clouds and platforms, validated diagrams, infrastructure code and a
 deploy guide, cost estimates with honest labels, ops maturity, a pre-deploy gate, exports, web-checked service names, one zip.
 Does not: deploy, hold credentials, inspect a live cloud account (the drift workflow compares a plan against state in the user's own
 pipeline), or map controls to compliance frameworks. Enterprise platforms (SAP, Salesforce and similar) are read-only structure sources.

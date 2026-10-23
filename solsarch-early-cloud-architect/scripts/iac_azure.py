@@ -129,7 +129,7 @@ class Azure:
             variable "image_tag" {
               type        = string
               description = "Tag of the container images in the registry created here."
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "log_retention_days" {

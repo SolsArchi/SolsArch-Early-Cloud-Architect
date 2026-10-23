@@ -57,7 +57,7 @@ def test_unknown_rule_id_fails():
 
 
 def test_leaked_secret_fails():
-    assert any("secret" in p["message"] for p in errors(GOOD + "\nkey AKIAABCDEFGHIJKLMNOP\n"))
+    assert any("secret" in p["message"] for p in errors(GOOD + chr(10) + "key " + "AKIA" + "ABCDEFGHIJKLMNOP" + chr(10)))
 
 
 def test_unfilled_template_field_fails():

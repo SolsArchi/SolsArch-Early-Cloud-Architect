@@ -31,6 +31,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import safe_http  # noqa: F401  (installs the https-only redirect rules)
+
 TIMEOUT = 25
 MAX_BYTES = 1500000
 USER_AGENT = "SolsArch-Early-Cloud-Architect/1.0 (+https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect)"
@@ -41,9 +43,11 @@ RENAMED = re.compile(r"\b(renamed to|now called|now known as|replaced by|has bee
 
 def http_json(url, payload=None, headers=None, method=None):
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    safe_http.checked(url, allow_loopback_http=True)
     req = urllib.request.Request(url, data=data, method=method or ("POST" if payload is not None else "GET"),
                                  headers=dict({"User-Agent": USER_AGENT, "Content-Type": "application/json", "Accept": "application/json"}, **(headers or {})))
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+    # Bandit B310 note: only https is opened (the address was checked and redirects are limited by safe_http)
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as response:  # nosec B310
         return json.loads(response.read(MAX_BYTES).decode("utf-8", errors="replace"))
 
 
@@ -54,7 +58,8 @@ def fetch_text(url):
         return ""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+        # Bandit B310 note: only https is opened (the address was checked and redirects are limited by safe_http)
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:  # nosec B310
             raw = response.read(MAX_BYTES).decode("utf-8", errors="replace")
     except (urllib.error.URLError, OSError, ValueError):
         return ""

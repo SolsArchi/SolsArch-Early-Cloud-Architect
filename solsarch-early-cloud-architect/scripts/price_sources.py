@@ -26,6 +26,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import safe_http  # noqa: F401  (installs the https-only redirect rules)
+
 USER_AGENT = "SolsArch-costs/1.0 (+https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect)"
 MAX_JSON_BYTES = 90 * 1024 * 1024
 ORIGINS = ("live", "supplied", "reference")
@@ -48,6 +50,10 @@ class Fetcher:
 
     def get(self, url, headers=None, max_bytes=MAX_JSON_BYTES):
         """Return the body as bytes. Raise PriceError after the retries are used up."""
+        try:
+            safe_http.checked(url)
+        except ValueError as error:
+            raise PriceError(str(error))
         request = urllib.request.Request(url, headers=dict({"User-Agent": USER_AGENT, "Accept": "application/json"}, **(headers or {})))
         last = None
         for attempt in range(self.retries + 1):
@@ -55,7 +61,8 @@ class Fetcher:
                 self.sleep(self.pause)
             self.requests += 1
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                # Bandit B310 note: only https is opened (the address was checked and redirects are limited by safe_http)
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310
                     return self._read(response, max_bytes)
             except urllib.error.HTTPError as error:
                 last = "HTTP %s" % error.code

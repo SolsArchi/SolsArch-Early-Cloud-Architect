@@ -2,377 +2,1465 @@
   "checked": "2026-10-22",
   "note": "How a person gets an account, signs in, makes a credential, sets a spending alert and deploys, for each provider. Free-offer wording is deliberately general: vendors change amounts and dates, so the guide tells the reader where to read the current terms instead of quoting them.",
   "tools": {
-    "terraform": {"windows": "winget install Hashicorp.Terraform", "mac": "brew tap hashicorp/tap && brew install hashicorp/tap/terraform", "linux": "Follow https://developer.hashicorp.com/terraform/install (copy the commands for your Linux)", "verify": "terraform version"},
-    "docker": {"windows": "winget install Docker.DockerDesktop (then restart and start Docker Desktop)", "mac": "brew install --cask docker (then open Docker from Applications)", "linux": "Follow https://docs.docker.com/engine/install/", "verify": "docker version"},
-    "git": {"windows": "winget install Git.Git", "mac": "brew install git", "linux": "sudo apt install git (or your system's package manager)", "verify": "git --version"},
-    "ansible": {"windows": "Use WSL: wsl --install, then inside it: pipx install ansible-core", "mac": "brew install ansible", "linux": "pipx install ansible-core", "verify": "ansible --version"},
-    "kubectl": {"windows": "winget install Kubernetes.kubectl", "mac": "brew install kubectl", "linux": "Follow https://kubernetes.io/docs/tasks/tools/", "verify": "kubectl version --client"},
-    "node": {"windows": "winget install OpenJS.NodeJS.LTS", "mac": "brew install node", "linux": "Follow https://nodejs.org/en/download", "verify": "node --version"}
+    "terraform": {
+      "windows": "winget install Hashicorp.Terraform",
+      "mac": "brew tap hashicorp/tap && brew install hashicorp/tap/terraform",
+      "linux": "Follow https://developer.hashicorp.com/terraform/install (copy the commands for your Linux)",
+      "verify": "terraform version"
+    },
+    "docker": {
+      "windows": "winget install Docker.DockerDesktop (then restart and start Docker Desktop)",
+      "mac": "brew install --cask docker (then open Docker from Applications)",
+      "linux": "Follow https://docs.docker.com/engine/install/",
+      "verify": "docker version"
+    },
+    "git": {
+      "windows": "winget install Git.Git",
+      "mac": "brew install git",
+      "linux": "sudo apt install git (or your system's package manager)",
+      "verify": "git --version"
+    },
+    "ansible": {
+      "windows": "Use WSL: wsl --install, then inside it: pipx install ansible-core",
+      "mac": "brew install ansible",
+      "linux": "pipx install ansible-core",
+      "verify": "ansible --version"
+    },
+    "kubectl": {
+      "windows": "winget install Kubernetes.kubectl",
+      "mac": "brew install kubectl",
+      "linux": "Follow https://kubernetes.io/docs/tasks/tools/",
+      "verify": "kubectl version --client"
+    },
+    "node": {
+      "windows": "winget install OpenJS.NodeJS.LTS",
+      "mac": "brew install node",
+      "linux": "Follow https://nodejs.org/en/download",
+      "verify": "node --version"
+    }
   },
   "providers": {
     "aws": {
-      "name": "Amazon Web Services", "signup": "https://aws.amazon.com/free/", "console": "https://console.aws.amazon.com/",
-      "free": {"free_trial": "New accounts can receive promotional credits for a limited time. Read the current offer at the sign-up page.", "free_tier": "Some services have always-free monthly limits. Read the current list at https://aws.amazon.com/free/ and stay inside it.", "pay_as_you_go": "You pay only for what runs, billed monthly. A card is required.", "standard": "A paid account, usually inside an AWS Organization with several accounts."},
-      "cli": {"name": "AWS CLI", "install": {"windows": "winget install Amazon.AWSCLI", "mac": "brew install awscli", "linux": "Follow https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"}, "login": "aws configure sso   (or: aws configure, if you made an access key)", "whoami": "aws sts get-caller-identity", "env": ""},
-      "credential_console": ["Sign in to the AWS console as the account owner.", "Open IAM, then Users, then Create user. Name it solsarch-deployer.", "Choose Attach policies directly and attach the permissions your team approves (for a first trial, AdministratorAccess on a throw-away account is the simplest; narrow it before real use).", "Open the new user, Security credentials, Create access key, choose Command Line Interface, and download the CSV. You will not see the secret again.", "Turn on multi-factor sign-in for the owner: top-right account name, Security credentials, Assign MFA device."],
-      "budget_console": ["Open Billing and Cost Management, then Budgets, then Create budget.", "Choose Cost budget, Monthly, and enter the most you are willing to spend.", "Add email alerts at 50, 80 and 100 percent of the budget."],
+      "name": "Amazon Web Services",
+      "signup": "https://aws.amazon.com/free/",
+      "console": "https://console.aws.amazon.com/",
+      "free": {
+        "free_trial": "New accounts can receive promotional credits for a limited time. Read the current offer at the sign-up page.",
+        "free_tier": "Some services have always-free monthly limits. Read the current list at https://aws.amazon.com/free/ and stay inside it.",
+        "pay_as_you_go": "You pay only for what runs, billed monthly. A card is required.",
+        "standard": "A paid account, usually inside an AWS Organization with several accounts."
+      },
+      "cli": {
+        "name": "AWS CLI",
+        "install": {
+          "windows": "winget install Amazon.AWSCLI",
+          "mac": "brew install awscli",
+          "linux": "Follow https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        },
+        "login": "aws configure sso   (or: aws configure, if you made an access key)",
+        "whoami": "aws sts get-caller-identity",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in to the AWS console as the account owner.",
+        "Open IAM, then Users, then Create user. Name it solsarch-deployer.",
+        "Choose Attach policies directly and attach the permissions your team approves (for a first trial, AdministratorAccess on a throw-away account is the simplest; narrow it before real use).",
+        "Open the new user, Security credentials, Create access key, choose Command Line Interface, and download the CSV. You will not see the secret again.",
+        "Turn on multi-factor sign-in for the owner: top-right account name, Security credentials, Assign MFA device."
+      ],
+      "budget_console": [
+        "Open Billing and Cost Management, then Budgets, then Create budget.",
+        "Choose Cost budget, Monthly, and enter the most you are willing to spend.",
+        "Add email alerts at 50, 80 and 100 percent of the budget."
+      ],
       "region": "Pick a region close to your users in the console's top-right menu (for example us-east-1). Some services are not in every region.",
-      "console_deploy": ["Terraform is the recommended way because it makes everything in one go and can be undone with one command.", "To click it together instead: create a VPC (VPC, Create VPC and more), an ECR repository per unit, an ECS cluster with a Fargate service per unit, an Application Load Balancer in front, and the database (RDS or Aurora) in private subnets. Follow terraform/README.md for the exact settings each piece should have."],
+      "console_deploy": [
+        "Terraform is the recommended way because it makes everything in one go and can be undone with one command.",
+        "To click it together instead: create a VPC (VPC, Create VPC and more), an ECR repository per unit, an ECS cluster with a Fargate service per unit, an Application Load Balancer in front, and the database (RDS or Aurora) in private subnets. Follow terraform/README.md for the exact settings each piece should have."
+      ],
       "teardown": "cd terraform && terraform destroy   (then empty and delete the state bucket created in bootstrap)",
       "cli_for_images": "aws ecr get-login-password --region REGION | docker login --username AWS --password-stdin ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com"
     },
     "azure": {
-      "name": "Microsoft Azure", "signup": "https://azure.microsoft.com/free/", "console": "https://portal.azure.com/",
-      "free": {"free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page; some services and sizes are blocked on trial accounts.", "free_tier": "Some services are free each month for a period or always. Read the current list at the sign-up page.", "pay_as_you_go": "The Pay-As-You-Go subscription bills monthly for what runs. A card is required.", "standard": "A paid subscription, often under a management group with policies."},
-      "cli": {"name": "Azure CLI", "install": {"windows": "winget install Microsoft.AzureCLI", "mac": "brew install azure-cli", "linux": "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash"}, "login": "az login", "whoami": "az account show", "env": ""},
-      "credential_console": ["Sign in to the Azure portal.", "Open Subscriptions, pick your subscription, and note the Subscription ID.", "Your own account can deploy if it has the Owner or Contributor role on the subscription (Access control (IAM), Role assignments). For a team, ask an admin to grant it.", "In the terminal, az login opens a browser to sign you in; no key file is needed."],
-      "budget_console": ["Open Cost Management + Billing, then Budgets, then Add.", "Choose the subscription as scope, set a monthly amount, and add email alerts at 50, 80 and 100 percent."],
+      "name": "Microsoft Azure",
+      "signup": "https://azure.microsoft.com/free/",
+      "console": "https://portal.azure.com/",
+      "free": {
+        "free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page; some services and sizes are blocked on trial accounts.",
+        "free_tier": "Some services are free each month for a period or always. Read the current list at the sign-up page.",
+        "pay_as_you_go": "The Pay-As-You-Go subscription bills monthly for what runs. A card is required.",
+        "standard": "A paid subscription, often under a management group with policies."
+      },
+      "cli": {
+        "name": "Azure CLI",
+        "install": {
+          "windows": "winget install Microsoft.AzureCLI",
+          "mac": "brew install azure-cli",
+          "linux": "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash"
+        },
+        "login": "az login",
+        "whoami": "az account show",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in to the Azure portal.",
+        "Open Subscriptions, pick your subscription, and note the Subscription ID.",
+        "Your own account can deploy if it has the Owner or Contributor role on the subscription (Access control (IAM), Role assignments). For a team, ask an admin to grant it.",
+        "In the terminal, az login opens a browser to sign you in; no key file is needed."
+      ],
+      "budget_console": [
+        "Open Cost Management + Billing, then Budgets, then Add.",
+        "Choose the subscription as scope, set a monthly amount, and add email alerts at 50, 80 and 100 percent."
+      ],
       "region": "Choose a region near your users, such as eastus or westeurope. Check that every service in the plan is offered there.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a resource group, a virtual network with subnets, a Container Registry, a Container Apps environment with one app per unit, an Application Gateway in front, and Azure Database for PostgreSQL in the private subnet. terraform/README.md lists the exact settings."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a resource group, a virtual network with subnets, a Container Registry, a Container Apps environment with one app per unit, an Application Gateway in front, and Azure Database for PostgreSQL in the private subnet. terraform/README.md lists the exact settings."
+      ],
       "teardown": "cd terraform && terraform destroy   (then delete the state storage account made in bootstrap)",
       "cli_for_images": "az acr login --name REGISTRY_NAME"
     },
     "gcp": {
-      "name": "Google Cloud", "signup": "https://cloud.google.com/free", "console": "https://console.cloud.google.com/",
-      "free": {"free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page.", "free_tier": "Some products have always-free monthly limits. Read the current list at the sign-up page.", "pay_as_you_go": "A billing account with a card; you pay for what runs, billed monthly.", "standard": "A paid billing account, usually with an organization and folders."},
-      "cli": {"name": "Google Cloud CLI", "install": {"windows": "winget install Google.CloudSDK", "mac": "brew install --cask google-cloud-sdk", "linux": "curl https://sdk.cloud.google.com | bash"}, "login": "gcloud auth login && gcloud auth application-default login", "whoami": "gcloud auth list", "env": ""},
-      "credential_console": ["Sign in to the Google Cloud console.", "Create a project: the project picker at the top, New project. Note the Project ID (not the name).", "Link a billing account to the project: Billing, Link a billing account.", "In the terminal, gcloud auth application-default login opens a browser and stores a credential Terraform can use; no key file is needed."],
-      "budget_console": ["Open Billing, then Budgets & alerts, then Create budget.", "Pick your project, set a monthly amount, and add email alerts at 50, 80 and 100 percent."],
+      "name": "Google Cloud",
+      "signup": "https://cloud.google.com/free",
+      "console": "https://console.cloud.google.com/",
+      "free": {
+        "free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page.",
+        "free_tier": "Some products have always-free monthly limits. Read the current list at the sign-up page.",
+        "pay_as_you_go": "A billing account with a card; you pay for what runs, billed monthly.",
+        "standard": "A paid billing account, usually with an organization and folders."
+      },
+      "cli": {
+        "name": "Google Cloud CLI",
+        "install": {
+          "windows": "winget install Google.CloudSDK",
+          "mac": "brew install --cask google-cloud-sdk",
+          "linux": "curl https://sdk.cloud.google.com | bash"
+        },
+        "login": "gcloud auth login && gcloud auth application-default login",
+        "whoami": "gcloud auth list",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in to the Google Cloud console.",
+        "Create a project: the project picker at the top, New project. Note the Project ID (not the name).",
+        "Link a billing account to the project: Billing, Link a billing account.",
+        "In the terminal, gcloud auth application-default login opens a browser and stores a credential Terraform can use; no key file is needed."
+      ],
+      "budget_console": [
+        "Open Billing, then Budgets & alerts, then Create budget.",
+        "Pick your project, set a monthly amount, and add email alerts at 50, 80 and 100 percent."
+      ],
       "region": "Choose a region near your users, such as us-central1 or europe-west1.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: enable the APIs (Cloud Run, Artifact Registry, Cloud SQL, Secret Manager), create an Artifact Registry repository, a Cloud Run service per unit, a Cloud SQL instance with a private address, and a global load balancer in front. terraform/README.md lists the exact settings."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: enable the APIs (Cloud Run, Artifact Registry, Cloud SQL, Secret Manager), create an Artifact Registry repository, a Cloud Run service per unit, a Cloud SQL instance with a private address, and a global load balancer in front. terraform/README.md lists the exact settings."
+      ],
       "teardown": "cd terraform && terraform destroy -var project_id=YOUR_PROJECT   (then delete the state bucket made in bootstrap)",
       "cli_for_images": "gcloud auth configure-docker REGION-docker.pkg.dev"
     },
     "hetzner": {
-      "name": "Hetzner Cloud", "signup": "https://accounts.hetzner.com/signUp", "console": "https://console.hetzner.cloud/",
-      "free": {"free_trial": "Hetzner does not run a standard free trial. Read the sign-up page for any current credit.", "free_tier": "There is no always-free tier; the smallest servers are inexpensive and billed hourly.", "pay_as_you_go": "Servers are billed by the hour up to a monthly cap. An ID check may be needed at sign-up.", "standard": "A normal paid account; create a separate project per environment."},
-      "cli": {"name": "hcloud (optional)", "install": {"windows": "Download from https://github.com/hetznercloud/cli/releases", "mac": "brew install hcloud", "linux": "Download from https://github.com/hetznercloud/cli/releases"}, "login": "hcloud context create PROJECT_NAME", "whoami": "hcloud server list", "env": "HCLOUD_TOKEN"},
-      "credential_console": ["Sign in to console.hetzner.cloud and open (or create) a Project.", "Open Security, then API tokens, then Generate API token.", "Give it Read & Write permission, copy the token, and keep it private. It is shown once.", "Also open Security, then SSH keys, and add your public key (the guide shows how to make one)."],
-      "budget_console": ["Hetzner has no budget alert feature. Servers are billed hourly, so check Billing, Usage often, and delete what you do not need. Set a calendar reminder."],
+      "name": "Hetzner Cloud",
+      "signup": "https://accounts.hetzner.com/signUp",
+      "console": "https://console.hetzner.cloud/",
+      "free": {
+        "free_trial": "Hetzner does not run a standard free trial. Read the sign-up page for any current credit.",
+        "free_tier": "There is no always-free tier; the smallest servers are inexpensive and billed hourly.",
+        "pay_as_you_go": "Servers are billed by the hour up to a monthly cap. An ID check may be needed at sign-up.",
+        "standard": "A normal paid account; create a separate project per environment."
+      },
+      "cli": {
+        "name": "hcloud (optional)",
+        "install": {
+          "windows": "Download from https://github.com/hetznercloud/cli/releases",
+          "mac": "brew install hcloud",
+          "linux": "Download from https://github.com/hetznercloud/cli/releases"
+        },
+        "login": "hcloud context create PROJECT_NAME",
+        "whoami": "hcloud server list",
+        "env": "HCLOUD_TOKEN"
+      },
+      "credential_console": [
+        "Sign in to console.hetzner.cloud and open (or create) a Project.",
+        "Open Security, then API tokens, then Generate API token.",
+        "Give it Read & Write permission, copy the token, and keep it private. It is shown once.",
+        "Also open Security, then SSH keys, and add your public key (the guide shows how to make one)."
+      ],
+      "budget_console": [
+        "Hetzner has no budget alert feature. Servers are billed hourly, so check Billing, Usage often, and delete what you do not need. Set a calendar reminder."
+      ],
       "region": "Pick a location: fsn1, nbg1, hel1 (Europe), ash or hil (USA), sin (Singapore).",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a Network, a Firewall that allows only SSH from your address and web ports, one or more Servers (Ubuntu 24.04) in a spread Placement Group, a Volume for data, and a Load Balancer. Then run the Ansible playbook in ansible/ to set up Docker and the app."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a Network, a Firewall that allows only SSH from your address and web ports, one or more Servers (Ubuntu 24.04) in a spread Placement Group, a Volume for data, and a Load Balancer. Then run the Ansible playbook in ansible/ to set up Docker and the app."
+      ],
       "teardown": "cd terraform && terraform destroy   (the data server has protection on; remove it on purpose first)",
       "cli_for_images": ""
     },
     "digitalocean": {
-      "name": "DigitalOcean", "signup": "https://cloud.digitalocean.com/registrations/new", "console": "https://cloud.digitalocean.com/",
-      "free": {"free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.", "free_tier": "Some static sites are free; most other products are billed. Read the pricing page.", "pay_as_you_go": "Billed monthly for what runs. A card or PayPal is required.", "standard": "A normal paid account; use Teams to share access."},
-      "cli": {"name": "doctl", "install": {"windows": "winget install DigitalOcean.Doctl", "mac": "brew install doctl", "linux": "Follow https://docs.digitalocean.com/reference/doctl/how-to/install/"}, "login": "doctl auth init", "whoami": "doctl account get", "env": "DIGITALOCEAN_TOKEN"},
-      "credential_console": ["Sign in to cloud.digitalocean.com.", "Open API in the left menu, then Generate New Token.", "Choose Full Access (or a custom scope with read and write), name it solsarch, and copy the token once.", "For Spaces, open Spaces Object Storage, Access Keys, Generate New Key."],
-      "budget_console": ["Open Billing, then Billing alerts, and set an email alert for the amount you want to be warned at."],
+      "name": "DigitalOcean",
+      "signup": "https://cloud.digitalocean.com/registrations/new",
+      "console": "https://cloud.digitalocean.com/",
+      "free": {
+        "free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.",
+        "free_tier": "Some static sites are free; most other products are billed. Read the pricing page.",
+        "pay_as_you_go": "Billed monthly for what runs. A card or PayPal is required.",
+        "standard": "A normal paid account; use Teams to share access."
+      },
+      "cli": {
+        "name": "doctl",
+        "install": {
+          "windows": "winget install DigitalOcean.Doctl",
+          "mac": "brew install doctl",
+          "linux": "Follow https://docs.digitalocean.com/reference/doctl/how-to/install/"
+        },
+        "login": "doctl auth init",
+        "whoami": "doctl account get",
+        "env": "DIGITALOCEAN_TOKEN"
+      },
+      "credential_console": [
+        "Sign in to cloud.digitalocean.com.",
+        "Open API in the left menu, then Generate New Token.",
+        "Choose Full Access (or a custom scope with read and write), name it solsarch, and copy the token once.",
+        "For Spaces, open Spaces Object Storage, Access Keys, Generate New Key."
+      ],
+      "budget_console": [
+        "Open Billing, then Billing alerts, and set an email alert for the amount you want to be warned at."
+      ],
       "region": "Choose a region such as nyc3, fra1, sgp1, or syd1.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC, a Container Registry, the managed databases, then Apps, Create App from the registry images with a health check path, and add the databases as trusted sources."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC, a Container Registry, the managed databases, then Apps, Create App from the registry images with a health check path, and add the databases as trusted sources."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": "doctl registry login"
     },
     "linode": {
-      "name": "Linode (Akamai Cloud)", "signup": "https://login.linode.com/signup", "console": "https://cloud.linode.com/",
-      "free": {"free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.", "free_tier": "There is no always-free tier.", "pay_as_you_go": "Billed monthly for what runs. A card is required.", "standard": "A normal paid account; use sub-users for your team."},
-      "cli": {"name": "linode-cli (optional)", "install": {"windows": "pip install linode-cli", "mac": "brew install linode-cli", "linux": "pip install linode-cli"}, "login": "linode-cli configure", "whoami": "linode-cli profile view", "env": "LINODE_TOKEN"},
-      "credential_console": ["Sign in to cloud.linode.com.", "Click your username, then API Tokens, then Create a Personal Access Token.", "Give it read and write on Kubernetes, Databases, Object Storage, Firewalls, VPCs and Linodes, set an expiry, and copy it once."],
-      "budget_console": ["Open Account, then Billing and Payments. Linode has no budget alert; check Billing weekly and use the Usage report."],
+      "name": "Linode (Akamai Cloud)",
+      "signup": "https://login.linode.com/signup",
+      "console": "https://cloud.linode.com/",
+      "free": {
+        "free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.",
+        "free_tier": "There is no always-free tier.",
+        "pay_as_you_go": "Billed monthly for what runs. A card is required.",
+        "standard": "A normal paid account; use sub-users for your team."
+      },
+      "cli": {
+        "name": "linode-cli (optional)",
+        "install": {
+          "windows": "pip install linode-cli",
+          "mac": "brew install linode-cli",
+          "linux": "pip install linode-cli"
+        },
+        "login": "linode-cli configure",
+        "whoami": "linode-cli profile view",
+        "env": "LINODE_TOKEN"
+      },
+      "credential_console": [
+        "Sign in to cloud.linode.com.",
+        "Click your username, then API Tokens, then Create a Personal Access Token.",
+        "Give it read and write on Kubernetes, Databases, Object Storage, Firewalls, VPCs and Linodes, set an expiry, and copy it once."
+      ],
+      "budget_console": [
+        "Open Account, then Billing and Payments. Linode has no budget alert; check Billing weekly and use the Usage report."
+      ],
       "region": "Choose a region such as us-east, eu-west, or ap-south.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC, a Kubernetes (LKE) cluster with autoscaling, a Managed Database, and an Object Storage bucket, then apply the files in kubernetes/."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC, a Kubernetes (LKE) cluster with autoscaling, a Managed Database, and an Object Storage bucket, then apply the files in kubernetes/."
+      ],
       "teardown": "cd terraform && terraform destroy   (the database has protection on; remove it on purpose first)",
       "cli_for_images": ""
     },
     "vultr": {
-      "name": "Vultr", "signup": "https://www.vultr.com/register/", "console": "https://my.vultr.com/",
-      "free": {"free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.", "free_tier": "There is no always-free tier.", "pay_as_you_go": "Billed monthly for what runs. A card or PayPal is required.", "standard": "A normal paid account; add users with limited access."},
-      "cli": {"name": "vultr-cli (optional)", "install": {"windows": "Download from https://github.com/vultr/vultr-cli/releases", "mac": "brew install vultr/vultr-cli/vultr-cli", "linux": "Download from https://github.com/vultr/vultr-cli/releases"}, "login": "export VULTR_API_KEY=your-key", "whoami": "vultr-cli account", "env": "VULTR_API_KEY"},
-      "credential_console": ["Sign in to my.vultr.com.", "Open Account, then API, then Enable API.", "Add your own public IP address to the access control list (Vultr blocks other addresses), then copy the API key."],
-      "budget_console": ["Open Billing. Vultr has no budget alert; set a calendar reminder to check it, and delete what you do not use."],
+      "name": "Vultr",
+      "signup": "https://www.vultr.com/register/",
+      "console": "https://my.vultr.com/",
+      "free": {
+        "free_trial": "New accounts may receive credit for a limited time. Read the current offer at sign-up.",
+        "free_tier": "There is no always-free tier.",
+        "pay_as_you_go": "Billed monthly for what runs. A card or PayPal is required.",
+        "standard": "A normal paid account; add users with limited access."
+      },
+      "cli": {
+        "name": "vultr-cli (optional)",
+        "install": {
+          "windows": "Download from https://github.com/vultr/vultr-cli/releases",
+          "mac": "brew install vultr/vultr-cli/vultr-cli",
+          "linux": "Download from https://github.com/vultr/vultr-cli/releases"
+        },
+        "login": "export VULTR_API_KEY=your-key",
+        "whoami": "vultr-cli account",
+        "env": "VULTR_API_KEY"
+      },
+      "credential_console": [
+        "Sign in to my.vultr.com.",
+        "Open Account, then API, then Enable API.",
+        "Add your own public IP address to the access control list (Vultr blocks other addresses), then copy the API key."
+      ],
+      "budget_console": [
+        "Open Billing. Vultr has no budget alert; set a calendar reminder to check it, and delete what you do not use."
+      ],
       "region": "Choose a region id such as ewr, ams, or sgp.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC, a Kubernetes cluster with autoscaling, a Managed Database in the VPC, and Object Storage, then apply the files in kubernetes/."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC, a Kubernetes cluster with autoscaling, a Managed Database in the VPC, and Object Storage, then apply the files in kubernetes/."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": ""
     },
     "scaleway": {
-      "name": "Scaleway", "signup": "https://console.scaleway.com/register", "console": "https://console.scaleway.com/",
-      "free": {"free_trial": "New accounts may receive a free allowance for some products. Read the current offer at sign-up.", "free_tier": "Some products have a free monthly allowance. Read the pricing pages.", "pay_as_you_go": "Billed monthly for what runs. Identity checks may be needed.", "standard": "A normal paid account inside an organization with projects."},
-      "cli": {"name": "scw (optional)", "install": {"windows": "winget install Scaleway.scaleway-cli", "mac": "brew install scaleway-cli", "linux": "Follow https://github.com/scaleway/scaleway-cli"}, "login": "scw init", "whoami": "scw account project list", "env": "SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID"},
-      "credential_console": ["Sign in to console.scaleway.com.", "Open your profile (top right), then Credentials / IAM, then API keys, then Generate an API key.", "Copy the access key and secret key once, and note the Project ID and Organization ID from the organization page."],
-      "budget_console": ["Open Billing, then Consumption, to see usage. Use Billing alerts (Billing, Alerts) to set an amount that emails you."],
+      "name": "Scaleway",
+      "signup": "https://console.scaleway.com/register",
+      "console": "https://console.scaleway.com/",
+      "free": {
+        "free_trial": "New accounts may receive a free allowance for some products. Read the current offer at sign-up.",
+        "free_tier": "Some products have a free monthly allowance. Read the pricing pages.",
+        "pay_as_you_go": "Billed monthly for what runs. Identity checks may be needed.",
+        "standard": "A normal paid account inside an organization with projects."
+      },
+      "cli": {
+        "name": "scw (optional)",
+        "install": {
+          "windows": "winget install Scaleway.scaleway-cli",
+          "mac": "brew install scaleway-cli",
+          "linux": "Follow https://github.com/scaleway/scaleway-cli"
+        },
+        "login": "scw init",
+        "whoami": "scw account project list",
+        "env": "SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID, SCW_DEFAULT_ORGANIZATION_ID"
+      },
+      "credential_console": [
+        "Sign in to console.scaleway.com.",
+        "Open your profile (top right), then Credentials / IAM, then API keys, then Generate an API key.",
+        "Copy the access key and secret key once, and note the Project ID and Organization ID from the organization page."
+      ],
+      "budget_console": [
+        "Open Billing, then Consumption, to see usage. Use Billing alerts (Billing, Alerts) to set an amount that emails you."
+      ],
       "region": "Choose fr-par, nl-ams, or pl-waw.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a Private Network, a Container Registry namespace, a Serverless Containers namespace with one container per unit, a Managed Database for PostgreSQL on the private network, and an Object Storage bucket."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a Private Network, a Container Registry namespace, a Serverless Containers namespace with one container per unit, a Managed Database for PostgreSQL on the private network, and an Object Storage bucket."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": "docker login rg.REGION.scw.cloud -u nologin --password-stdin   (paste your secret key)"
     },
     "ovhcloud": {
-      "name": "OVHcloud", "signup": "https://www.ovhcloud.com/en/public-cloud/", "console": "https://www.ovh.com/manager/",
-      "free": {"free_trial": "New Public Cloud projects may receive a voucher. Read the current offer at sign-up.", "free_tier": "There is no always-free tier.", "pay_as_you_go": "Public Cloud bills hourly or monthly for what runs. A card is required.", "standard": "A normal paid account."},
-      "cli": {"name": "none needed", "install": {"windows": "Not needed", "mac": "Not needed", "linux": "Not needed"}, "login": "Create API credentials in the web page below", "whoami": "", "env": "OVH_APPLICATION_KEY, OVH_APPLICATION_SECRET, OVH_CONSUMER_KEY"},
-      "credential_console": ["Sign in to the OVHcloud Control Panel and create a Public Cloud project (Public Cloud, Create a project). Note its project id.", "Open https://api.ovh.com/createToken/ and sign in.", "Give the script a name, validity Unlimited, and rights GET, POST, PUT, DELETE on /*. Click Create keys.", "Copy the Application Key, Application Secret and Consumer Key."],
-      "budget_console": ["In the Control Panel open Public Cloud, your project, then Billing / Alerts, and set a spending alert."],
+      "name": "OVHcloud",
+      "signup": "https://www.ovhcloud.com/en/public-cloud/",
+      "console": "https://www.ovh.com/manager/",
+      "free": {
+        "free_trial": "New Public Cloud projects may receive a voucher. Read the current offer at sign-up.",
+        "free_tier": "There is no always-free tier.",
+        "pay_as_you_go": "Public Cloud bills hourly or monthly for what runs. A card is required.",
+        "standard": "A normal paid account."
+      },
+      "cli": {
+        "name": "none needed",
+        "install": {
+          "windows": "Not needed",
+          "mac": "Not needed",
+          "linux": "Not needed"
+        },
+        "login": "Create API credentials in the web page below",
+        "whoami": "",
+        "env": "OVH_APPLICATION_KEY, OVH_APPLICATION_SECRET, OVH_CONSUMER_KEY"
+      },
+      "credential_console": [
+        "Sign in to the OVHcloud Control Panel and create a Public Cloud project (Public Cloud, Create a project). Note its project id.",
+        "Open https://api.ovh.com/createToken/ and sign in.",
+        "Give the script a name, validity Unlimited, and rights GET, POST, PUT, DELETE on /*. Click Create keys.",
+        "Copy the Application Key, Application Secret and Consumer Key."
+      ],
+      "budget_console": [
+        "In the Control Panel open Public Cloud, your project, then Billing / Alerts, and set a spending alert."
+      ],
       "region": "Choose a region such as GRA11, SBG5, DE1, UK1 or WAW1.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a private network with a gateway, a Managed Kubernetes cluster with a node pool, the Managed Databases, Object Storage and a Managed Private Registry, then apply the files in kubernetes/."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a private network with a gateway, a Managed Kubernetes cluster with a node pool, the Managed Databases, Object Storage and a Managed Private Registry, then apply the files in kubernetes/."
+      ],
       "teardown": "cd terraform && terraform destroy   (databases have deletion protection on; turn it off on purpose first)",
       "cli_for_images": "docker login REGISTRY_URL"
     },
     "oci": {
-      "name": "Oracle Cloud Infrastructure", "signup": "https://www.oracle.com/cloud/free/", "console": "https://cloud.oracle.com/",
-      "free": {"free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page.", "free_tier": "Some resources are Always Free. Read the current list at the sign-up page and stay inside it.", "pay_as_you_go": "Upgrade the account to Pay As You Go to pay only for what runs. A card is required.", "standard": "A paid account with compartments and groups."},
-      "cli": {"name": "OCI CLI", "install": {"windows": "Follow https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm", "mac": "brew install oci-cli", "linux": "bash -c \"$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)\""}, "login": "oci setup config", "whoami": "oci iam region list", "env": ""},
-      "credential_console": ["Sign in to the OCI console.", "Open your profile (top right), then My profile, then API keys, then Add API key, choose Generate API key pair, and download the private key.", "Copy the configuration file preview it shows; it holds your user, tenancy, fingerprint and region.", "Note your Tenancy OCID (Profile, Tenancy) and create a Compartment (Identity, Compartments) and note its OCID."],
-      "budget_console": ["Open Billing & Cost Management, then Budgets, then Create budget; add an alert rule at 80 percent."],
+      "name": "Oracle Cloud Infrastructure",
+      "signup": "https://www.oracle.com/cloud/free/",
+      "console": "https://cloud.oracle.com/",
+      "free": {
+        "free_trial": "New accounts can receive credits for a limited time. Read the current offer at the sign-up page.",
+        "free_tier": "Some resources are Always Free. Read the current list at the sign-up page and stay inside it.",
+        "pay_as_you_go": "Upgrade the account to Pay As You Go to pay only for what runs. A card is required.",
+        "standard": "A paid account with compartments and groups."
+      },
+      "cli": {
+        "name": "OCI CLI",
+        "install": {
+          "windows": "Follow https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm",
+          "mac": "brew install oci-cli",
+          "linux": "bash -c \"$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)\""
+        },
+        "login": "oci setup config",
+        "whoami": "oci iam region list",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in to the OCI console.",
+        "Open your profile (top right), then My profile, then API keys, then Add API key, choose Generate API key pair, and download the private key.",
+        "Copy the configuration file preview it shows; it holds your user, tenancy, fingerprint and region.",
+        "Note your Tenancy OCID (Profile, Tenancy) and create a Compartment (Identity, Compartments) and note its OCID."
+      ],
+      "budget_console": [
+        "Open Billing & Cost Management, then Budgets, then Create budget; add an alert rule at 80 percent."
+      ],
       "region": "Choose your home region when you sign up (for example us-ashburn-1); it cannot be changed later.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VCN with public and private subnets, a Container Registry repository per unit, Container Instances in the private subnet, a Load Balancer in the public subnet, and the database and cache."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VCN with public and private subnets, a Container Registry repository per unit, Container Instances in the private subnet, a Load Balancer in the public subnet, and the database and cache."
+      ],
       "teardown": "cd terraform && terraform destroy   (the database has protection on; remove it on purpose first)",
       "cli_for_images": "docker login REGION_KEY.ocir.io   (user: TENANCY_NAMESPACE/your-user, password: an auth token)"
     },
     "alibaba": {
-      "name": "Alibaba Cloud", "signup": "https://www.alibabacloud.com/campaign/free-trial", "console": "https://home.console.alibabacloud.com/",
-      "free": {"free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.", "free_tier": "Some products have a free quota. Read the product pages.", "pay_as_you_go": "Most products bill by use. A card and identity check are required.", "standard": "A paid account with a resource directory."},
-      "cli": {"name": "Alibaba Cloud CLI (optional)", "install": {"windows": "Download from https://github.com/aliyun/aliyun-cli/releases", "mac": "brew install aliyun-cli", "linux": "Download from https://github.com/aliyun/aliyun-cli/releases"}, "login": "aliyun configure", "whoami": "aliyun sts GetCallerIdentity", "env": "ALICLOUD_ACCESS_KEY, ALICLOUD_SECRET_KEY"},
-      "credential_console": ["Sign in to the Alibaba Cloud console.", "Open RAM (Resource Access Management), Users, Create User, name it solsarch, and tick OpenAPI Access.", "Copy the AccessKey ID and AccessKey Secret once.", "Grant the user the permissions your team approves (for a trial, AdministratorAccess on a throw-away account; narrow it later)."],
-      "budget_console": ["Open Billing Management, then Cost Management, then Budget Management, and set a monthly budget with alerts."],
+      "name": "Alibaba Cloud",
+      "signup": "https://www.alibabacloud.com/campaign/free-trial",
+      "console": "https://home.console.alibabacloud.com/",
+      "free": {
+        "free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.",
+        "free_tier": "Some products have a free quota. Read the product pages.",
+        "pay_as_you_go": "Most products bill by use. A card and identity check are required.",
+        "standard": "A paid account with a resource directory."
+      },
+      "cli": {
+        "name": "Alibaba Cloud CLI (optional)",
+        "install": {
+          "windows": "Download from https://github.com/aliyun/aliyun-cli/releases",
+          "mac": "brew install aliyun-cli",
+          "linux": "Download from https://github.com/aliyun/aliyun-cli/releases"
+        },
+        "login": "aliyun configure",
+        "whoami": "aliyun sts GetCallerIdentity",
+        "env": "ALICLOUD_ACCESS_KEY, ALICLOUD_SECRET_KEY"
+      },
+      "credential_console": [
+        "Sign in to the Alibaba Cloud console.",
+        "Open RAM (Resource Access Management), Users, Create User, name it solsarch, and tick OpenAPI Access.",
+        "Copy the AccessKey ID and AccessKey Secret once.",
+        "Grant the user the permissions your team approves (for a trial, AdministratorAccess on a throw-away account; narrow it later)."
+      ],
+      "budget_console": [
+        "Open Billing Management, then Cost Management, then Budget Management, and set a monthly budget with alerts."
+      ],
       "region": "Choose a region such as ap-southeast-1 (Singapore), eu-central-1 (Frankfurt), or cn-hangzhou.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC with two vSwitches, a Container Registry instance, a Serverless App Engine namespace with an application per unit, an Application Load Balancer, ApsaraDB RDS for PostgreSQL, and an OSS bucket."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC with two vSwitches, a Container Registry instance, a Serverless App Engine namespace with an application per unit, an Application Load Balancer, ApsaraDB RDS for PostgreSQL, and an OSS bucket."
+      ],
       "teardown": "cd terraform && terraform destroy   (RDS has protection on; turn it off on purpose first)",
       "cli_for_images": "docker login --username=YOUR_USER REGISTRY_ADDRESS"
     },
     "tencent": {
-      "name": "Tencent Cloud", "signup": "https://www.tencentcloud.com/campaign/freetier", "console": "https://console.tencentcloud.com/",
-      "free": {"free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.", "free_tier": "Some products have a free quota. Read the product pages.", "pay_as_you_go": "Most products bill by use. A card and identity check are required.", "standard": "A paid account with CAM sub-accounts."},
-      "cli": {"name": "tccli (optional)", "install": {"windows": "pip install tccli", "mac": "pip install tccli", "linux": "pip install tccli"}, "login": "tccli configure", "whoami": "tccli sts GetCallerIdentity", "env": "TENCENTCLOUD_SECRET_ID, TENCENTCLOUD_SECRET_KEY"},
-      "credential_console": ["Sign in to the Tencent Cloud console.", "Open CAM (Cloud Access Management), Users, Create user, choose Programmatic access.", "Copy the SecretId and SecretKey once, and grant the permissions your team approves."],
-      "budget_console": ["Open Billing Center, then Cost Management, then Budget, and set a monthly budget with a notification."],
+      "name": "Tencent Cloud",
+      "signup": "https://www.tencentcloud.com/campaign/freetier",
+      "console": "https://console.tencentcloud.com/",
+      "free": {
+        "free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.",
+        "free_tier": "Some products have a free quota. Read the product pages.",
+        "pay_as_you_go": "Most products bill by use. A card and identity check are required.",
+        "standard": "A paid account with CAM sub-accounts."
+      },
+      "cli": {
+        "name": "tccli (optional)",
+        "install": {
+          "windows": "pip install tccli",
+          "mac": "pip install tccli",
+          "linux": "pip install tccli"
+        },
+        "login": "tccli configure",
+        "whoami": "tccli sts GetCallerIdentity",
+        "env": "TENCENTCLOUD_SECRET_ID, TENCENTCLOUD_SECRET_KEY"
+      },
+      "credential_console": [
+        "Sign in to the Tencent Cloud console.",
+        "Open CAM (Cloud Access Management), Users, Create user, choose Programmatic access.",
+        "Copy the SecretId and SecretKey once, and grant the permissions your team approves."
+      ],
+      "budget_console": [
+        "Open Billing Center, then Cost Management, then Budget, and set a monthly budget with a notification."
+      ],
       "region": "Choose a region such as ap-singapore, ap-guangzhou, or eu-frankfurt.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC with two subnets, a Tencent Container Registry instance, a TKE cluster with an autoscaling node pool, and the managed databases, then apply the files in kubernetes/."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC with two subnets, a Tencent Container Registry instance, a TKE cluster with an autoscaling node pool, and the managed databases, then apply the files in kubernetes/."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": "docker login REGISTRY_DOMAIN"
     },
     "huawei": {
-      "name": "Huawei Cloud", "signup": "https://www.huaweicloud.com/intl/en-us/", "console": "https://console.huaweicloud.com/",
-      "free": {"free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.", "free_tier": "Some products have a free quota. Read the product pages.", "pay_as_you_go": "Most products bill by use. A card and identity check are required.", "standard": "A paid account with IAM users."},
-      "cli": {"name": "KooCLI (optional)", "install": {"windows": "Download from the Huawei Cloud KooCLI page", "mac": "Download from the Huawei Cloud KooCLI page", "linux": "Download from the Huawei Cloud KooCLI page"}, "login": "hcloud configure init", "whoami": "", "env": "HW_ACCESS_KEY, HW_SECRET_KEY"},
-      "credential_console": ["Sign in to the Huawei Cloud console.", "Open the account menu, My Credentials, then Access Keys, then Create Access Key.", "Download the file once. It holds the Access Key and Secret Key."],
-      "budget_console": ["Open Billing Center, then Budgets, and create a budget with an alert."],
+      "name": "Huawei Cloud",
+      "signup": "https://www.huaweicloud.com/intl/en-us/",
+      "console": "https://console.huaweicloud.com/",
+      "free": {
+        "free_trial": "New accounts can receive a free trial for selected products. Read the current offer at the sign-up page.",
+        "free_tier": "Some products have a free quota. Read the product pages.",
+        "pay_as_you_go": "Most products bill by use. A card and identity check are required.",
+        "standard": "A paid account with IAM users."
+      },
+      "cli": {
+        "name": "KooCLI (optional)",
+        "install": {
+          "windows": "Download from the Huawei Cloud KooCLI page",
+          "mac": "Download from the Huawei Cloud KooCLI page",
+          "linux": "Download from the Huawei Cloud KooCLI page"
+        },
+        "login": "hcloud configure init",
+        "whoami": "",
+        "env": "HW_ACCESS_KEY, HW_SECRET_KEY"
+      },
+      "credential_console": [
+        "Sign in to the Huawei Cloud console.",
+        "Open the account menu, My Credentials, then Access Keys, then Create Access Key.",
+        "Download the file once. It holds the Access Key and Secret Key."
+      ],
+      "budget_console": [
+        "Open Billing Center, then Budgets, and create a budget with an alert."
+      ],
       "region": "Choose a region such as ap-southeast-3 (Singapore) or eu-west-0 (Paris).",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a VPC and subnet, a NAT gateway, an SWR organization with repositories, a CCI namespace and network with a deployment per unit, and RDS for PostgreSQL."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a VPC and subnet, a NAT gateway, an SWR organization with repositories, a CCI namespace and network with a deployment per unit, and RDS for PostgreSQL."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": "docker login swr.REGION.myhuaweicloud.com   (use the login command from SWR, Generate a login command)"
     },
     "ibm": {
-      "name": "IBM Cloud", "signup": "https://cloud.ibm.com/registration", "console": "https://cloud.ibm.com/",
-      "free": {"free_trial": "New accounts can receive credit for a limited time. Read the current offer at sign-up.", "free_tier": "A Lite plan exists for some services. Read the catalog; Lite instances can expire.", "pay_as_you_go": "Upgrade to Pay-As-You-Go to pay only for what runs. A card is required.", "standard": "A paid account with access groups."},
-      "cli": {"name": "IBM Cloud CLI", "install": {"windows": "Follow https://cloud.ibm.com/docs/cli?topic=cli-getting-started", "mac": "curl -fsSL https://clis.cloud.ibm.com/install/osx | sh", "linux": "curl -fsSL https://clis.cloud.ibm.com/install/linux | sh"}, "login": "ibmcloud login --sso", "whoami": "ibmcloud target", "env": "IC_API_KEY"},
-      "credential_console": ["Sign in to cloud.ibm.com.", "Open Manage, then Access (IAM), then API keys, then Create.", "Name it solsarch, create it, and copy or download the key once."],
-      "budget_console": ["Open Manage, then Billing and usage, then Spending notifications, and set an amount that emails you."],
+      "name": "IBM Cloud",
+      "signup": "https://cloud.ibm.com/registration",
+      "console": "https://cloud.ibm.com/",
+      "free": {
+        "free_trial": "New accounts can receive credit for a limited time. Read the current offer at sign-up.",
+        "free_tier": "A Lite plan exists for some services. Read the catalog; Lite instances can expire.",
+        "pay_as_you_go": "Upgrade to Pay-As-You-Go to pay only for what runs. A card is required.",
+        "standard": "A paid account with access groups."
+      },
+      "cli": {
+        "name": "IBM Cloud CLI",
+        "install": {
+          "windows": "Follow https://cloud.ibm.com/docs/cli?topic=cli-getting-started",
+          "mac": "curl -fsSL https://clis.cloud.ibm.com/install/osx | sh",
+          "linux": "curl -fsSL https://clis.cloud.ibm.com/install/linux | sh"
+        },
+        "login": "ibmcloud login --sso",
+        "whoami": "ibmcloud target",
+        "env": "IC_API_KEY"
+      },
+      "credential_console": [
+        "Sign in to cloud.ibm.com.",
+        "Open Manage, then Access (IAM), then API keys, then Create.",
+        "Name it solsarch, create it, and copy or download the key once."
+      ],
+      "budget_console": [
+        "Open Manage, then Billing and usage, then Spending notifications, and set an amount that emails you."
+      ],
       "region": "Choose us-south, us-east, eu-de, eu-gb, jp-tok or au-syd.",
-      "console_deploy": ["Terraform is the recommended way. To click it together: create a resource group, a Container Registry namespace, a Code Engine project with an app per unit, and the Databases for PostgreSQL and other services."],
+      "console_deploy": [
+        "Terraform is the recommended way. To click it together: create a resource group, a Container Registry namespace, a Code Engine project with an app per unit, and the Databases for PostgreSQL and other services."
+      ],
       "teardown": "cd terraform && terraform destroy",
       "cli_for_images": "ibmcloud cr login"
     },
     "render": {
-      "name": "Render", "signup": "https://dashboard.render.com/register", "console": "https://dashboard.render.com/",
-      "free": {"free_trial": "Render has no time-limited trial; it has free instance types with limits (they sleep when idle).", "free_tier": "Free web services and a free database exist with limits; read the current terms on the pricing page. Free databases expire.", "pay_as_you_go": "Paid instance types bill by the month, prorated. A card is required.", "standard": "A paid workspace with teams."},
-      "cli": {"name": "Render CLI (optional)", "install": {"windows": "Download from https://github.com/render-oss/cli/releases", "mac": "brew install render", "linux": "Download from https://github.com/render-oss/cli/releases"}, "login": "render login", "whoami": "render whoami", "env": ""},
-      "credential_console": ["Sign up with GitHub, GitLab or email at dashboard.render.com.", "Connect your repository: New, then choose the Git provider and allow access to the repository.", "No API key is needed for the Blueprint path."],
-      "budget_console": ["Render has no spending cap. Open Account Settings, Billing, and keep to free or the smallest paid instance types; delete services you do not use."],
+      "name": "Render",
+      "signup": "https://dashboard.render.com/register",
+      "console": "https://dashboard.render.com/",
+      "free": {
+        "free_trial": "Render has no time-limited trial; it has free instance types with limits (they sleep when idle).",
+        "free_tier": "Free web services and a free database exist with limits; read the current terms on the pricing page. Free databases expire.",
+        "pay_as_you_go": "Paid instance types bill by the month, prorated. A card is required.",
+        "standard": "A paid workspace with teams."
+      },
+      "cli": {
+        "name": "Render CLI (optional)",
+        "install": {
+          "windows": "Download from https://github.com/render-oss/cli/releases",
+          "mac": "brew install render",
+          "linux": "Download from https://github.com/render-oss/cli/releases"
+        },
+        "login": "render login",
+        "whoami": "render whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign up with GitHub, GitLab or email at dashboard.render.com.",
+        "Connect your repository: New, then choose the Git provider and allow access to the repository.",
+        "No API key is needed for the Blueprint path."
+      ],
+      "budget_console": [
+        "Render has no spending cap. Open Account Settings, Billing, and keep to free or the smallest paid instance types; delete services you do not use."
+      ],
       "region": "Pick a region (Oregon, Ohio, Frankfurt, Singapore, Virginia) when creating the Blueprint; all services in one Blueprint share it.",
-      "console_deploy": ["In the dashboard click New, then Blueprint, and choose your repository (the render.yaml file in the repository root is read automatically).", "Review the services it lists, fill in the secret values it asks for, and click Deploy Blueprint.", "Wait for each service to show Live."],
+      "console_deploy": [
+        "In the dashboard click New, then Blueprint, and choose your repository (the render.yaml file in the repository root is read automatically).",
+        "Review the services it lists, fill in the secret values it asks for, and click Deploy Blueprint.",
+        "Wait for each service to show Live."
+      ],
       "teardown": "Open each service and the database in the dashboard, Settings, Delete. Or delete the Blueprint and then its services.",
       "cli_for_images": ""
     },
     "flyio": {
-      "name": "Fly.io", "signup": "https://fly.io/app/sign-up", "console": "https://fly.io/dashboard",
-      "free": {"free_trial": "New accounts may get a short trial. Read the current terms at sign-up; a card is required.", "free_tier": "There is no ongoing free tier for new accounts; machines can stop when idle to save cost.", "pay_as_you_go": "Billed monthly for what runs. A card is required.", "standard": "A paid organization with members."},
-      "cli": {"name": "flyctl", "install": {"windows": "pwsh -Command \"iwr https://fly.io/install.ps1 -useb | iex\"", "mac": "brew install flyctl", "linux": "curl -L https://fly.io/install.sh | sh"}, "login": "fly auth login", "whoami": "fly auth whoami", "env": ""},
-      "credential_console": ["Run fly auth signup (or fly auth login) in the terminal; a browser opens to create or sign in to your account and add a card.", "No key file is needed."],
-      "budget_console": ["Open the dashboard, Billing, and check usage. Fly has no hard spending cap; keep min machines low and stop what you do not use."],
+      "name": "Fly.io",
+      "signup": "https://fly.io/app/sign-up",
+      "console": "https://fly.io/dashboard",
+      "free": {
+        "free_trial": "New accounts may get a short trial. Read the current terms at sign-up; a card is required.",
+        "free_tier": "There is no ongoing free tier for new accounts; machines can stop when idle to save cost.",
+        "pay_as_you_go": "Billed monthly for what runs. A card is required.",
+        "standard": "A paid organization with members."
+      },
+      "cli": {
+        "name": "flyctl",
+        "install": {
+          "windows": "pwsh -Command \"iwr https://fly.io/install.ps1 -useb | iex\"",
+          "mac": "brew install flyctl",
+          "linux": "curl -L https://fly.io/install.sh | sh"
+        },
+        "login": "fly auth login",
+        "whoami": "fly auth whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Run fly auth signup (or fly auth login) in the terminal; a browser opens to create or sign in to your account and add a card.",
+        "No key file is needed."
+      ],
+      "budget_console": [
+        "Open the dashboard, Billing, and check usage. Fly has no hard spending cap; keep min machines low and stop what you do not use."
+      ],
       "region": "Choose a region code such as iad, lhr, or sin; the fly.toml files use iad.",
-      "console_deploy": ["Fly is driven from the terminal. The dashboard shows each app after fly launch; use it to view logs, scale and set secrets (Apps, your app, Secrets)."],
+      "console_deploy": [
+        "Fly is driven from the terminal. The dashboard shows each app after fly launch; use it to view logs, scale and set secrets (Apps, your app, Secrets)."
+      ],
       "teardown": "fly apps destroy APP_NAME   (repeat for each app, and fly mpg / fly redis destroy for data)",
       "cli_for_images": ""
     },
     "railway": {
-      "name": "Railway", "signup": "https://railway.com/", "console": "https://railway.com/dashboard",
-      "free": {"free_trial": "New accounts may get a trial credit. Read the current terms at sign-up.", "free_tier": "Plans change; read the pricing page for any free or hobby allowance.", "pay_as_you_go": "Usage is billed on top of the plan. A card is required.", "standard": "A paid team workspace."},
-      "cli": {"name": "Railway CLI (optional)", "install": {"windows": "npm install -g @railway/cli", "mac": "brew install railway", "linux": "npm install -g @railway/cli"}, "login": "railway login", "whoami": "railway whoami", "env": ""},
-      "credential_console": ["Sign in with GitHub at railway.com.", "Click New Project, then Deploy from GitHub repo, and allow access to the repository."],
-      "budget_console": ["Open the project, Usage / Settings, and set a usage limit so the project stops at the amount you choose."],
+      "name": "Railway",
+      "signup": "https://railway.com/",
+      "console": "https://railway.com/dashboard",
+      "free": {
+        "free_trial": "New accounts may get a trial credit. Read the current terms at sign-up.",
+        "free_tier": "Plans change; read the pricing page for any free or hobby allowance.",
+        "pay_as_you_go": "Usage is billed on top of the plan. A card is required.",
+        "standard": "A paid team workspace."
+      },
+      "cli": {
+        "name": "Railway CLI (optional)",
+        "install": {
+          "windows": "npm install -g @railway/cli",
+          "mac": "brew install railway",
+          "linux": "npm install -g @railway/cli"
+        },
+        "login": "railway login",
+        "whoami": "railway whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in with GitHub at railway.com.",
+        "Click New Project, then Deploy from GitHub repo, and allow access to the repository."
+      ],
+      "budget_console": [
+        "Open the project, Usage / Settings, and set a usage limit so the project stops at the amount you choose."
+      ],
       "region": "Pick a region in each service's Settings, Deploy section.",
-      "console_deploy": ["Click New Project, Deploy from GitHub repo, and choose the repository. Railway makes one service; add more with New, GitHub Repo for each unit.", "For each service open Settings and set the Config-as-code path to railway/UNIT.railway.json.", "Click New, Database and add the ones the guide lists. Open each service, Variables, and add the reference variables from railway/variables.example.env."],
+      "console_deploy": [
+        "Click New Project, Deploy from GitHub repo, and choose the repository. Railway makes one service; add more with New, GitHub Repo for each unit.",
+        "For each service open Settings and set the Config-as-code path to railway/UNIT.railway.json.",
+        "Click New, Database and add the ones the guide lists. Open each service, Variables, and add the reference variables from railway/variables.example.env."
+      ],
       "teardown": "Open the project, Settings, Danger, Delete project.",
       "cli_for_images": ""
     },
     "heroku": {
-      "name": "Heroku", "signup": "https://signup.heroku.com/", "console": "https://dashboard.heroku.com/",
-      "free": {"free_trial": "Heroku has no free trial plan; some programs give credits. Read the current terms.", "free_tier": "There are no free dynos. The smallest paid plans are billed by the month, prorated by the second.", "pay_as_you_go": "Dynos and add-ons bill monthly. A card is required.", "standard": "A paid account or Heroku Teams."},
-      "cli": {"name": "Heroku CLI", "install": {"windows": "winget install Heroku.HerokuCLI", "mac": "brew tap heroku/brew && brew install heroku", "linux": "curl https://cli-assets.heroku.com/install.sh | sh"}, "login": "heroku login", "whoami": "heroku auth:whoami", "env": ""},
-      "credential_console": ["Create an account at signup.heroku.com and add a card under Account settings, Billing.", "In the terminal heroku login opens a browser; no key file is needed."],
-      "budget_console": ["Open the dashboard, Account settings, Billing, and check the estimate. Heroku has no spending cap; use the smallest plans."],
+      "name": "Heroku",
+      "signup": "https://signup.heroku.com/",
+      "console": "https://dashboard.heroku.com/",
+      "free": {
+        "free_trial": "Heroku has no free trial plan; some programs give credits. Read the current terms.",
+        "free_tier": "There are no free dynos. The smallest paid plans are billed by the month, prorated by the second.",
+        "pay_as_you_go": "Dynos and add-ons bill monthly. A card is required.",
+        "standard": "A paid account or Heroku Teams."
+      },
+      "cli": {
+        "name": "Heroku CLI",
+        "install": {
+          "windows": "winget install Heroku.HerokuCLI",
+          "mac": "brew tap heroku/brew && brew install heroku",
+          "linux": "curl https://cli-assets.heroku.com/install.sh | sh"
+        },
+        "login": "heroku login",
+        "whoami": "heroku auth:whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Create an account at signup.heroku.com and add a card under Account settings, Billing.",
+        "In the terminal heroku login opens a browser; no key file is needed."
+      ],
+      "budget_console": [
+        "Open the dashboard, Account settings, Billing, and check the estimate. Heroku has no spending cap; use the smallest plans."
+      ],
       "region": "Choose the United States or Europe region when you create each app (--region us or eu).",
-      "console_deploy": ["In the dashboard click New, Create new app, name it, and choose a region. Under Deploy choose GitHub (or Container Registry) and connect the repository. Click Enable Automatic Deploys or Deploy Branch.", "Open Resources and add the add-ons the guide lists (Heroku Postgres, Heroku Key-Value Store).", "Open Settings, Reveal Config Vars, and add the secrets."],
+      "console_deploy": [
+        "In the dashboard click New, Create new app, name it, and choose a region. Under Deploy choose GitHub (or Container Registry) and connect the repository. Click Enable Automatic Deploys or Deploy Branch.",
+        "Open Resources and add the add-ons the guide lists (Heroku Postgres, Heroku Key-Value Store).",
+        "Open Settings, Reveal Config Vars, and add the secrets."
+      ],
       "teardown": "heroku apps:destroy -a APP_NAME --confirm APP_NAME   (repeat for each app)",
       "cli_for_images": "heroku container:login"
     },
     "vercel": {
-      "name": "Vercel", "signup": "https://vercel.com/signup", "console": "https://vercel.com/dashboard",
-      "free": {"free_trial": "Vercel has no timed trial; the Hobby plan is free for personal, non-commercial use with limits.", "free_tier": "The Hobby plan is free with usage limits. Commercial use needs a paid plan; read the terms.", "pay_as_you_go": "Pro and Enterprise plans bill per seat plus usage. A card is required.", "standard": "A paid team."},
-      "cli": {"name": "Vercel CLI (optional)", "install": {"windows": "npm install -g vercel", "mac": "npm install -g vercel", "linux": "npm install -g vercel"}, "login": "vercel login", "whoami": "vercel whoami", "env": ""},
-      "credential_console": ["Sign up with GitHub, GitLab or email at vercel.com.", "No key is needed for the dashboard path."],
-      "budget_console": ["Open the team, Settings, Billing, and set a spend-management limit on paid plans."],
+      "name": "Vercel",
+      "signup": "https://vercel.com/signup",
+      "console": "https://vercel.com/dashboard",
+      "free": {
+        "free_trial": "Vercel has no timed trial; the Hobby plan is free for personal, non-commercial use with limits.",
+        "free_tier": "The Hobby plan is free with usage limits. Commercial use needs a paid plan; read the terms.",
+        "pay_as_you_go": "Pro and Enterprise plans bill per seat plus usage. A card is required.",
+        "standard": "A paid team."
+      },
+      "cli": {
+        "name": "Vercel CLI (optional)",
+        "install": {
+          "windows": "npm install -g vercel",
+          "mac": "npm install -g vercel",
+          "linux": "npm install -g vercel"
+        },
+        "login": "vercel login",
+        "whoami": "vercel whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign up with GitHub, GitLab or email at vercel.com.",
+        "No key is needed for the dashboard path."
+      ],
+      "budget_console": [
+        "Open the team, Settings, Billing, and set a spend-management limit on paid plans."
+      ],
       "region": "Open the project, Settings, Functions, and choose the function region closest to your database.",
-      "console_deploy": ["Click Add New, Project, and import the repository. If it is a monorepo set Root Directory to the unit's folder.", "Under Storage click Create Database and add Neon (Postgres), Upstash (Redis) or Blob as the guide lists; Vercel fills in the environment variables.", "Add the other secrets under Settings, Environment Variables, then click Deploy."],
+      "console_deploy": [
+        "Click Add New, Project, and import the repository. If it is a monorepo set Root Directory to the unit's folder.",
+        "Under Storage click Create Database and add Neon (Postgres), Upstash (Redis) or Blob as the guide lists; Vercel fills in the environment variables.",
+        "Add the other secrets under Settings, Environment Variables, then click Deploy."
+      ],
       "teardown": "Open the project, Settings, scroll to Delete Project. Remove the storage in the Storage tab.",
       "cli_for_images": ""
     },
     "netlify": {
-      "name": "Netlify", "signup": "https://app.netlify.com/signup", "console": "https://app.netlify.com/",
-      "free": {"free_trial": "Netlify has a free plan with limits; paid plans have trials. Read the current terms.", "free_tier": "The free plan has monthly limits on build minutes, bandwidth and functions.", "pay_as_you_go": "Paid plans bill monthly with usage. A card is required.", "standard": "A paid team."},
-      "cli": {"name": "Netlify CLI (optional)", "install": {"windows": "npm install -g netlify-cli", "mac": "npm install -g netlify-cli", "linux": "npm install -g netlify-cli"}, "login": "netlify login", "whoami": "netlify status", "env": ""},
-      "credential_console": ["Sign up with GitHub, GitLab or email at app.netlify.com.", "No key is needed for the dashboard path."],
-      "budget_console": ["Open Team settings, Billing, and check usage. Stay inside the plan's limits."],
+      "name": "Netlify",
+      "signup": "https://app.netlify.com/signup",
+      "console": "https://app.netlify.com/",
+      "free": {
+        "free_trial": "Netlify has a free plan with limits; paid plans have trials. Read the current terms.",
+        "free_tier": "The free plan has monthly limits on build minutes, bandwidth and functions.",
+        "pay_as_you_go": "Paid plans bill monthly with usage. A card is required.",
+        "standard": "A paid team."
+      },
+      "cli": {
+        "name": "Netlify CLI (optional)",
+        "install": {
+          "windows": "npm install -g netlify-cli",
+          "mac": "npm install -g netlify-cli",
+          "linux": "npm install -g netlify-cli"
+        },
+        "login": "netlify login",
+        "whoami": "netlify status",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign up with GitHub, GitLab or email at app.netlify.com.",
+        "No key is needed for the dashboard path."
+      ],
+      "budget_console": [
+        "Open Team settings, Billing, and check usage. Stay inside the plan's limits."
+      ],
       "region": "Functions run in one region you pick under Site configuration, Functions.",
-      "console_deploy": ["Click Add new site, Import an existing project, and choose the repository.", "Confirm the build command and publish folder (the guide's netlify.toml has them), then click Deploy.", "Under Extensions add Netlify DB (Neon) if the plan uses a database, and add secrets under Site configuration, Environment variables."],
+      "console_deploy": [
+        "Click Add new site, Import an existing project, and choose the repository.",
+        "Confirm the build command and publish folder (the guide's netlify.toml has them), then click Deploy.",
+        "Under Extensions add Netlify DB (Neon) if the plan uses a database, and add secrets under Site configuration, Environment variables."
+      ],
       "teardown": "Open the site, Site configuration, Danger zone, Delete this site.",
       "cli_for_images": ""
     },
     "cloudflare": {
-      "name": "Cloudflare", "signup": "https://dash.cloudflare.com/sign-up", "console": "https://dash.cloudflare.com/",
-      "free": {"free_trial": "Cloudflare has a free plan with limits; some products need the Workers Paid plan. Read the current terms.", "free_tier": "Workers, R2 and KV have free allowances. Containers need the paid Workers plan.", "pay_as_you_go": "The Workers Paid plan bills a base fee plus usage. A card is required.", "standard": "A paid account or enterprise contract."},
-      "cli": {"name": "Wrangler", "install": {"windows": "npm install -g wrangler", "mac": "npm install -g wrangler", "linux": "npm install -g wrangler"}, "login": "wrangler login", "whoami": "wrangler whoami", "env": "CLOUDFLARE_API_TOKEN"},
-      "credential_console": ["Sign up at dash.cloudflare.com.", "In the terminal wrangler login opens a browser and signs you in; no key is needed.", "For automation: My Profile, API Tokens, Create Token, use the Edit Cloudflare Workers template."],
-      "budget_console": ["Open Billing, Subscriptions, and review the Workers plan. Set notifications under Notifications, Add, Billing."],
+      "name": "Cloudflare",
+      "signup": "https://dash.cloudflare.com/sign-up",
+      "console": "https://dash.cloudflare.com/",
+      "free": {
+        "free_trial": "Cloudflare has a free plan with limits; some products need the Workers Paid plan. Read the current terms.",
+        "free_tier": "Workers, R2 and KV have free allowances. Containers need the paid Workers plan.",
+        "pay_as_you_go": "The Workers Paid plan bills a base fee plus usage. A card is required.",
+        "standard": "A paid account or enterprise contract."
+      },
+      "cli": {
+        "name": "Wrangler",
+        "install": {
+          "windows": "npm install -g wrangler",
+          "mac": "npm install -g wrangler",
+          "linux": "npm install -g wrangler"
+        },
+        "login": "wrangler login",
+        "whoami": "wrangler whoami",
+        "env": "CLOUDFLARE_API_TOKEN"
+      },
+      "credential_console": [
+        "Sign up at dash.cloudflare.com.",
+        "In the terminal wrangler login opens a browser and signs you in; no key is needed.",
+        "For automation: My Profile, API Tokens, Create Token, use the Edit Cloudflare Workers template."
+      ],
+      "budget_console": [
+        "Open Billing, Subscriptions, and review the Workers plan. Set notifications under Notifications, Add, Billing."
+      ],
       "region": "Workers run at the edge worldwide; the database location (Hyperdrive) is where your PostgreSQL lives.",
-      "console_deploy": ["Open Workers & Pages, Create, and connect the repository, or use wrangler deploy. Add R2 buckets (R2, Create bucket), KV namespaces (Workers KV, Create) and Hyperdrive configurations (Hyperdrive, Create) from the dashboard, and copy their ids into the wrangler files."],
+      "console_deploy": [
+        "Open Workers & Pages, Create, and connect the repository, or use wrangler deploy. Add R2 buckets (R2, Create bucket), KV namespaces (Workers KV, Create) and Hyperdrive configurations (Hyperdrive, Create) from the dashboard, and copy their ids into the wrangler files."
+      ],
       "teardown": "wrangler delete --name WORKER_NAME   (and delete the R2 bucket, KV namespace and Hyperdrive in the dashboard)",
       "cli_for_images": ""
     },
     "firebase": {
-      "name": "Firebase", "signup": "https://console.firebase.google.com/", "console": "https://console.firebase.google.com/",
-      "free": {"free_trial": "The Spark plan is free with limits; Blaze (pay as you go) is needed for App Hosting and Cloud Functions. New Google Cloud accounts may get credits.", "free_tier": "Spark has monthly free quotas. Read the current limits at the pricing page.", "pay_as_you_go": "The Blaze plan bills for use above the free quotas. A card is required.", "standard": "A Blaze project linked to a Google Cloud billing account."},
-      "cli": {"name": "Firebase CLI", "install": {"windows": "npm install -g firebase-tools", "mac": "npm install -g firebase-tools", "linux": "npm install -g firebase-tools"}, "login": "firebase login", "whoami": "firebase projects:list", "env": ""},
-      "credential_console": ["Sign in to the Firebase console with a Google account and click Add project.", "Upgrade to Blaze: the project, Usage and billing, Modify plan.", "Copy the Project ID from Project settings."],
-      "budget_console": ["Open the Google Cloud console for the same project, Billing, Budgets & alerts, and create a budget with email alerts."],
+      "name": "Firebase",
+      "signup": "https://console.firebase.google.com/",
+      "console": "https://console.firebase.google.com/",
+      "free": {
+        "free_trial": "The Spark plan is free with limits; Blaze (pay as you go) is needed for App Hosting and Cloud Functions. New Google Cloud accounts may get credits.",
+        "free_tier": "Spark has monthly free quotas. Read the current limits at the pricing page.",
+        "pay_as_you_go": "The Blaze plan bills for use above the free quotas. A card is required.",
+        "standard": "A Blaze project linked to a Google Cloud billing account."
+      },
+      "cli": {
+        "name": "Firebase CLI",
+        "install": {
+          "windows": "npm install -g firebase-tools",
+          "mac": "npm install -g firebase-tools",
+          "linux": "npm install -g firebase-tools"
+        },
+        "login": "firebase login",
+        "whoami": "firebase projects:list",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in to the Firebase console with a Google account and click Add project.",
+        "Upgrade to Blaze: the project, Usage and billing, Modify plan.",
+        "Copy the Project ID from Project settings."
+      ],
+      "budget_console": [
+        "Open the Google Cloud console for the same project, Billing, Budgets & alerts, and create a budget with email alerts."
+      ],
       "region": "Choose the location for Firestore and Storage when you create them; it cannot be changed.",
-      "console_deploy": ["In the console enable Authentication (Build, Authentication, Get started), Firestore (Build, Firestore Database), and Storage (Build, Storage).", "Open App Hosting, Get started, connect the repository and root folder, and deploy."],
+      "console_deploy": [
+        "In the console enable Authentication (Build, Authentication, Get started), Firestore (Build, Firestore Database), and Storage (Build, Storage).",
+        "Open App Hosting, Get started, connect the repository and root folder, and deploy."
+      ],
       "teardown": "firebase hosting:disable, then delete the project in Project settings (Delete project).",
       "cli_for_images": ""
     },
     "supabase": {
-      "name": "Supabase", "signup": "https://supabase.com/dashboard", "console": "https://supabase.com/dashboard",
-      "free": {"free_trial": "Supabase has a free plan with limits; free projects pause after a period of inactivity. Read the current terms.", "free_tier": "The free plan has database size, storage and function limits.", "pay_as_you_go": "The Pro plan bills a base fee plus usage. A card is required.", "standard": "A paid organization."},
-      "cli": {"name": "Supabase CLI", "install": {"windows": "scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase", "mac": "brew install supabase/tap/supabase", "linux": "Follow https://supabase.com/docs/guides/local-development/cli/getting-started"}, "login": "supabase login", "whoami": "supabase projects list", "env": ""},
-      "credential_console": ["Sign in at supabase.com/dashboard and click New project.", "Choose an organization, a strong database password (save it in a password manager), and a region.", "Copy the project reference from Project settings, General."],
-      "budget_console": ["Open Organization settings, Billing, and turn on the spend cap on the Pro plan."],
+      "name": "Supabase",
+      "signup": "https://supabase.com/dashboard",
+      "console": "https://supabase.com/dashboard",
+      "free": {
+        "free_trial": "Supabase has a free plan with limits; free projects pause after a period of inactivity. Read the current terms.",
+        "free_tier": "The free plan has database size, storage and function limits.",
+        "pay_as_you_go": "The Pro plan bills a base fee plus usage. A card is required.",
+        "standard": "A paid organization."
+      },
+      "cli": {
+        "name": "Supabase CLI",
+        "install": {
+          "windows": "scoop bucket add supabase https://github.com/supabase/scoop-bucket.git && scoop install supabase",
+          "mac": "brew install supabase/tap/supabase",
+          "linux": "Follow https://supabase.com/docs/guides/local-development/cli/getting-started"
+        },
+        "login": "supabase login",
+        "whoami": "supabase projects list",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in at supabase.com/dashboard and click New project.",
+        "Choose an organization, a strong database password (save it in a password manager), and a region.",
+        "Copy the project reference from Project settings, General."
+      ],
+      "budget_console": [
+        "Open Organization settings, Billing, and turn on the spend cap on the Pro plan."
+      ],
       "region": "Choose the region closest to your users when creating the project; it cannot be changed later.",
-      "console_deploy": ["Create the project, open SQL Editor and paste your schema, or run supabase db push.", "Open Edge Functions and deploy each function (or supabase functions deploy). Open Authentication and Storage to switch on what the plan uses."],
+      "console_deploy": [
+        "Create the project, open SQL Editor and paste your schema, or run supabase db push.",
+        "Open Edge Functions and deploy each function (or supabase functions deploy). Open Authentication and Storage to switch on what the plan uses."
+      ],
       "teardown": "Open Project settings, General, Delete project.",
       "cli_for_images": ""
     },
     "neon": {
-      "name": "Neon", "signup": "https://console.neon.tech/signup", "console": "https://console.neon.tech/",
-      "free": {"free_trial": "Neon has a free plan with limits. Read the current terms.", "free_tier": "The free plan has storage and compute limits and scales to zero.", "pay_as_you_go": "Paid plans bill for storage and compute used. A card is required.", "standard": "A paid organization."},
-      "cli": {"name": "neonctl (optional)", "install": {"windows": "npm install -g neonctl", "mac": "brew install neonctl", "linux": "npm install -g neonctl"}, "login": "neonctl auth", "whoami": "neonctl me", "env": "NEON_API_KEY"},
-      "credential_console": ["Sign in at console.neon.tech.", "Open Account settings, API keys, Create new API key, and copy it once."],
-      "budget_console": ["Open Billing in the console and check the plan limits; the free plan stops at its limits instead of charging."],
+      "name": "Neon",
+      "signup": "https://console.neon.tech/signup",
+      "console": "https://console.neon.tech/",
+      "free": {
+        "free_trial": "Neon has a free plan with limits. Read the current terms.",
+        "free_tier": "The free plan has storage and compute limits and scales to zero.",
+        "pay_as_you_go": "Paid plans bill for storage and compute used. A card is required.",
+        "standard": "A paid organization."
+      },
+      "cli": {
+        "name": "neonctl (optional)",
+        "install": {
+          "windows": "npm install -g neonctl",
+          "mac": "brew install neonctl",
+          "linux": "npm install -g neonctl"
+        },
+        "login": "neonctl auth",
+        "whoami": "neonctl me",
+        "env": "NEON_API_KEY"
+      },
+      "credential_console": [
+        "Sign in at console.neon.tech.",
+        "Open Account settings, API keys, Create new API key, and copy it once."
+      ],
+      "budget_console": [
+        "Open Billing in the console and check the plan limits; the free plan stops at its limits instead of charging."
+      ],
       "region": "Choose the region closest to your application, for example aws-us-east-2.",
-      "console_deploy": ["Click New project, choose the region and Postgres version, and copy the connection string from the Connect panel into your application's DATABASE_URL."],
+      "console_deploy": [
+        "Click New project, choose the region and Postgres version, and copy the connection string from the Connect panel into your application's DATABASE_URL."
+      ],
       "teardown": "Open the project, Settings, Delete project.",
       "cli_for_images": ""
     },
     "mongodbatlas": {
-      "name": "MongoDB Atlas", "signup": "https://www.mongodb.com/cloud/atlas/register", "console": "https://cloud.mongodb.com/",
-      "free": {"free_trial": "Atlas has a free shared cluster tier (M0) with limits. Read the current terms.", "free_tier": "The M0 cluster is free with a storage limit; it has no backups.", "pay_as_you_go": "Dedicated clusters bill hourly. A card is required.", "standard": "A paid organization."},
-      "cli": {"name": "Atlas CLI (optional)", "install": {"windows": "winget install MongoDB.AtlasCLI", "mac": "brew install mongodb-atlas-cli", "linux": "Follow https://www.mongodb.com/docs/atlas/cli/current/install-atlas-cli/"}, "login": "atlas auth login", "whoami": "atlas projects list", "env": "MONGODB_ATLAS_PUBLIC_KEY, MONGODB_ATLAS_PRIVATE_KEY"},
-      "credential_console": ["Sign in at cloud.mongodb.com and create an Organization.", "Open Access Manager, API Keys, Create API Key with Organization Project Creator permission.", "Copy the public and private key once, and add your IP to the API access list."],
-      "budget_console": ["Open Billing, then Alerts, and set a billing alert; dedicated clusters bill hourly."],
+      "name": "MongoDB Atlas",
+      "signup": "https://www.mongodb.com/cloud/atlas/register",
+      "console": "https://cloud.mongodb.com/",
+      "free": {
+        "free_trial": "Atlas has a free shared cluster tier (M0) with limits. Read the current terms.",
+        "free_tier": "The M0 cluster is free with a storage limit; it has no backups.",
+        "pay_as_you_go": "Dedicated clusters bill hourly. A card is required.",
+        "standard": "A paid organization."
+      },
+      "cli": {
+        "name": "Atlas CLI (optional)",
+        "install": {
+          "windows": "winget install MongoDB.AtlasCLI",
+          "mac": "brew install mongodb-atlas-cli",
+          "linux": "Follow https://www.mongodb.com/docs/atlas/cli/current/install-atlas-cli/"
+        },
+        "login": "atlas auth login",
+        "whoami": "atlas projects list",
+        "env": "MONGODB_ATLAS_PUBLIC_KEY, MONGODB_ATLAS_PRIVATE_KEY"
+      },
+      "credential_console": [
+        "Sign in at cloud.mongodb.com and create an Organization.",
+        "Open Access Manager, API Keys, Create API Key with Organization Project Creator permission.",
+        "Copy the public and private key once, and add your IP to the API access list."
+      ],
+      "budget_console": [
+        "Open Billing, then Alerts, and set a billing alert; dedicated clusters bill hourly."
+      ],
       "region": "Choose the cloud and region closest to your application.",
-      "console_deploy": ["Create a project, click Create a cluster (M0 for free, M10 or larger for real use), then Database Access (add a user) and Network Access (add your application's addresses). Copy the connection string from Connect."],
+      "console_deploy": [
+        "Create a project, click Create a cluster (M0 for free, M10 or larger for real use), then Database Access (add a user) and Network Access (add your application's addresses). Copy the connection string from Connect."
+      ],
       "teardown": "Open the cluster, ..., Terminate (turn off termination protection first).",
       "cli_for_images": ""
     },
     "denodeploy": {
-      "name": "Deno Deploy", "signup": "https://dash.deno.com/", "console": "https://dash.deno.com/",
-      "free": {"free_trial": "Deno Deploy has a free plan with limits. Read the current terms.", "free_tier": "The free plan has request and bandwidth limits.", "pay_as_you_go": "Paid plans bill a base fee plus usage.", "standard": "A paid organization."},
-      "cli": {"name": "Deno", "install": {"windows": "winget install DenoLand.Deno", "mac": "brew install deno", "linux": "curl -fsSL https://deno.land/install.sh | sh"}, "login": "deno deploy login", "whoami": "", "env": ""},
-      "credential_console": ["Sign in with GitHub at dash.deno.com."],
-      "budget_console": ["Open the organization's billing page and check the plan limits."],
+      "name": "Deno Deploy",
+      "signup": "https://dash.deno.com/",
+      "console": "https://dash.deno.com/",
+      "free": {
+        "free_trial": "Deno Deploy has a free plan with limits. Read the current terms.",
+        "free_tier": "The free plan has request and bandwidth limits.",
+        "pay_as_you_go": "Paid plans bill a base fee plus usage.",
+        "standard": "A paid organization."
+      },
+      "cli": {
+        "name": "Deno",
+        "install": {
+          "windows": "winget install DenoLand.Deno",
+          "mac": "brew install deno",
+          "linux": "curl -fsSL https://deno.land/install.sh | sh"
+        },
+        "login": "deno deploy login",
+        "whoami": "",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in with GitHub at dash.deno.com."
+      ],
+      "budget_console": [
+        "Open the organization's billing page and check the plan limits."
+      ],
       "region": "Deno Deploy runs at the edge worldwide.",
-      "console_deploy": ["Click New App, link the GitHub repository, set the entry point from deno.json, and deploy. Add Deno KV from the dashboard if the plan uses it."],
+      "console_deploy": [
+        "Click New App, link the GitHub repository, set the entry point from deno.json, and deploy. Add Deno KV from the dashboard if the plan uses it."
+      ],
       "teardown": "Open the app, Settings, Delete.",
       "cli_for_images": ""
     },
     "fastly": {
-      "name": "Fastly", "signup": "https://www.fastly.com/signup/", "console": "https://manage.fastly.com/",
-      "free": {"free_trial": "Fastly offers a free developer trial. Read the current terms.", "free_tier": "The trial has limits; production needs a paid plan.", "pay_as_you_go": "Paid plans bill for usage.", "standard": "A paid account."},
-      "cli": {"name": "Fastly CLI", "install": {"windows": "winget install Fastly.Fastly", "mac": "brew install fastly/tap/fastly", "linux": "Follow https://www.fastly.com/documentation/reference/cli/"}, "login": "fastly profile create", "whoami": "fastly whoami", "env": "FASTLY_API_TOKEN"},
-      "credential_console": ["Sign in at manage.fastly.com.", "Open Account, Personal profile, API tokens, Create token (scope: global, for a first trial)."],
-      "budget_console": ["Open Billing in the account menu and review the plan."],
+      "name": "Fastly",
+      "signup": "https://www.fastly.com/signup/",
+      "console": "https://manage.fastly.com/",
+      "free": {
+        "free_trial": "Fastly offers a free developer trial. Read the current terms.",
+        "free_tier": "The trial has limits; production needs a paid plan.",
+        "pay_as_you_go": "Paid plans bill for usage.",
+        "standard": "A paid account."
+      },
+      "cli": {
+        "name": "Fastly CLI",
+        "install": {
+          "windows": "winget install Fastly.Fastly",
+          "mac": "brew install fastly/tap/fastly",
+          "linux": "Follow https://www.fastly.com/documentation/reference/cli/"
+        },
+        "login": "fastly profile create",
+        "whoami": "fastly whoami",
+        "env": "FASTLY_API_TOKEN"
+      },
+      "credential_console": [
+        "Sign in at manage.fastly.com.",
+        "Open Account, Personal profile, API tokens, Create token (scope: global, for a first trial)."
+      ],
+      "budget_console": [
+        "Open Billing in the account menu and review the plan."
+      ],
       "region": "Compute runs on Fastly's edge worldwide.",
-      "console_deploy": ["Fastly Compute is deployed with the CLI: fastly compute publish. The web console shows the service afterwards (Compute, your service) for domains, logs and secrets."],
+      "console_deploy": [
+        "Fastly Compute is deployed with the CLI: fastly compute publish. The web console shows the service afterwards (Compute, your service) for domains, logs and secrets."
+      ],
       "teardown": "fastly service delete --service-id SERVICE_ID --force",
       "cli_for_images": ""
     },
-    "akamai": {"alias": "linode"},
+    "akamai": {
+      "alias": "linode"
+    },
     "coreweave": {
-      "name": "CoreWeave", "signup": "https://www.coreweave.com/", "console": "https://console.coreweave.com/",
-      "free": {"free_trial": "Access is by account approval; contact CoreWeave for current offers.", "free_tier": "There is no free tier.", "pay_as_you_go": "On-demand GPU capacity bills by use; some capacity is by contract.", "standard": "A contracted account."},
-      "cli": {"name": "kubectl", "install": {"windows": "winget install Kubernetes.kubectl", "mac": "brew install kubectl", "linux": "Follow https://kubernetes.io/docs/tasks/tools/"}, "login": "Download the kubeconfig from the CoreWeave console", "whoami": "kubectl config current-context", "env": "KUBECONFIG"},
-      "credential_console": ["Sign in to the CoreWeave console and create an access token (Tokens, Create).", "Open Kubernetes, Cluster, and download the kubeconfig."],
-      "budget_console": ["Contact your CoreWeave account team for spending alerts; check the console billing page often, since GPUs are costly."],
+      "name": "CoreWeave",
+      "signup": "https://www.coreweave.com/",
+      "console": "https://console.coreweave.com/",
+      "free": {
+        "free_trial": "Access is by account approval; contact CoreWeave for current offers.",
+        "free_tier": "There is no free tier.",
+        "pay_as_you_go": "On-demand GPU capacity bills by use; some capacity is by contract.",
+        "standard": "A contracted account."
+      },
+      "cli": {
+        "name": "kubectl",
+        "install": {
+          "windows": "winget install Kubernetes.kubectl",
+          "mac": "brew install kubectl",
+          "linux": "Follow https://kubernetes.io/docs/tasks/tools/"
+        },
+        "login": "Download the kubeconfig from the CoreWeave console",
+        "whoami": "kubectl config current-context",
+        "env": "KUBECONFIG"
+      },
+      "credential_console": [
+        "Sign in to the CoreWeave console and create an access token (Tokens, Create).",
+        "Open Kubernetes, Cluster, and download the kubeconfig."
+      ],
+      "budget_console": [
+        "Contact your CoreWeave account team for spending alerts; check the console billing page often, since GPUs are costly."
+      ],
       "region": "Choose the data-center region that has the GPU type you need.",
-      "console_deploy": ["Create a CKS cluster in the console, download its kubeconfig, then apply the files in kubernetes/ with kubectl. Add the GPU settings described in coreweave/README.md."],
+      "console_deploy": [
+        "Create a CKS cluster in the console, download its kubeconfig, then apply the files in kubernetes/ with kubectl. Add the GPU settings described in coreweave/README.md."
+      ],
       "teardown": "kubectl delete -k kubernetes/   (then delete the cluster in the console)",
       "cli_for_images": ""
     },
     "lambdalabs": {
-      "name": "Lambda Cloud", "signup": "https://cloud.lambda.ai/sign-up", "console": "https://cloud.lambda.ai/",
-      "free": {"free_trial": "Read the current terms at sign-up.", "free_tier": "There is no free tier.", "pay_as_you_go": "GPU instances bill by the hour. A card is required.", "standard": "A paid account."},
-      "cli": {"name": "curl (built in)", "install": {"windows": "Built in to Windows 10 and later", "mac": "Built in", "linux": "Built in"}, "login": "export LAMBDA_API_KEY=your-key", "whoami": "", "env": "LAMBDA_API_KEY"},
-      "credential_console": ["Sign in at cloud.lambda.ai.", "Open API keys, Generate API key, and copy it once.", "Open SSH keys, Add SSH key, and paste your public key."],
-      "budget_console": ["Open Billing. GPU instances are costly and bill hourly; terminate them when you stop."],
+      "name": "Lambda Cloud",
+      "signup": "https://cloud.lambda.ai/sign-up",
+      "console": "https://cloud.lambda.ai/",
+      "free": {
+        "free_trial": "Read the current terms at sign-up.",
+        "free_tier": "There is no free tier.",
+        "pay_as_you_go": "GPU instances bill by the hour. A card is required.",
+        "standard": "A paid account."
+      },
+      "cli": {
+        "name": "curl (built in)",
+        "install": {
+          "windows": "Built in to Windows 10 and later",
+          "mac": "Built in",
+          "linux": "Built in"
+        },
+        "login": "export LAMBDA_API_KEY=your-key",
+        "whoami": "",
+        "env": "LAMBDA_API_KEY"
+      },
+      "credential_console": [
+        "Sign in at cloud.lambda.ai.",
+        "Open API keys, Generate API key, and copy it once.",
+        "Open SSH keys, Add SSH key, and paste your public key."
+      ],
+      "budget_console": [
+        "Open Billing. GPU instances are costly and bill hourly; terminate them when you stop."
+      ],
       "region": "Choose a region that has the GPU type you need in stock.",
-      "console_deploy": ["Click Launch instance, choose the GPU type and region, choose your SSH key, and launch. Then add its address to ansible/inventory/production.ini and run the playbook."],
+      "console_deploy": [
+        "Click Launch instance, choose the GPU type and region, choose your SSH key, and launch. Then add its address to ansible/inventory/production.ini and run the playbook."
+      ],
       "teardown": "Terminate the instance in the console (Instances, Terminate).",
       "cli_for_images": ""
     },
     "runpod": {
-      "name": "RunPod", "signup": "https://www.runpod.io/console/signup", "console": "https://www.runpod.io/console",
-      "free": {"free_trial": "Read the current terms at sign-up.", "free_tier": "There is no free tier; you add credit first.", "pay_as_you_go": "You add credit and pods bill by the second.", "standard": "A paid account."},
-      "cli": {"name": "curl (built in)", "install": {"windows": "Built in to Windows 10 and later", "mac": "Built in", "linux": "Built in"}, "login": "export RUNPOD_API_KEY=your-key", "whoami": "", "env": "RUNPOD_API_KEY"},
-      "credential_console": ["Sign in at runpod.io and add credit under Billing.", "Open Settings, API Keys, Create API Key, and copy it once."],
-      "budget_console": ["Pods bill from your credit balance; set auto-pay off so it cannot refill unexpectedly, and stop pods you are not using."],
+      "name": "RunPod",
+      "signup": "https://www.runpod.io/console/signup",
+      "console": "https://www.runpod.io/console",
+      "free": {
+        "free_trial": "Read the current terms at sign-up.",
+        "free_tier": "There is no free tier; you add credit first.",
+        "pay_as_you_go": "You add credit and pods bill by the second.",
+        "standard": "A paid account."
+      },
+      "cli": {
+        "name": "curl (built in)",
+        "install": {
+          "windows": "Built in to Windows 10 and later",
+          "mac": "Built in",
+          "linux": "Built in"
+        },
+        "login": "export RUNPOD_API_KEY=your-key",
+        "whoami": "",
+        "env": "RUNPOD_API_KEY"
+      },
+      "credential_console": [
+        "Sign in at runpod.io and add credit under Billing.",
+        "Open Settings, API Keys, Create API Key, and copy it once."
+      ],
+      "budget_console": [
+        "Pods bill from your credit balance; set auto-pay off so it cannot refill unexpectedly, and stop pods you are not using."
+      ],
       "region": "Choose a data center that has the GPU type you need.",
-      "console_deploy": ["Click Pods, Deploy, choose a GPU, set the container image, expose the HTTP port, and deploy. For the serverless design click Serverless, New Endpoint."],
+      "console_deploy": [
+        "Click Pods, Deploy, choose a GPU, set the container image, expose the HTTP port, and deploy. For the serverless design click Serverless, New Endpoint."
+      ],
       "teardown": "Open Pods and Terminate the pod (Stop keeps the disk, which still bills).",
       "cli_for_images": ""
     },
     "togetherai": {
-      "name": "Together AI", "signup": "https://api.together.ai/", "console": "https://api.together.ai/",
-      "free": {"free_trial": "Read the current terms at sign-up.", "free_tier": "There is no free tier for dedicated endpoints.", "pay_as_you_go": "Dedicated endpoints bill by the hour while running.", "standard": "A paid account."},
-      "cli": {"name": "curl (built in)", "install": {"windows": "Built in to Windows 10 and later", "mac": "Built in", "linux": "Built in"}, "login": "export TOGETHER_API_KEY=your-key", "whoami": "", "env": "TOGETHER_API_KEY"},
-      "credential_console": ["Sign in at api.together.ai.", "Open Settings, API Keys, and copy your key."],
-      "budget_console": ["Open Billing and set a usage limit; dedicated endpoints bill while they run, so stop them when idle."],
+      "name": "Together AI",
+      "signup": "https://api.together.ai/",
+      "console": "https://api.together.ai/",
+      "free": {
+        "free_trial": "Read the current terms at sign-up.",
+        "free_tier": "There is no free tier for dedicated endpoints.",
+        "pay_as_you_go": "Dedicated endpoints bill by the hour while running.",
+        "standard": "A paid account."
+      },
+      "cli": {
+        "name": "curl (built in)",
+        "install": {
+          "windows": "Built in to Windows 10 and later",
+          "mac": "Built in",
+          "linux": "Built in"
+        },
+        "login": "export TOGETHER_API_KEY=your-key",
+        "whoami": "",
+        "env": "TOGETHER_API_KEY"
+      },
+      "credential_console": [
+        "Sign in at api.together.ai.",
+        "Open Settings, API Keys, and copy your key."
+      ],
+      "budget_console": [
+        "Open Billing and set a usage limit; dedicated endpoints bill while they run, so stop them when idle."
+      ],
       "region": "Endpoints are placed by Together AI on the hardware you choose.",
-      "console_deploy": ["Open Dedicated Endpoints, Create endpoint, choose the model and hardware, set minimum and maximum replicas, and create it."],
+      "console_deploy": [
+        "Open Dedicated Endpoints, Create endpoint, choose the model and hardware, set minimum and maximum replicas, and create it."
+      ],
       "teardown": "Open Dedicated Endpoints and Delete the endpoint.",
       "cli_for_images": ""
     },
     "databricks": {
-      "name": "Databricks", "signup": "https://www.databricks.com/try-databricks", "console": "https://accounts.cloud.databricks.com/",
-      "free": {"free_trial": "A free trial or free edition exists with limits. Read the current terms.", "free_tier": "The free edition has serverless-only limits.", "pay_as_you_go": "Billed per Databricks unit used, plus cloud costs.", "standard": "A paid workspace."},
-      "cli": {"name": "Databricks CLI", "install": {"windows": "winget install Databricks.DatabricksCLI", "mac": "brew tap databricks/tap && brew install databricks", "linux": "curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh"}, "login": "databricks auth login --host WORKSPACE_URL", "whoami": "databricks current-user me", "env": ""},
-      "credential_console": ["Sign up and create a workspace.", "Copy the workspace URL from the browser address bar."],
-      "budget_console": ["Open the account console, Usage, Budgets, and create a budget with alerts."],
+      "name": "Databricks",
+      "signup": "https://www.databricks.com/try-databricks",
+      "console": "https://accounts.cloud.databricks.com/",
+      "free": {
+        "free_trial": "A free trial or free edition exists with limits. Read the current terms.",
+        "free_tier": "The free edition has serverless-only limits.",
+        "pay_as_you_go": "Billed per Databricks unit used, plus cloud costs.",
+        "standard": "A paid workspace."
+      },
+      "cli": {
+        "name": "Databricks CLI",
+        "install": {
+          "windows": "winget install Databricks.DatabricksCLI",
+          "mac": "brew tap databricks/tap && brew install databricks",
+          "linux": "curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh"
+        },
+        "login": "databricks auth login --host WORKSPACE_URL",
+        "whoami": "databricks current-user me",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign up and create a workspace.",
+        "Copy the workspace URL from the browser address bar."
+      ],
+      "budget_console": [
+        "Open the account console, Usage, Budgets, and create a budget with alerts."
+      ],
       "region": "Workspaces live in one cloud region chosen at creation.",
-      "console_deploy": ["Open Compute, Apps, Create app, and upload the app folder with its app.yaml; or use databricks bundle deploy."],
+      "console_deploy": [
+        "Open Compute, Apps, Create app, and upload the app folder with its app.yaml; or use databricks bundle deploy."
+      ],
       "teardown": "databricks bundle destroy -t production",
       "cli_for_images": ""
     },
     "snowflake": {
-      "name": "Snowflake", "signup": "https://signup.snowflake.com/", "console": "https://app.snowflake.com/",
-      "free": {"free_trial": "A free trial with credits is offered for a limited time. Read the current terms.", "free_tier": "There is no always-free tier.", "pay_as_you_go": "On-demand credits bill for compute used.", "standard": "A paid account."},
-      "cli": {"name": "Snowflake CLI", "install": {"windows": "pip install snowflake-cli", "mac": "brew install snowflake-cli", "linux": "pip install snowflake-cli"}, "login": "snow connection add", "whoami": "snow connection test", "env": ""},
-      "credential_console": ["Sign up and note your account identifier (Admin, Accounts).", "Create a user with a role that can create compute pools and services."],
-      "budget_console": ["Open Admin, Cost management, Resource monitors, and create one with a credit quota and a suspend action."],
+      "name": "Snowflake",
+      "signup": "https://signup.snowflake.com/",
+      "console": "https://app.snowflake.com/",
+      "free": {
+        "free_trial": "A free trial with credits is offered for a limited time. Read the current terms.",
+        "free_tier": "There is no always-free tier.",
+        "pay_as_you_go": "On-demand credits bill for compute used.",
+        "standard": "A paid account."
+      },
+      "cli": {
+        "name": "Snowflake CLI",
+        "install": {
+          "windows": "pip install snowflake-cli",
+          "mac": "brew install snowflake-cli",
+          "linux": "pip install snowflake-cli"
+        },
+        "login": "snow connection add",
+        "whoami": "snow connection test",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign up and note your account identifier (Admin, Accounts).",
+        "Create a user with a role that can create compute pools and services."
+      ],
+      "budget_console": [
+        "Open Admin, Cost management, Resource monitors, and create one with a credit quota and a suspend action."
+      ],
       "region": "The account's cloud and region are fixed when it is created.",
-      "console_deploy": ["Open a SQL worksheet and run snowflake/setup.sql after uploading the spec files and pushing the images to your image repository."],
+      "console_deploy": [
+        "Open a SQL worksheet and run snowflake/setup.sql after uploading the spec files and pushing the images to your image repository."
+      ],
       "teardown": "DROP SERVICE ... ; DROP COMPUTE POOL ... in a worksheet.",
       "cli_for_images": "snow spcs image-registry login"
+    },
+    "huggingface": {
+      "name": "Hugging Face Spaces",
+      "signup": "https://huggingface.co/join",
+      "console": "https://huggingface.co/spaces",
+      "free": {
+        "free_trial": "Spaces has free hardware that sleeps when idle. Read the current terms on the pricing page.",
+        "free_tier": "Free hardware is available; upgraded hardware and storage are paid. Read the pricing page for the current limits.",
+        "pay_as_you_go": "Upgraded hardware is billed while it runs. A card is required.",
+        "standard": "An organisation account with a paid plan."
+      },
+      "cli": {
+        "name": "Hugging Face Hub client",
+        "install": {
+          "windows": "pip install -U huggingface_hub",
+          "mac": "pip install -U huggingface_hub",
+          "linux": "pip install -U huggingface_hub"
+        },
+        "login": "hf auth login",
+        "whoami": "hf auth whoami",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in at huggingface.co and open Settings, then Access Tokens.",
+        "Create a token with write access and copy it once. Keep it in your terminal only: `export HF_TOKEN=...` (macOS, Linux) or `$env:HF_TOKEN=\"...\"` (PowerShell)."
+      ],
+      "budget_console": [
+        "Open Settings, Billing and check the hardware of each Space. Free hardware has no charge; choose upgraded hardware only when you need it."
+      ],
+      "region": "Spaces has no region choice; it runs where Hugging Face places it.",
+      "console_deploy": [
+        "Click New, then Space, choose Docker as the SDK and a name, and create it empty.",
+        "Upload the unit's folder (with its Dockerfile) and the README.md from huggingface/UNIT/ so the page starts with the YAML block.",
+        "Open the Space, Settings, and add each value from huggingface/app-settings.env.example under Variables and secrets."
+      ],
+      "teardown": "Open the Space, Settings, scroll to the bottom and choose Delete this Space.",
+      "cli_for_images": ""
+    },
+    "cloudfoundry": {
+      "name": "Cloud Foundry",
+      "signup": "https://www.cloudfoundry.org/",
+      "console": "Your operator's Apps Manager or dashboard address",
+      "free": {
+        "free_trial": "Many operators give a trial organisation. Ask yours or read their sign-up page.",
+        "free_tier": "Cloud Foundry itself is free software; what you can use for free depends on the operator who runs it.",
+        "pay_as_you_go": "Billing is set by your operator, often per memory used per month.",
+        "standard": "An organisation and space given to you by your platform team or provider."
+      },
+      "cli": {
+        "name": "Cloud Foundry CLI (cf)",
+        "install": {
+          "windows": "Download the installer from https://docs.cloudfoundry.org/cf-cli/install-go-cli.html",
+          "mac": "brew install cloudfoundry/tap/cf-cli@8",
+          "linux": "Follow the package instructions at https://docs.cloudfoundry.org/cf-cli/install-go-cli.html"
+        },
+        "login": "cf login -a YOUR-API-ADDRESS",
+        "whoami": "cf target",
+        "env": ""
+      },
+      "credential_console": [
+        "Ask your operator for the API address, and sign in with your company account or the user they gave you.",
+        "Choose the organisation and space when `cf login` asks."
+      ],
+      "budget_console": [
+        "Ask your operator how usage is billed and what quota your organisation has. Check it with `cf org YOUR-ORG`."
+      ],
+      "region": "The platform's API address decides the region; there is nothing to choose in the manifest.",
+      "console_deploy": [
+        "Open your operator's dashboard and select your organisation and space.",
+        "Cloud Foundry apps are normally pushed from the terminal; the dashboard can show, scale and restart them.",
+        "Run `bash cloudfoundry/deploy.sh` from the terminal to create the services and push the apps."
+      ],
+      "teardown": "Run `cf delete APP -r -f` for each app and `cf delete-service NAME -f` for each service.",
+      "cli_for_images": ""
+    },
+    "koyeb": {
+      "name": "Koyeb",
+      "signup": "https://app.koyeb.com/auth/signup",
+      "console": "https://app.koyeb.com/",
+      "free": {
+        "free_trial": "New accounts may get free credit. Read the current terms at sign-up.",
+        "free_tier": "Koyeb has a free instance type with limits. Read the pricing page for what is included today.",
+        "pay_as_you_go": "Usage is billed per second for the instances you run. A card is required.",
+        "standard": "An organisation on a paid plan."
+      },
+      "cli": {
+        "name": "Koyeb CLI",
+        "install": {
+          "windows": "Download a release from https://github.com/koyeb/koyeb-cli/releases",
+          "mac": "brew install koyeb/tap/koyeb",
+          "linux": "curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh"
+        },
+        "login": "koyeb login",
+        "whoami": "koyeb organizations list",
+        "env": ""
+      },
+      "credential_console": [
+        "Sign in at app.koyeb.com. In the organisation settings, open API, create an access token and copy it once.",
+        "Run `koyeb login` and paste the token when asked, or set it in the KOYEB_TOKEN environment variable."
+      ],
+      "budget_console": [
+        "Open the organisation's Billing page and set a usage alert so a surprise shows up early."
+      ],
+      "region": "Choose the region with --regions on the CLI or in the service settings.",
+      "console_deploy": [
+        "Click Create Service, choose GitHub, and select the repository.",
+        "Choose Dockerfile as the builder and set the Dockerfile location from koyeb/deploy.sh.",
+        "Set the port and path from the plan, add the environment values from koyeb/app-settings.env.example as secrets, and deploy."
+      ],
+      "teardown": "Run `koyeb app delete APP-NAME` for each app, or delete the app in the dashboard.",
+      "cli_for_images": ""
+    },
+    "civo": {
+      "name": "Civo",
+      "signup": "https://dashboard.civo.com/signup",
+      "console": "https://dashboard.civo.com/",
+      "free": {
+        "free_trial": "New accounts may get a trial credit. Read the current terms at sign-up.",
+        "free_tier": "Plans change; read the pricing page for any free allowance.",
+        "pay_as_you_go": "Usage is billed by the hour. A card is required.",
+        "standard": "A team account on a paid plan."
+      },
+      "cli": {
+        "name": "Civo CLI",
+        "install": {
+          "windows": "Download from https://github.com/civo/cli/releases",
+          "mac": "brew install civo",
+          "linux": "curl -sL https://civo.com/get | sh"
+        },
+        "login": "civo apikey save NAME TOKEN",
+        "whoami": "civo region ls",
+        "env": "CIVO_TOKEN"
+      },
+      "credential_console": [
+        "Sign in at dashboard.civo.com and open Account, then Security.",
+        "Copy the API key shown there once and keep it in your terminal only: `export CIVO_TOKEN=...` (macOS, Linux) or `$env:CIVO_TOKEN=\"...\"` (PowerShell)."
+      ],
+      "budget_console": [
+        "Open Billing in the dashboard and review the cluster size and database size before you apply; Civo bills by the hour."
+      ],
+      "region": "Choose the region in the provider block (the `region` variable), for example NYC1, LON1 or FRA1.",
+      "console_deploy": [
+        "Open Kubernetes in the dashboard to see the cluster after `terraform apply`.",
+        "Download the kubeconfig from the cluster page, or use `terraform output -raw kubeconfig`."
+      ],
+      "teardown": "Run `terraform destroy` in the terraform folder; it removes the cluster, database, network and firewall.",
+      "cli_for_images": ""
+    },
+    "upcloud": {
+      "name": "UpCloud",
+      "signup": "https://signup.upcloud.com/",
+      "console": "https://hub.upcloud.com/",
+      "free": {
+        "free_trial": "New accounts may get a trial credit. Read the current terms at sign-up.",
+        "free_tier": "Plans change; read the pricing page for any free allowance.",
+        "pay_as_you_go": "Usage is billed by the hour with a monthly cap on most resources. A card is required.",
+        "standard": "A team account on a paid plan."
+      },
+      "cli": {
+        "name": "UpCloud CLI (upctl)",
+        "install": {
+          "windows": "Download from https://github.com/UpCloudLtd/upcloud-cli/releases",
+          "mac": "brew tap UpCloudLtd/tap && brew install upcloud-cli",
+          "linux": "Download from https://github.com/UpCloudLtd/upcloud-cli/releases"
+        },
+        "login": "upctl account show",
+        "whoami": "upctl account show",
+        "env": "UPCLOUD_USERNAME"
+      },
+      "credential_console": [
+        "Sign in at hub.upcloud.com. Open People, then Account, and create a subaccount with API access enabled.",
+        "Keep its username and password in your terminal only: `export UPCLOUD_USERNAME=...` and `export UPCLOUD_PASSWORD=...`."
+      ],
+      "budget_console": [
+        "Open Billing in the control panel and check the monthly total of the resources you plan to create."
+      ],
+      "region": "Choose the zone with the `zone` variable, for example de-fra1, fi-hel1 or us-nyc1.",
+      "console_deploy": [
+        "Open Kubernetes in the control panel to see the cluster after `terraform apply`.",
+        "Download the kubeconfig from the cluster page, or use `terraform output -raw kubeconfig`."
+      ],
+      "teardown": "Run `terraform destroy` in the terraform folder. The database has termination protection on; turn it off first.",
+      "cli_for_images": ""
+    },
+    "exoscale": {
+      "name": "Exoscale",
+      "signup": "https://portal.exoscale.com/register",
+      "console": "https://portal.exoscale.com/",
+      "free": {
+        "free_trial": "New accounts may get a trial credit. Read the current terms at sign-up.",
+        "free_tier": "Plans change; read the pricing page for any free allowance.",
+        "pay_as_you_go": "Usage is billed by the hour. A card is required.",
+        "standard": "An organisation on a paid plan."
+      },
+      "cli": {
+        "name": "Exoscale CLI (exo)",
+        "install": {
+          "windows": "Download from https://github.com/exoscale/cli/releases",
+          "mac": "brew install exoscale-cli",
+          "linux": "Download from https://github.com/exoscale/cli/releases"
+        },
+        "login": "exo config",
+        "whoami": "exo config show",
+        "env": "EXOSCALE_API_KEY"
+      },
+      "credential_console": [
+        "Sign in at portal.exoscale.com, open IAM, then API Keys, and create a key.",
+        "Keep the key and secret in your terminal only: `export EXOSCALE_API_KEY=...` and `export EXOSCALE_API_SECRET=...`."
+      ],
+      "budget_console": [
+        "Open Billing in the portal and check the resources you plan to create; compute is billed by the hour."
+      ],
+      "region": "Choose the zone with the `zone` variable, for example ch-gva-2, de-fra-1 or at-vie-1.",
+      "console_deploy": [
+        "Open Compute, then SKS in the portal to see the cluster after `terraform apply`.",
+        "Use `terraform output -raw kubeconfig` for the kubeconfig."
+      ],
+      "teardown": "Run `terraform destroy` in the terraform folder. The database has termination protection on; turn it off first.",
+      "cli_for_images": ""
     }
   }
 }

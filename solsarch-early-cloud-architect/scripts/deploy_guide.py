@@ -11,6 +11,8 @@ what to do if you do not. It never quotes a price; amounts and free-offer terms 
 import json
 from pathlib import Path
 
+from iac_common import IMAGE_TAG, shq
+
 REF = Path(__file__).resolve().parent.parent / "references" / "deploy-guides.json"
 FOLDER = "infrastructure"
 
@@ -22,15 +24,15 @@ ACCOUNT_LABELS = {
 }
 
 PLATFORM_FLOW = {"render", "flyio", "railway", "heroku", "vercel", "netlify", "cloudflare", "denodeploy", "fastly", "firebase", "supabase",
-                 "databricks", "snowflake", "runpod", "togetherai", "lambdalabs"}
+                 "databricks", "snowflake", "runpod", "togetherai", "lambdalabs", "huggingface", "cloudfoundry", "koyeb"}
 MAJOR = {"aws", "azure", "gcp"}
 TWO_PHASE = {"digitalocean", "scaleway", "oci", "alibaba", "huawei", "ibm"}
-K8S = {"linode", "akamai", "vultr", "ovhcloud"}
+K8S = {"linode", "akamai", "vultr", "ovhcloud", "civo", "upcloud", "exoscale"}
 DATA = {"neon", "mongodbatlas"}
 PLATFORM_FOLDER = {"render": "render", "flyio": "fly", "railway": "railway", "heroku": "heroku", "vercel": "vercel", "netlify": "netlify",
                    "cloudflare": "cloudflare", "denodeploy": "deno", "fastly": "fastly", "firebase": "firebase", "supabase": "supabase",
                    "databricks": "databricks", "snowflake": "snowflake", "runpod": "runpod", "togetherai": "together", "lambdalabs": "lambdalabs",
-                   "coreweave": "coreweave"}
+                   "coreweave": "coreweave", "huggingface": "huggingface", "cloudfoundry": "cloudfoundry", "koyeb": "koyeb"}
 
 GLOSSARY = [
     ("Cloud account", "Your login with a company that rents out computers (AWS, Azure, Google and others). It holds your bill."),
@@ -182,8 +184,8 @@ def image_commands(design, entry, provider, registry_hint):
             continue
         folder = u["folder"].strip("./") or "."
         docker = u.get("dockerfile") or ("%s/docker/%s/Dockerfile" % (FOLDER, u["name"]))
-        lines.append("docker build -f %s -t %s/%s:latest %s" % (docker, registry_hint, u["name"], folder))
-        lines.append("docker push %s/%s:latest" % (registry_hint, u["name"]))
+        lines.append("docker build -f %s -t %s/%s:%s %s" % (shq(docker), registry_hint, u["name"], IMAGE_TAG, shq(folder)))
+        lines.append("docker push %s/%s:%s" % (registry_hint, u["name"], IMAGE_TAG))
     return "\n".join(lines)
 
 
@@ -200,7 +202,14 @@ def apply_flow(provider, entry, name, design, manifest, account):
                 "Open `backend.hcl` in any text editor (Notepad is fine) and paste the bucket or storage account name that 5a printed. Save it.", "",
                 "**5c. Fill in your settings.**", "", "Copy `terraform.tfvars.example` to `terraform.tfvars`, open it, and change the values it marks REPLACE.", ""]
         apply_cmd = "terraform init -backend-config=backend.hcl\nterraform plan\nterraform apply" + (" -var project_id=YOUR_PROJECT_ID" if provider == "gcp" else "")
-        out += ["**5d. Build the first half.**", "", block(apply_cmd),
+        first_half = "the networks, databases and the shelf for your images"
+        if provider == "aws" and manifest.get("compute_model") == "serverless":
+            # A function cannot be created before its image exists, so the first apply makes only the image repositories.
+            from iac_common import ident
+            targets = " ".join("-target=aws_ecr_repository.%s" % ident(u["name"]) for u in design["units"] if u["kind"] != "static")
+            apply_cmd = chr(10).join(["terraform init -backend-config=backend.hcl", "terraform plan " + targets, "terraform apply " + targets])
+            first_half = "only the shelves (image repositories) your functions will be built from"
+        out += ["**5d. Build the first half** (%s)." % first_half, "", block(apply_cmd),
                 expect("`plan` lists what will be created and ends with `Plan: N to add, 0 to change, 0 to destroy`. After you type `yes` for `apply`, it runs for 10 to 30 minutes and ends with `Apply complete!`. The databases take the longest."),
                 fails("if it stops with `quota` or `limit`, see the note in Step 1 for your account type. If it stops part-way, run `terraform apply` again; it carries on where it stopped."), ""]
         out += ["**5e. Put your application on the shelf (the registry).**", "",
@@ -208,6 +217,8 @@ def apply_flow(provider, entry, name, design, manifest, account):
         reg = {"aws": "REPOSITORY_URL_FROM_TERRAFORM_OUTPUT", "azure": "REGISTRY_LOGIN_SERVER", "gcp": "REGION-docker.pkg.dev/PROJECT/REPOSITORY"}[provider]
         out += [block(entry.get("cli_for_images", "")), "Print the registry address with `terraform output`, then:", "", block(image_commands(design, entry, provider, reg)),
                 expect("`pushed` lines ending in a digest (a long code). It can take several minutes for the first push."),
+                ("**Version numbers.** The registry never overwrites a version, so each new build needs a new number. The first push uses `%s`. To deploy a change, "
+                 "build and push with the next number (for example `0.1.1`) and run `terraform apply -var image_tag=0.1.1`." % IMAGE_TAG) if provider == "aws" else "",
                 fails("`unauthorized` means the sign-in line above expired: run it again."), ""]
         out += ["**5f. Start the application.**", "", block("terraform apply" + (" -var project_id=YOUR_PROJECT_ID" if provider == "gcp" else "")),
                 expect("`Apply complete!` again. The services now start from the images you pushed."), ""]

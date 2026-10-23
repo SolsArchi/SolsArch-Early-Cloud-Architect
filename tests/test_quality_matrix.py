@@ -19,6 +19,7 @@ import recommend
 import solsarch
 import static_check
 from test_eval_score import build_repo
+from test_iac import spa
 
 # provider -> (gate checks that are expected to fail, why). Matched on the account type given.
 DATA_ONLY = ("neon", "mongodbatlas")  # databases, not application hosts: nothing to deploy the app to
@@ -56,10 +57,10 @@ class Matrix(unittest.TestCase):
             else:
                 os.environ[k] = v
 
-    def evaluate(self, provider, mode, account):
-        repo = self.tmp / ("%s_%s_%s" % (provider, mode, account))
+    def evaluate(self, provider, mode, account, builder=build_repo):
+        repo = self.tmp / ("%s_%s_%s_%s" % (provider, mode, account, builder.__name__))
         repo.mkdir()
-        build_repo(repo)
+        builder(repo)
         scan = ast_scanner.scan(repo)
         state = repo / ".solsarch"
         state.mkdir()
@@ -94,6 +95,16 @@ class Matrix(unittest.TestCase):
                         if not failing:
                             self.assertEqual(result["blockers"], [])
                             self.assertEqual(result["contradictions"], [])
+
+    def test_a_static_site_gets_no_failing_gate_on_any_provider(self):
+        """A single-page app has no running service, so no cloud may build a network, a cluster or a NAT gateway for it."""
+        for provider in providers.hosting_ids():
+            if provider in DATA_ONLY:
+                continue
+            with self.subTest(provider=provider):
+                result = self.evaluate(provider, "server", "standard", builder=spa)
+                self.assertEqual(self.failing(result), set(), result["contradictions"][:3])
+                self.assertFalse([r for r in result["contradictions"] if "nat_gateway" in r])
 
     def test_expected_failures_are_really_failing(self):
         for (provider, account, mode), (ids, _why) in ((k, v) for k, v in EXPECTED.items() if len(k) == 3):

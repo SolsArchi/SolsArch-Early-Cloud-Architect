@@ -14,7 +14,7 @@ exists only because a unit was detected or a plan decision asked for it.
 """
 import json
 import re
-from xml.sax.saxutils import escape
+from xmltext import escape
 
 from iac_common import Files, slug
 from iac_k8s import dump

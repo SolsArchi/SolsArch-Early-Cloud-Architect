@@ -1,0 +1,13 @@
+# Settings for the gitleaks secret scanner (https://github.com/gitleaks/gitleaks).
+# The tests need strings that look like credentials so they can prove the scanner finds real ones. New tests build those strings at
+# run time, but an early commit still holds a few fake values, so the test folder is allowed here. Nothing outside tests/ is.
+title = "SolsArch gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake credentials used as test data"
+paths = [
+  '''tests/''',
+]

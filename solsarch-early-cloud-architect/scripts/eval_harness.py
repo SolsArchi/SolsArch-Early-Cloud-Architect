@@ -18,7 +18,10 @@ import json
 import re
 import sys
 import tempfile
-import tomllib
+try:
+    import tomllib  # Python 3.11 and newer; older versions skip the TOML syntax check
+except ImportError:  # pragma: no cover
+    tomllib = None
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -96,7 +99,7 @@ def evaluate(provider, mode, sample, baseline):
         if path.endswith(".tf") and iac_common.check_balanced(text, path):
             bad.append(path)
         try:
-            if path.endswith(".toml"):
+            if path.endswith(".toml") and tomllib is not None:
                 tomllib.loads(text)
             elif path.endswith(".json"):
                 json.loads(text)

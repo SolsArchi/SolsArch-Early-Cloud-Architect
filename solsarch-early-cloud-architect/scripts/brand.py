@@ -146,7 +146,7 @@ def _viewbox(root_tag):
     return x, y, w, h
 
 
-WATERMARK_LINE = "Prepared with SolsArch Early Cloud Architect | https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect"
+WATERMARK_LINE = "Prepared with SolsArch Early Cloud Architect | https://solsarch.com/ | https://github.com/SolsArchi/SolsArch-Early-Cloud-Architect"
 
 
 def watermark_markdown(text):

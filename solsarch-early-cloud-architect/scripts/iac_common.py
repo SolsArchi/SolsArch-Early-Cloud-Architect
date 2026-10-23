@@ -128,6 +128,119 @@ def selfrun(model, key):
     return "container" in (d.get("service") or "").lower() or (d.get("short") or "").lower().startswith("self-run")
 
 
+# Checks from scanners such as Checkov that this design answers differently on purpose. Each entry says why in one sentence, and the
+# sentence is written into the Terraform file next to the resource, so a reviewer sees the decision instead of a silent exemption.
+# The reasons name the trade-off (a monthly charge, a premium tier, a public address that is the point of the resource) and avoid colons,
+# which Checkov uses to split the id from the reason.
+SCANNER_SKIPS = {
+    "aws_lambda_function_url": [("CKV_AWS_258", "A public web address is the purpose of this resource and sign-in is the application's job")],
+    "aws_lambda_permission": [("CKV_AWS_301", "Public access to the function URL is intended and sign-in is the application's job")],
+    "aws_lambda_function": [
+        ("CKV_AWS_117", "Not in a VPC on purpose because a VPC needs a NAT gateway that bills every hour; a function joins a VPC only when a data store in this account needs it"),
+        ("CKV_AWS_116", "Web requests are answered synchronously and scheduled calls are retried by EventBridge Scheduler so a dead-letter queue adds nothing"),
+        ("CKV_AWS_115", "No reserved concurrency so the account limit and the free allowance apply; set one when the traffic is known"),
+        ("CKV_AWS_272", "Images are scanned in the registry; code signing needs a signing profile that each team sets up"),
+        ("CKV_AWS_173", "Environment variables are encrypted at rest with the AWS-managed Lambda key; a customer key adds a monthly charge")],
+    "aws_cloudwatch_log_group": [
+        ("CKV_AWS_158", "Encrypted with the AWS-managed key; a customer key adds a monthly charge"),
+        ("CKV_AWS_338", "Retention is the log_retention_days variable and a short default keeps logs inside the free allowance")],
+    "aws_ecr_repository": [("CKV_AWS_136", "Encrypted with AES-256; a customer key adds a monthly charge")],
+    "aws_sns_topic": [("CKV_AWS_26", "CloudWatch cannot publish to a topic encrypted with the AWS-managed key and a customer key adds a monthly charge")],
+    "aws_scheduler_schedule": [("CKV_AWS_297", "The payload holds no secret so the AWS-managed key is enough")],
+    "aws_s3_bucket": [
+        ("CKV_AWS_18", "Access logging for this bucket is optional and adds storage"),
+        ("CKV_AWS_144", "Cross-region replication doubles storage and is a disaster-recovery choice"),
+        ("CKV_AWS_145", "Encrypted with AES-256; a customer key adds a monthly charge"),
+        ("CKV2_AWS_62", "Nothing in this design consumes bucket events"),
+        ("CKV_AWS_21", "Log files are written once and never changed so versioning would only add storage")],
+    "aws_secretsmanager_secret": [
+        ("CKV_AWS_149", "Encrypted with the AWS-managed key; a customer key adds a monthly charge"),
+        ("CKV2_AWS_57", "Rotation needs a rotation function that depends on what the secret protects")],
+    "aws_docdb_cluster": [("CKV_AWS_182", "Encrypted with the AWS-managed key; a customer key adds a monthly charge")],
+    "aws_elasticache_replication_group": [
+        ("CKV_AWS_191", "Encrypted with the AWS-managed key; a customer key adds a monthly charge"),
+        ("CKV_AWS_31", "Traffic is encrypted and a security group limits access to the application; an auth token is an optional extra")],
+    "aws_lb_target_group": [("CKV_AWS_378", "Traffic between the load balancer and the containers stays inside private subnets")],
+    "aws_vpc_security_group_ingress_rule": [("CKV_AWS_260", "Port 80 only redirects visitors to https")],
+    "aws_lb": [("CKV2_AWS_28", "A web application firewall is added by the edge decision when the plan has one")],
+    "aws_cloudfront_distribution": [
+        ("CKV_AWS_305", "The application answers every path itself so there is no single root object"),
+        ("CKV_AWS_86", "Access logging adds storage; turn it on when you need it"),
+        ("CKV_AWS_310", "Origin failover needs a second origin that this design does not have"),
+        ("CKV_AWS_374", "Geo restriction depends on where the visitors are"),
+        ("CKV_AWS_174", "The minimum TLS version can be set only with a certificate for your own domain"),
+        ("CKV2_AWS_42", "A custom certificate needs a domain name that the owner supplies"),
+        ("CKV2_AWS_47", "The managed rule set for this is part of the web application firewall when the plan has one")],
+    "aws_vpc": [("CKV2_AWS_11", "Flow logs are turned on when compliance requirements are set; otherwise they add cost")],
+    "aws_ssm_parameter": [("CKV_AWS_337", "Encrypted with the AWS-managed key at no charge; a customer key adds a monthly charge")],
+    "aws_wafv2_web_acl": [("CKV2_AWS_31", "Logging needs a destination that you choose; turn it on when you need it")],
+    "aws_ecs_task_definition": [("CKV_AWS_336", "Frameworks write temporary files; set a read-only root file system with a tmp volume once the application is checked")],
+    "azurerm_storage_account": [
+        ("CKV_AZURE_59", "Public blob access is off; the network rules stay open so Terraform can reach the account from a laptop or a pipeline"),
+        ("CKV_AZURE_33", "Queue service logging is not used by this account"),
+        ("CKV2_AZURE_33", "A private endpoint needs a network that the state account is created before"),
+        ("CKV2_AZURE_38", "Blob versioning protects the state; soft delete is a further option"),
+        ("CKV2_AZURE_1", "Encrypted with platform-managed keys; a customer-managed key adds a vault to run"),
+        ("CKV2_AZURE_40", "Terraform's backend can use the account key on the first run; switch to Entra ID sign-in afterwards"),
+        ("CKV2_AZURE_41", "Shared access signatures are not issued for this account"),
+        ("CKV_AZURE_206", "Locally redundant storage keeps cost low; choose a geo-redundant type for production data")],
+    "azurerm_storage_container": [("CKV2_AZURE_21", "Read logging for the state container adds cost")],
+    "azurerm_container_registry": [
+        ("CKV_AZURE_237", "A premium-tier feature; the cheaper tier is used"), ("CKV_AZURE_166", "A premium-tier feature; the cheaper tier is used"),
+        ("CKV_AZURE_167", "A premium-tier feature; the cheaper tier is used"), ("CKV_AZURE_165", "A premium-tier feature; the cheaper tier is used"),
+        ("CKV_AZURE_139", "The registry stays reachable so pipelines and developers can push images; access needs a sign-in"),
+        ("CKV_AZURE_164", "Content trust is a premium-tier feature")],
+    "azurerm_key_vault": [
+        ("CKV_AZURE_189", "The vault stays reachable so pipelines can read secrets; access needs Entra ID and RBAC and purge protection is on"),
+        ("CKV_AZURE_109", "Firewall rules depend on where your pipeline runs"),
+        ("CKV2_AZURE_32", "A private endpoint needs a network that is not part of every design")],
+    "azurerm_cosmosdb_account": [
+        ("CKV_AZURE_132", "Management-plane changes are limited by RBAC roles you assign"),
+        ("CKV_AZURE_100", "Encrypted with platform-managed keys; a customer-managed key adds a vault to run")],
+    "azurerm_service_plan": [("CKV_AZURE_212", "One instance keeps the monthly cost low; raise it for production"),
+                              ("CKV_AZURE_225", "Zone redundancy needs a premium plan")],
+    "azurerm_application_gateway": [
+        ("CKV_AZURE_217", "Plain http is served only until a domain and certificate are added and then it redirects to https"),
+        ("CKV_AZURE_218", "The listener protocols follow the certificate; add the certificate and the policy applies")],
+    "azurerm_subnet": [("CKV2_AZURE_31", "Traffic is limited by the services' own firewalls and private endpoints; add a network security group for a stricter layout")],
+    "google_storage_bucket": [("CKV_GCP_62", "Access logging adds storage; turn it on when you need it")],
+    "google_artifact_registry_repository": [("CKV_GCP_84", "Encrypted with Google-managed keys; a customer key adds a monthly charge")],
+    "google_compute_subnetwork": [("CKV_GCP_26", "Flow logs are turned on when compliance requirements are set; otherwise they add cost")],
+}
+# The same idea for Trivy, which reads "#trivy:ignore:ID" on the line above a resource. The reason goes on the comment line before it.
+TRIVY_IGNORES = {
+    "aws_sns_topic": [("AWS-0095", "CloudWatch cannot publish to a topic encrypted with the AWS-managed key and a customer key adds a monthly charge")],
+    "aws_s3_bucket_server_side_encryption_configuration": [("AWS-0132", "Encrypted with AES-256; a customer key adds a monthly charge")],
+    "aws_lb": [("AWS-0053", "A public web address is the purpose of a load balancer in front of a web application")],
+    "aws_lb_listener": [("AWS-0054", "Plain http is served only until a domain and certificate are added and then it redirects to https")],
+    "aws_vpc_security_group_egress_rule": [("AWS-0104", "The application calls out over https to package mirrors and model APIs through the NAT gateway")],
+    "azurerm_storage_account": [("AZU-0012", "Terraform and the function runtime must reach the account; tighten the network rules once private access is set up")],
+    "azurerm_key_vault": [("AZU-0013", "Pipelines must read and write secrets; access needs Entra ID and RBAC and purge protection is on")],
+}
+RESOURCE_HEADER = re.compile(r'^(?P<indent>\s*)resource "(?P<type>[a-z0-9_]+)" "[^"]+" \{\s*$')
+
+
+def with_scanner_notes(text):
+    """Insert the reasoned exemptions from SCANNER_SKIPS right under the header of each resource that has them."""
+    out = []
+    for line in text.split(chr(10)):
+        m = RESOURCE_HEADER.match(line)
+        if m and m.group("type") in TRIVY_IGNORES:
+            pad = m.group("indent")
+            out += ["%s# %s" % (pad, why) for _, why in TRIVY_IGNORES[m.group("type")][:1]]
+            out += ["%s#trivy:ignore:%s" % (pad, rid) for rid, _ in TRIVY_IGNORES[m.group("type")]]
+        out.append(line)
+        if m and m.group("type") in SCANNER_SKIPS:
+            pad = m.group("indent") + "  "
+            out += ["%s#checkov:skip=%s:%s" % (pad, cid, why) for cid, why in SCANNER_SKIPS[m.group("type")]]
+    return chr(10).join(out)
+
+
+# The tag the generated files expect for the first image of each unit. A fixed version, never "latest": a tag that moves makes it
+# impossible to say which code is running or to roll back.
+IMAGE_TAG = "0.1.0"
+
+
 class Files:
     """The generated files of one run, keyed by their path inside the output folder."""
 
@@ -136,9 +249,14 @@ class Files:
         self.fingerprint = plan_fingerprint
 
     def add(self, path, text, header=True):
+        parts = str(path).replace(chr(92), '/').split('/')
+        if not path or str(path).startswith('/') or '..' in parts or ':' in parts[0]:
+            raise ValueError('a generated file path must stay inside the output folder: %r' % (path,))
         text = text.replace("\r\n", "\n")
         if not text.endswith("\n"):
             text += "\n"
+        if path.endswith('.tf'):
+            text = with_scanner_notes(text)
         if header:
             text = stamp(path, text, self.fingerprint)
         self.files[path] = text
@@ -353,7 +471,7 @@ def app_env_example(model):
     if not names:
         return ""
     lines = ["# Settings and secrets the application reads. Fill these in; do not commit real values.", "# app_env = {"]
-    lines += ['#   %s = "REPLACE-me"' % n for n in names] + ["# }"]
+    lines += ['#   %s = "CHANGE_ME"' % n for n in names] + ["# }"]
     return chr(10).join(lines) + chr(10)
 
 
@@ -377,3 +495,17 @@ def add_app_env_files(files, model):
 def merged_env(model, base):
     """An HCL map of environment variables: the fixed ones, plus every entry of app_env when the code reads settings."""
     return "merge(%s, var.app_env)" % base if model.settings else base
+
+
+def shq(text):
+    """A string as one safe word for a shell. Repository paths can hold spaces, quotes, semicolons and $(...), and the scripts written
+    here are run by a person, so every repository-derived value that lands in a shell command goes through this."""
+    import shlex
+    return shlex.quote(str(text))
+
+
+def hcl_str(text):
+    """A value made safe to put between double quotes in Terraform. Besides quotes and backslashes, ${ and %{ start expressions in HCL,
+    so a repository folder named a${file("/etc/passwd")} must not be able to run one."""
+    return (str(text).replace("\\", "\\\\").replace('"', '\\"').replace(chr(10), "\n").replace(chr(13), "\r")
+            .replace("${", "$${").replace("%{", "%%{"))

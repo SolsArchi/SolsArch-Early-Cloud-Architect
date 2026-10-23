@@ -1,0 +1,7 @@
+# Settings for Trivy (https://trivy.dev). tests/fixtures holds small sample projects that the scanner is tested against. Some are
+# deliberately unsafe (a Dockerfile that runs as root, for instance) so the tests can prove SolsArch reports them.
+# dist/ is the built zip and is not committed.
+scan:
+  skip-dirs:
+    - tests/fixtures
+    - dist

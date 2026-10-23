@@ -3,141 +3,1127 @@
   "note": "Infrastructure clouds without the breadth of the global clouds. A self-managed service runs on your own server or container; the report says you run, patch and back it up yourself.",
   "providers": {
     "digitalocean": {
-      "name": "DigitalOcean", "kind": "cloud", "brand": {"fill": "#0080FF", "stroke": "#00408A", "text": "#FFFFFF"},
-      "domains": ["digitalocean.com", "docs.digitalocean.com", "www.digitalocean.com"], "pricing_page": "https://www.digitalocean.com/pricing",
+      "name": "DigitalOcean",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#0080FF",
+        "stroke": "#00408A",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "digitalocean.com",
+        "docs.digitalocean.com",
+        "www.digitalocean.com"
+      ],
+      "pricing_page": "https://www.digitalocean.com/pricing",
       "overlay": [],
       "services": {
         "compute": {
-          "server": ["DigitalOcean App Platform", "App Platform", "Builds and runs your containers with automatic deploys, HTTPS and scaling."],
-          "serverless": ["DigitalOcean Functions", "Functions", "Runs your code per request and scales automatically.", {"caveat": "Each invocation has a time limit, and streaming routes need testing."}]
+          "server": [
+            "DigitalOcean App Platform",
+            "App Platform",
+            "Builds and runs your containers with automatic deploys, HTTPS and scaling."
+          ],
+          "serverless": [
+            "DigitalOcean Functions",
+            "Functions",
+            "Runs your code per request and scales automatically.",
+            {
+              "caveat": "Each invocation has a time limit, and streaming routes need testing."
+            }
+          ]
         },
-        "ingress": {"any": ["DigitalOcean Load Balancers", "Load Balancers", "Receives HTTPS traffic and forwards it to your application."]},
-        "edge": {"any": ["DigitalOcean Spaces CDN", "Spaces CDN", "Serves cached content close to users.", {"caveat": "There is no first-party web application firewall; add Cloudflare in front if you need one."}]},
-        "network": {"any": ["DigitalOcean VPC", "VPC", "A private network for your servers and databases."]},
-        "egress": {"any": ["DigitalOcean VPC NAT Gateway", "NAT Gateway", "Lets private resources call outside services without being reachable from the internet."]},
-        "db_postgres": {"any": ["DigitalOcean Managed PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with automatic backups and standby nodes."]},
-        "db_mysql": {"any": ["DigitalOcean Managed MySQL", "Managed MySQL", "A managed MySQL with automatic backups and standby nodes."]},
-        "db_mongo": {"any": ["DigitalOcean Managed MongoDB", "Managed MongoDB", "A managed MongoDB."]},
-        "cache": {"any": ["DigitalOcean Managed Caching (Valkey)", "Managed Valkey", "A managed Redis-compatible in-memory store used for caching and as a job queue broker."]},
-        "queue_kafka": {"any": ["DigitalOcean Managed Kafka", "Managed Kafka", "A managed Apache Kafka."]},
-        "search": {"any": ["DigitalOcean Managed OpenSearch", "Managed OpenSearch", "A managed OpenSearch cluster."]},
-        "storage": {"any": ["DigitalOcean Spaces", "Spaces", "S3-compatible object storage for files, uploads and backups."]},
-        "static_site": {"any": ["DigitalOcean App Platform static sites", "Static sites", "Builds and serves your front end from a CDN."]},
-        "secrets": {"any": ["App Platform encrypted environment variables", "Encrypted env vars", "Encrypted values handed to your app.", {"builtin": true, "caveat": "DigitalOcean has no separate secrets vault; use a vault of your own for rotation and audit trails."}]},
-        "registry": {"any": ["DigitalOcean Container Registry", "Container Registry", "Stores your container images."]},
-        "observability": {"any": ["DigitalOcean Monitoring and log forwarding", "Monitoring", "Collects metrics and alerts, and forwards logs to other tools."]},
-        "gpu": {"any": ["DigitalOcean GPU Droplets", "GPU Droplets", "GPU machines for hosting your own models."]}
+        "ingress": {
+          "any": [
+            "DigitalOcean Load Balancers",
+            "Load Balancers",
+            "Receives HTTPS traffic and forwards it to your application."
+          ]
+        },
+        "edge": {
+          "any": [
+            "DigitalOcean Spaces CDN",
+            "Spaces CDN",
+            "Serves cached content close to users.",
+            {
+              "caveat": "There is no first-party web application firewall; add Cloudflare in front if you need one."
+            }
+          ]
+        },
+        "network": {
+          "any": [
+            "DigitalOcean VPC",
+            "VPC",
+            "A private network for your servers and databases."
+          ]
+        },
+        "egress": {
+          "any": [
+            "DigitalOcean VPC NAT Gateway",
+            "NAT Gateway",
+            "Lets private resources call outside services without being reachable from the internet."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "DigitalOcean Managed PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with automatic backups and standby nodes."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "DigitalOcean Managed MySQL",
+            "Managed MySQL",
+            "A managed MySQL with automatic backups and standby nodes."
+          ]
+        },
+        "db_mongo": {
+          "any": [
+            "DigitalOcean Managed MongoDB",
+            "Managed MongoDB",
+            "A managed MongoDB."
+          ]
+        },
+        "cache": {
+          "any": [
+            "DigitalOcean Managed Caching (Valkey)",
+            "Managed Valkey",
+            "A managed Redis-compatible in-memory store used for caching and as a job queue broker."
+          ]
+        },
+        "queue_kafka": {
+          "any": [
+            "DigitalOcean Managed Kafka",
+            "Managed Kafka",
+            "A managed Apache Kafka."
+          ]
+        },
+        "search": {
+          "any": [
+            "DigitalOcean Managed OpenSearch",
+            "Managed OpenSearch",
+            "A managed OpenSearch cluster."
+          ]
+        },
+        "storage": {
+          "any": [
+            "DigitalOcean Spaces",
+            "Spaces",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "static_site": {
+          "any": [
+            "DigitalOcean App Platform static sites",
+            "Static sites",
+            "Builds and serves your front end from a CDN."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "App Platform encrypted environment variables",
+            "Encrypted env vars",
+            "Encrypted values handed to your app.",
+            {
+              "builtin": true,
+              "caveat": "DigitalOcean has no separate secrets vault; use a vault of your own for rotation and audit trails."
+            }
+          ]
+        },
+        "registry": {
+          "any": [
+            "DigitalOcean Container Registry",
+            "Container Registry",
+            "Stores your container images."
+          ]
+        },
+        "observability": {
+          "any": [
+            "DigitalOcean Monitoring and log forwarding",
+            "Monitoring",
+            "Collects metrics and alerts, and forwards logs to other tools."
+          ]
+        },
+        "gpu": {
+          "any": [
+            "DigitalOcean GPU Droplets",
+            "GPU Droplets",
+            "GPU machines for hosting your own models."
+          ]
+        }
       },
-      "gaps": {"queue_rabbitmq": "Run RabbitMQ in a container on a Droplet, or use CloudAMQP.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "managed_ai": "Check DigitalOcean's current hosted-model offering, or call a model provider directly."}
+      "gaps": {
+        "queue_rabbitmq": "Run RabbitMQ in a container on a Droplet, or use CloudAMQP.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "managed_ai": "Check DigitalOcean's current hosted-model offering, or call a model provider directly."
+      }
     },
     "hetzner": {
-      "name": "Hetzner Cloud", "kind": "cloud", "brand": {"fill": "#D50C2D", "stroke": "#7A0618", "text": "#FFFFFF"},
-      "domains": ["hetzner.com", "docs.hetzner.com", "docs.hetzner.cloud", "www.hetzner.com"], "pricing_page": "https://www.hetzner.com/cloud/",
-      "overlay": [],
-      "services": {
-        "compute": {"any": ["Hetzner Cloud Servers running Docker", "Cloud Servers", "Virtual servers you run your containers on, configured with Ansible.", {"selfmanaged": true, "caveat": "Hetzner has no managed container service; you run and patch the servers yourself."}]},
-        "ingress": {"any": ["Hetzner Load Balancers", "Load Balancers", "Receives HTTPS traffic and forwards it to your servers."]},
-        "network": {"any": ["Hetzner Cloud Networks and Firewalls", "Networks + Firewalls", "A private network and firewall rules for your servers."]},
-        "db_postgres": {"any": ["PostgreSQL in a container on a Hetzner Cloud Server", "Self-run PostgreSQL", "A PostgreSQL you run yourself on a server with a volume.", {"selfmanaged": true, "caveat": "You run, patch and back this up yourself; Hetzner has no managed database."}]},
-        "db_mysql": {"any": ["MySQL in a container on a Hetzner Cloud Server", "Self-run MySQL", "A MySQL you run yourself on a server with a volume.", {"selfmanaged": true, "caveat": "You run, patch and back this up yourself; Hetzner has no managed database."}]},
-        "db_mongo": {"any": ["MongoDB in a container on a Hetzner Cloud Server", "Self-run MongoDB", "A MongoDB you run yourself on a server with a volume.", {"selfmanaged": true, "caveat": "You run, patch and back this up yourself; consider MongoDB Atlas instead."}]},
-        "cache": {"any": ["Redis in a container on a Hetzner Cloud Server", "Self-run Redis", "A Redis you run yourself next to your app.", {"selfmanaged": true, "caveat": "You run and patch this yourself."}]},
-        "storage": {"any": ["Hetzner Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
-        "secrets": {"any": ["Ansible Vault on the deploy host", "Ansible Vault", "Encrypted secret files applied by Ansible.", {"selfmanaged": true, "caveat": "Hetzner has no secrets manager; consider HashiCorp Vault or a hosted secrets service for rotation."}]},
-        "observability": {"any": ["Prometheus, Grafana and Loki in containers", "Self-run observability", "Metrics and logs collected by tools you run yourself.", {"selfmanaged": true, "caveat": "Hetzner has no monitoring service of its own; you run and store these yourself."}]}
+      "name": "Hetzner Cloud",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#D50C2D",
+        "stroke": "#7A0618",
+        "text": "#FFFFFF"
       },
-      "gaps": {"serverless": "Hetzner has no functions service; the server-based model is used.", "edge": "Put Cloudflare or another CDN and firewall in front.", "egress": "Servers have public addresses; restrict them with Cloud Firewalls.", "registry": "Use a registry from GitHub, GitLab or Docker Hub.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_kafka": "Run Kafka yourself or use Confluent Cloud.", "gpu": "Hetzner offers dedicated GPU servers through its server auction and dedicated range; check current availability."}
-    },
-    "linode": {
-      "name": "Linode", "kind": "cloud", "brand": {"fill": "#00A95C", "stroke": "#005A30", "text": "#FFFFFF"},
-      "domains": ["linode.com", "www.linode.com", "techdocs.akamai.com"], "pricing_page": "https://www.linode.com/pricing/",
-      "overlay": [],
-      "services": {
-        "compute": {"any": ["Linode Kubernetes Engine (LKE)", "LKE", "Runs your containers on managed Kubernetes.", {"caveat": "Adds Kubernetes you would have to operate."}]},
-        "ingress": {"any": ["Linode NodeBalancers", "NodeBalancers", "Receives HTTPS traffic and forwards it to your application."]},
-        "network": {"any": ["Linode VPC and Cloud Firewall", "VPC + Firewall", "A private network and firewall rules for your servers."]},
-        "db_postgres": {"any": ["Linode Managed Databases for PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with backups."]},
-        "db_mysql": {"any": ["Linode Managed Databases for MySQL", "Managed MySQL", "A managed MySQL with backups."]},
-        "cache": {"any": ["Redis in a container on LKE", "Self-run Redis", "A Redis you run yourself on the cluster.", {"selfmanaged": true, "caveat": "You run and patch this yourself."}]},
-        "storage": {"any": ["Linode Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
-        "gpu": {"any": ["Linode GPU instances", "GPU instances", "GPU machines for hosting your own models."]},
-        "secrets": {"any": ["Kubernetes Secrets on LKE", "Kubernetes Secrets", "Secret values handed to your pods.", {"selfmanaged": true, "caveat": "Enable encryption at rest or use an external secrets manager."}]},
-        "observability": {"any": ["Prometheus and Grafana on LKE", "Self-run observability", "Metrics collected by tools you run yourself.", {"selfmanaged": true}]}
-      },
-      "gaps": {"serverless": "Linode has no functions service; the server-based model is used.", "edge": "Use Akamai or Cloudflare in front.", "db_mongo": "Use MongoDB Atlas.", "registry": "Use a registry from GitHub, GitLab or Docker Hub.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_kafka": "Run Kafka on LKE or use Confluent Cloud."}
-    },
-    "ovhcloud": {
-      "name": "OVHcloud", "kind": "cloud", "brand": {"fill": "#123F6D", "stroke": "#0A2340", "text": "#FFFFFF"},
-      "domains": ["ovhcloud.com", "help.ovhcloud.com", "www.ovhcloud.com", "docs.ovh.com"], "pricing_page": "https://www.ovhcloud.com/en/public-cloud/prices/",
-      "overlay": [],
-      "services": {
-        "compute": {"any": ["OVHcloud Managed Kubernetes Service", "Managed Kubernetes", "Runs your containers on managed Kubernetes.", {"caveat": "Adds Kubernetes you would have to operate."}]},
-        "ingress": {"any": ["OVHcloud Public Cloud Load Balancer", "Load Balancer", "Receives HTTPS traffic and forwards it to your application."]},
-        "edge": {"any": ["OVHcloud CDN with Anti-DDoS", "CDN + Anti-DDoS", "Serves cached content and absorbs traffic floods.", {"caveat": "Check whether a web application firewall is included for your plan."}]},
-        "network": {"any": ["OVHcloud vRack private network", "vRack", "A private network for your servers and databases."]},
-        "egress": {"any": ["OVHcloud Public Cloud Gateway", "Gateway", "Lets private resources call outside services without being reachable from the internet."]},
-        "db_postgres": {"any": ["OVHcloud Managed Databases for PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with backups and standby nodes."]},
-        "db_mysql": {"any": ["OVHcloud Managed Databases for MySQL", "Managed MySQL", "A managed MySQL with backups and standby nodes."]},
-        "db_mongo": {"any": ["OVHcloud Managed Databases for MongoDB", "Managed MongoDB", "A managed MongoDB."]},
-        "cache": {"any": ["OVHcloud Managed Databases for Valkey", "Managed Valkey", "A managed Redis-compatible in-memory store used for caching and as a job queue broker."]},
-        "queue_kafka": {"any": ["OVHcloud Managed Databases for Apache Kafka", "Managed Kafka", "A managed Apache Kafka."]},
-        "search": {"any": ["OVHcloud Managed Databases for OpenSearch", "Managed OpenSearch", "A managed OpenSearch cluster."]},
-        "storage": {"any": ["OVHcloud Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
-        "registry": {"any": ["OVHcloud Managed Private Registry", "Managed Registry", "Stores your container images."]},
-        "observability": {"any": ["OVHcloud Logs Data Platform", "Logs Data Platform", "Collects and searches logs."]},
-        "gpu": {"any": ["OVHcloud GPU instances", "GPU instances", "GPU machines for hosting your own models."]},
-        "managed_ai": {"any": ["OVHcloud AI Endpoints", "AI Endpoints", "Hosted open models behind an API."]}
-      },
-      "gaps": {"serverless": "OVHcloud has no general functions service; the server-based model is used.", "secrets": "Use Kubernetes Secrets with encryption at rest, or an external secrets manager.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_rabbitmq": "Run RabbitMQ on Kubernetes or use CloudAMQP."}
-    },
-    "scaleway": {
-      "name": "Scaleway", "kind": "cloud", "brand": {"fill": "#4F0599", "stroke": "#2A0352", "text": "#FFFFFF"},
-      "domains": ["scaleway.com", "www.scaleway.com"], "pricing_page": "https://www.scaleway.com/en/pricing/",
+      "domains": [
+        "hetzner.com",
+        "docs.hetzner.com",
+        "docs.hetzner.cloud",
+        "www.hetzner.com"
+      ],
+      "pricing_page": "https://www.hetzner.com/cloud/",
       "overlay": [],
       "services": {
         "compute": {
-          "server": ["Scaleway Serverless Containers (minimum scale 1)", "Serverless Containers", "Runs your containers with HTTPS and autoscaling, kept warm with a minimum scale of one."],
-          "serverless": ["Scaleway Serverless Containers (scale to zero)", "Serverless Containers", "Runs your containers per request and scales to zero when idle.", {"caveat": "The first request after an idle period waits for a container to start."}]
+          "any": [
+            "Hetzner Cloud Servers running Docker",
+            "Cloud Servers",
+            "Virtual servers you run your containers on, configured with Ansible.",
+            {
+              "selfmanaged": true,
+              "caveat": "Hetzner has no managed container service; you run and patch the servers yourself."
+            }
+          ]
         },
-        "ingress": {"any": ["Scaleway Load Balancer", "Load Balancer", "Receives HTTPS traffic and forwards it to your application."]},
-        "edge": {"any": ["Scaleway Edge Services", "Edge Services", "CDN caching and web application firewall in front of your application."]},
-        "network": {"any": ["Scaleway VPC and Private Networks", "VPC", "Puts databases and caches on private networks with no route from the internet."]},
-        "egress": {"any": ["Scaleway Public Gateway", "Public Gateway", "Lets private resources call outside services without being reachable from the internet."]},
-        "db_postgres": {"any": ["Scaleway Managed Database for PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with backups and standby nodes."]},
-        "db_mysql": {"any": ["Scaleway Managed Database for MySQL", "Managed MySQL", "A managed MySQL with backups and standby nodes."]},
-        "db_mongo": {"any": ["Scaleway Managed MongoDB", "Managed MongoDB", "A managed MongoDB.", {"caveat": "Check the current availability of Scaleway's MongoDB service; MongoDB Atlas is the alternative."}]},
-        "cache": {"any": ["Scaleway Managed Database for Redis", "Managed Redis", "A managed Redis used for caching and as a job queue broker."]},
-        "storage": {"any": ["Scaleway Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
-        "static_site": {"any": ["Scaleway Object Storage with Edge Services", "Object Storage + Edge", "Hosts built static files and serves them from the CDN."]},
-        "secrets": {"any": ["Scaleway Secret Manager", "Secret Manager", "Stores credentials and hands them to the application at run time."]},
-        "registry": {"any": ["Scaleway Container Registry", "Container Registry", "Stores your container images."]},
-        "observability": {"any": ["Scaleway Cockpit", "Cockpit", "Collects logs, metrics and traces and shows them in Grafana."]},
-        "gpu": {"any": ["Scaleway GPU Instances", "GPU Instances", "GPU machines for hosting your own models."]},
-        "managed_ai": {"any": ["Scaleway Generative APIs", "Generative APIs", "Hosted open models behind an API."]}
+        "ingress": {
+          "any": [
+            "Hetzner Load Balancers",
+            "Load Balancers",
+            "Receives HTTPS traffic and forwards it to your servers."
+          ]
+        },
+        "network": {
+          "any": [
+            "Hetzner Cloud Networks and Firewalls",
+            "Networks + Firewalls",
+            "A private network and firewall rules for your servers."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "PostgreSQL in a container on a Hetzner Cloud Server",
+            "Self-run PostgreSQL",
+            "A PostgreSQL you run yourself on a server with a volume.",
+            {
+              "selfmanaged": true,
+              "caveat": "You run, patch and back this up yourself; Hetzner has no managed database."
+            }
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "MySQL in a container on a Hetzner Cloud Server",
+            "Self-run MySQL",
+            "A MySQL you run yourself on a server with a volume.",
+            {
+              "selfmanaged": true,
+              "caveat": "You run, patch and back this up yourself; Hetzner has no managed database."
+            }
+          ]
+        },
+        "db_mongo": {
+          "any": [
+            "MongoDB in a container on a Hetzner Cloud Server",
+            "Self-run MongoDB",
+            "A MongoDB you run yourself on a server with a volume.",
+            {
+              "selfmanaged": true,
+              "caveat": "You run, patch and back this up yourself; consider MongoDB Atlas instead."
+            }
+          ]
+        },
+        "cache": {
+          "any": [
+            "Redis in a container on a Hetzner Cloud Server",
+            "Self-run Redis",
+            "A Redis you run yourself next to your app.",
+            {
+              "selfmanaged": true,
+              "caveat": "You run and patch this yourself."
+            }
+          ]
+        },
+        "storage": {
+          "any": [
+            "Hetzner Object Storage",
+            "Object Storage",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Ansible Vault on the deploy host",
+            "Ansible Vault",
+            "Encrypted secret files applied by Ansible.",
+            {
+              "selfmanaged": true,
+              "caveat": "Hetzner has no secrets manager; consider HashiCorp Vault or a hosted secrets service for rotation."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus, Grafana and Loki in containers",
+            "Self-run observability",
+            "Metrics and logs collected by tools you run yourself.",
+            {
+              "selfmanaged": true,
+              "caveat": "Hetzner has no monitoring service of its own; you run and store these yourself."
+            }
+          ]
+        }
       },
-      "gaps": {"identity": "Use a hosted sign-in service such as Clerk or Auth0.", "queue_kafka": "Use Confluent Cloud or Scaleway's NATS-based messaging for simpler needs.", "queue_rabbitmq": "Run RabbitMQ in a container or use CloudAMQP.", "search": "Use a hosted search service such as Elastic Cloud."}
+      "gaps": {
+        "serverless": "Hetzner has no functions service; the server-based model is used.",
+        "edge": "Put Cloudflare or another CDN and firewall in front.",
+        "egress": "Servers have public addresses; restrict them with Cloud Firewalls.",
+        "registry": "Use a registry from GitHub, GitLab or Docker Hub.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "queue_kafka": "Run Kafka yourself or use Confluent Cloud.",
+        "gpu": "Hetzner offers dedicated GPU servers through its server auction and dedicated range; check current availability."
+      }
     },
-    "vultr": {
-      "name": "Vultr", "kind": "cloud", "brand": {"fill": "#007BFC", "stroke": "#003F82", "text": "#FFFFFF"},
-      "domains": ["vultr.com", "www.vultr.com", "docs.vultr.com"], "pricing_page": "https://www.vultr.com/pricing/",
+    "linode": {
+      "name": "Linode",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#00A95C",
+        "stroke": "#005A30",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "linode.com",
+        "www.linode.com",
+        "techdocs.akamai.com"
+      ],
+      "pricing_page": "https://www.linode.com/pricing/",
       "overlay": [],
       "services": {
-        "compute": {"any": ["Vultr Kubernetes Engine (VKE)", "VKE", "Runs your containers on managed Kubernetes.", {"caveat": "Adds Kubernetes you would have to operate."}]},
-        "ingress": {"any": ["Vultr Load Balancer", "Load Balancer", "Receives HTTPS traffic and forwards it to your application."]},
-        "edge": {"any": ["Vultr CDN", "CDN", "Serves cached content close to users.", {"caveat": "There is no first-party web application firewall; add Cloudflare in front if you need one."}]},
-        "network": {"any": ["Vultr VPC 2.0 and Firewall", "VPC + Firewall", "A private network and firewall rules for your servers."]},
-        "db_postgres": {"any": ["Vultr Managed Databases for PostgreSQL", "Managed PostgreSQL", "A managed PostgreSQL with backups."]},
-        "db_mysql": {"any": ["Vultr Managed Databases for MySQL", "Managed MySQL", "A managed MySQL with backups."]},
-        "cache": {"any": ["Vultr Managed Databases for Valkey", "Managed Valkey", "A managed Redis-compatible in-memory store used for caching and as a job queue broker."]},
-        "queue_kafka": {"any": ["Vultr Managed Databases for Apache Kafka", "Managed Kafka", "A managed Apache Kafka."]},
-        "storage": {"any": ["Vultr Object Storage", "Object Storage", "S3-compatible object storage for files, uploads and backups."]},
-        "registry": {"any": ["Vultr Container Registry", "Container Registry", "Stores your container images."]},
-        "gpu": {"any": ["Vultr Cloud GPU", "Cloud GPU", "GPU machines for hosting your own models."]},
-        "managed_ai": {"any": ["Vultr Serverless Inference", "Serverless Inference", "Hosted open models behind an API."]},
-        "secrets": {"any": ["Kubernetes Secrets on VKE", "Kubernetes Secrets", "Secret values handed to your pods.", {"selfmanaged": true, "caveat": "Enable encryption at rest or use an external secrets manager."}]},
-        "observability": {"any": ["Prometheus and Grafana on VKE", "Self-run observability", "Metrics collected by tools you run yourself.", {"selfmanaged": true}]}
+        "compute": {
+          "any": [
+            "Linode Kubernetes Engine (LKE)",
+            "LKE",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Linode NodeBalancers",
+            "NodeBalancers",
+            "Receives HTTPS traffic and forwards it to your application."
+          ]
+        },
+        "network": {
+          "any": [
+            "Linode VPC and Cloud Firewall",
+            "VPC + Firewall",
+            "A private network and firewall rules for your servers."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "Linode Managed Databases for PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with backups."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "Linode Managed Databases for MySQL",
+            "Managed MySQL",
+            "A managed MySQL with backups."
+          ]
+        },
+        "cache": {
+          "any": [
+            "Redis in a container on LKE",
+            "Self-run Redis",
+            "A Redis you run yourself on the cluster.",
+            {
+              "selfmanaged": true,
+              "caveat": "You run and patch this yourself."
+            }
+          ]
+        },
+        "storage": {
+          "any": [
+            "Linode Object Storage",
+            "Object Storage",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "gpu": {
+          "any": [
+            "Linode GPU instances",
+            "GPU instances",
+            "GPU machines for hosting your own models."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Kubernetes Secrets on LKE",
+            "Kubernetes Secrets",
+            "Secret values handed to your pods.",
+            {
+              "selfmanaged": true,
+              "caveat": "Enable encryption at rest or use an external secrets manager."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus and Grafana on LKE",
+            "Self-run observability",
+            "Metrics collected by tools you run yourself.",
+            {
+              "selfmanaged": true
+            }
+          ]
+        }
       },
-      "gaps": {"serverless": "Vultr has no functions service; the server-based model is used.", "db_mongo": "Use MongoDB Atlas.", "identity": "Use a hosted sign-in service such as Clerk or Auth0.", "search": "Use a hosted search service such as Elastic Cloud."}
+      "gaps": {
+        "serverless": "Linode has no functions service; the server-based model is used.",
+        "edge": "Use Akamai or Cloudflare in front.",
+        "db_mongo": "Use MongoDB Atlas.",
+        "registry": "Use a registry from GitHub, GitLab or Docker Hub.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "queue_kafka": "Run Kafka on LKE or use Confluent Cloud."
+      }
+    },
+    "ovhcloud": {
+      "name": "OVHcloud",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#123F6D",
+        "stroke": "#0A2340",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "ovhcloud.com",
+        "help.ovhcloud.com",
+        "www.ovhcloud.com",
+        "docs.ovh.com"
+      ],
+      "pricing_page": "https://www.ovhcloud.com/en/public-cloud/prices/",
+      "overlay": [],
+      "services": {
+        "compute": {
+          "any": [
+            "OVHcloud Managed Kubernetes Service",
+            "Managed Kubernetes",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "OVHcloud Public Cloud Load Balancer",
+            "Load Balancer",
+            "Receives HTTPS traffic and forwards it to your application."
+          ]
+        },
+        "edge": {
+          "any": [
+            "OVHcloud CDN with Anti-DDoS",
+            "CDN + Anti-DDoS",
+            "Serves cached content and absorbs traffic floods.",
+            {
+              "caveat": "Check whether a web application firewall is included for your plan."
+            }
+          ]
+        },
+        "network": {
+          "any": [
+            "OVHcloud vRack private network",
+            "vRack",
+            "A private network for your servers and databases."
+          ]
+        },
+        "egress": {
+          "any": [
+            "OVHcloud Public Cloud Gateway",
+            "Gateway",
+            "Lets private resources call outside services without being reachable from the internet."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "OVHcloud Managed Databases for PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with backups and standby nodes."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "OVHcloud Managed Databases for MySQL",
+            "Managed MySQL",
+            "A managed MySQL with backups and standby nodes."
+          ]
+        },
+        "db_mongo": {
+          "any": [
+            "OVHcloud Managed Databases for MongoDB",
+            "Managed MongoDB",
+            "A managed MongoDB."
+          ]
+        },
+        "cache": {
+          "any": [
+            "OVHcloud Managed Databases for Valkey",
+            "Managed Valkey",
+            "A managed Redis-compatible in-memory store used for caching and as a job queue broker."
+          ]
+        },
+        "queue_kafka": {
+          "any": [
+            "OVHcloud Managed Databases for Apache Kafka",
+            "Managed Kafka",
+            "A managed Apache Kafka."
+          ]
+        },
+        "search": {
+          "any": [
+            "OVHcloud Managed Databases for OpenSearch",
+            "Managed OpenSearch",
+            "A managed OpenSearch cluster."
+          ]
+        },
+        "storage": {
+          "any": [
+            "OVHcloud Object Storage",
+            "Object Storage",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "registry": {
+          "any": [
+            "OVHcloud Managed Private Registry",
+            "Managed Registry",
+            "Stores your container images."
+          ]
+        },
+        "observability": {
+          "any": [
+            "OVHcloud Logs Data Platform",
+            "Logs Data Platform",
+            "Collects and searches logs."
+          ]
+        },
+        "gpu": {
+          "any": [
+            "OVHcloud GPU instances",
+            "GPU instances",
+            "GPU machines for hosting your own models."
+          ]
+        },
+        "managed_ai": {
+          "any": [
+            "OVHcloud AI Endpoints",
+            "AI Endpoints",
+            "Hosted open models behind an API."
+          ]
+        }
+      },
+      "gaps": {
+        "serverless": "OVHcloud has no general functions service; the server-based model is used.",
+        "secrets": "Use Kubernetes Secrets with encryption at rest, or an external secrets manager.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "queue_rabbitmq": "Run RabbitMQ on Kubernetes or use CloudAMQP."
+      }
+    },
+    "scaleway": {
+      "name": "Scaleway",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#4F0599",
+        "stroke": "#2A0352",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "scaleway.com",
+        "www.scaleway.com"
+      ],
+      "pricing_page": "https://www.scaleway.com/en/pricing/",
+      "overlay": [],
+      "services": {
+        "compute": {
+          "server": [
+            "Scaleway Serverless Containers (minimum scale 1)",
+            "Serverless Containers",
+            "Runs your containers with HTTPS and autoscaling, kept warm with a minimum scale of one."
+          ],
+          "serverless": [
+            "Scaleway Serverless Containers (scale to zero)",
+            "Serverless Containers",
+            "Runs your containers per request and scales to zero when idle.",
+            {
+              "caveat": "The first request after an idle period waits for a container to start."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Scaleway Load Balancer",
+            "Load Balancer",
+            "Receives HTTPS traffic and forwards it to your application."
+          ]
+        },
+        "edge": {
+          "any": [
+            "Scaleway Edge Services",
+            "Edge Services",
+            "CDN caching and web application firewall in front of your application."
+          ]
+        },
+        "network": {
+          "any": [
+            "Scaleway VPC and Private Networks",
+            "VPC",
+            "Puts databases and caches on private networks with no route from the internet."
+          ]
+        },
+        "egress": {
+          "any": [
+            "Scaleway Public Gateway",
+            "Public Gateway",
+            "Lets private resources call outside services without being reachable from the internet."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "Scaleway Managed Database for PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with backups and standby nodes."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "Scaleway Managed Database for MySQL",
+            "Managed MySQL",
+            "A managed MySQL with backups and standby nodes."
+          ]
+        },
+        "db_mongo": {
+          "any": [
+            "Scaleway Managed MongoDB",
+            "Managed MongoDB",
+            "A managed MongoDB.",
+            {
+              "caveat": "Check the current availability of Scaleway's MongoDB service; MongoDB Atlas is the alternative."
+            }
+          ]
+        },
+        "cache": {
+          "any": [
+            "Scaleway Managed Database for Redis",
+            "Managed Redis",
+            "A managed Redis used for caching and as a job queue broker."
+          ]
+        },
+        "storage": {
+          "any": [
+            "Scaleway Object Storage",
+            "Object Storage",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "static_site": {
+          "any": [
+            "Scaleway Object Storage with Edge Services",
+            "Object Storage + Edge",
+            "Hosts built static files and serves them from the CDN."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Scaleway Secret Manager",
+            "Secret Manager",
+            "Stores credentials and hands them to the application at run time."
+          ]
+        },
+        "registry": {
+          "any": [
+            "Scaleway Container Registry",
+            "Container Registry",
+            "Stores your container images."
+          ]
+        },
+        "observability": {
+          "any": [
+            "Scaleway Cockpit",
+            "Cockpit",
+            "Collects logs, metrics and traces and shows them in Grafana."
+          ]
+        },
+        "gpu": {
+          "any": [
+            "Scaleway GPU Instances",
+            "GPU Instances",
+            "GPU machines for hosting your own models."
+          ]
+        },
+        "managed_ai": {
+          "any": [
+            "Scaleway Generative APIs",
+            "Generative APIs",
+            "Hosted open models behind an API."
+          ]
+        }
+      },
+      "gaps": {
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "queue_kafka": "Use Confluent Cloud or Scaleway's NATS-based messaging for simpler needs.",
+        "queue_rabbitmq": "Run RabbitMQ in a container or use CloudAMQP.",
+        "search": "Use a hosted search service such as Elastic Cloud."
+      }
+    },
+    "vultr": {
+      "name": "Vultr",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#007BFC",
+        "stroke": "#003F82",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "vultr.com",
+        "www.vultr.com",
+        "docs.vultr.com"
+      ],
+      "pricing_page": "https://www.vultr.com/pricing/",
+      "overlay": [],
+      "services": {
+        "compute": {
+          "any": [
+            "Vultr Kubernetes Engine (VKE)",
+            "VKE",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Vultr Load Balancer",
+            "Load Balancer",
+            "Receives HTTPS traffic and forwards it to your application."
+          ]
+        },
+        "edge": {
+          "any": [
+            "Vultr CDN",
+            "CDN",
+            "Serves cached content close to users.",
+            {
+              "caveat": "There is no first-party web application firewall; add Cloudflare in front if you need one."
+            }
+          ]
+        },
+        "network": {
+          "any": [
+            "Vultr VPC 2.0 and Firewall",
+            "VPC + Firewall",
+            "A private network and firewall rules for your servers."
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "Vultr Managed Databases for PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with backups."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "Vultr Managed Databases for MySQL",
+            "Managed MySQL",
+            "A managed MySQL with backups."
+          ]
+        },
+        "cache": {
+          "any": [
+            "Vultr Managed Databases for Valkey",
+            "Managed Valkey",
+            "A managed Redis-compatible in-memory store used for caching and as a job queue broker."
+          ]
+        },
+        "queue_kafka": {
+          "any": [
+            "Vultr Managed Databases for Apache Kafka",
+            "Managed Kafka",
+            "A managed Apache Kafka."
+          ]
+        },
+        "storage": {
+          "any": [
+            "Vultr Object Storage",
+            "Object Storage",
+            "S3-compatible object storage for files, uploads and backups."
+          ]
+        },
+        "registry": {
+          "any": [
+            "Vultr Container Registry",
+            "Container Registry",
+            "Stores your container images."
+          ]
+        },
+        "gpu": {
+          "any": [
+            "Vultr Cloud GPU",
+            "Cloud GPU",
+            "GPU machines for hosting your own models."
+          ]
+        },
+        "managed_ai": {
+          "any": [
+            "Vultr Serverless Inference",
+            "Serverless Inference",
+            "Hosted open models behind an API."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Kubernetes Secrets on VKE",
+            "Kubernetes Secrets",
+            "Secret values handed to your pods.",
+            {
+              "selfmanaged": true,
+              "caveat": "Enable encryption at rest or use an external secrets manager."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus and Grafana on VKE",
+            "Self-run observability",
+            "Metrics collected by tools you run yourself.",
+            {
+              "selfmanaged": true
+            }
+          ]
+        }
+      },
+      "gaps": {
+        "serverless": "Vultr has no functions service; the server-based model is used.",
+        "db_mongo": "Use MongoDB Atlas.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "search": "Use a hosted search service such as Elastic Cloud."
+      }
+    },
+    "civo": {
+      "name": "Civo",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#239DFF",
+        "stroke": "#1666A8",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "civo.com",
+        "www.civo.com"
+      ],
+      "pricing_page": "https://www.civo.com/pricing",
+      "overlay": [],
+      "gaps": {
+        "serverless": "Civo has no functions service; the server-based model is used.",
+        "db_mongo": "Use MongoDB Atlas.",
+        "cache": "Run Redis in the cluster, or use a hosted Redis.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "search": "Use a hosted search service such as Elastic Cloud.",
+        "queue_kafka": "Run Kafka in the cluster or use Confluent Cloud."
+      },
+      "services": {
+        "compute": {
+          "any": [
+            "Civo Kubernetes",
+            "Civo Kubernetes",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Kubernetes ingress with a cloud load balancer",
+            "Ingress + load balancer",
+            "Receives HTTPS traffic through an ingress controller and a load balancer the provider creates for it."
+          ]
+        },
+        "network": {
+          "any": [
+            "Private network",
+            "Private network",
+            "A private network for the cluster and, where offered, the database."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Kubernetes Secrets",
+            "Kubernetes Secrets",
+            "Keeps keys and passwords out of code and hands them to the pods.",
+            {
+              "selfmanaged": true,
+              "caveat": "Secrets are stored in the cluster; add an external secrets operator if you need a vault."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus and Grafana in the cluster",
+            "Prometheus + Grafana",
+            "Collects metrics and shows dashboards from inside the cluster.",
+            {
+              "selfmanaged": true
+            }
+          ]
+        },
+        "registry": {
+          "any": [
+            "A container registry of your choice",
+            "Container registry",
+            "Stores the container images the cluster pulls.",
+            {
+              "partner": true,
+              "caveat": "Use any registry the cluster can reach, such as GitHub Container Registry or Docker Hub."
+            }
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "Civo Managed Database (PostgreSQL)",
+            "Civo PostgreSQL",
+            "A managed PostgreSQL on the cluster's private network."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "Civo Managed Database (MySQL)",
+            "Civo MySQL",
+            "A managed MySQL on the cluster's private network."
+          ]
+        },
+        "storage": {
+          "any": [
+            "Civo Object Store",
+            "Civo Object Store",
+            "S3-compatible object storage."
+          ]
+        }
+      }
+    },
+    "upcloud": {
+      "name": "UpCloud",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#7B00E0",
+        "stroke": "#4B0090",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "upcloud.com",
+        "www.upcloud.com"
+      ],
+      "pricing_page": "https://upcloud.com/pricing/",
+      "overlay": [],
+      "gaps": {
+        "serverless": "UpCloud has no functions service; the server-based model is used.",
+        "db_mongo": "Use MongoDB Atlas.",
+        "cache": "UpCloud offers managed Valkey; add it by hand, or run Redis in the cluster.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "search": "UpCloud offers managed OpenSearch; add it by hand.",
+        "queue_kafka": "Run Kafka in the cluster or use Confluent Cloud."
+      },
+      "services": {
+        "compute": {
+          "any": [
+            "UpCloud Managed Kubernetes",
+            "UKS",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Kubernetes ingress with a cloud load balancer",
+            "Ingress + load balancer",
+            "Receives HTTPS traffic through an ingress controller and a load balancer the provider creates for it."
+          ]
+        },
+        "network": {
+          "any": [
+            "Private network",
+            "Private network",
+            "A private network for the cluster and, where offered, the database."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Kubernetes Secrets",
+            "Kubernetes Secrets",
+            "Keeps keys and passwords out of code and hands them to the pods.",
+            {
+              "selfmanaged": true,
+              "caveat": "Secrets are stored in the cluster; add an external secrets operator if you need a vault."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus and Grafana in the cluster",
+            "Prometheus + Grafana",
+            "Collects metrics and shows dashboards from inside the cluster.",
+            {
+              "selfmanaged": true
+            }
+          ]
+        },
+        "registry": {
+          "any": [
+            "A container registry of your choice",
+            "Container registry",
+            "Stores the container images the cluster pulls.",
+            {
+              "partner": true,
+              "caveat": "Use any registry the cluster can reach, such as GitHub Container Registry or Docker Hub."
+            }
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "UpCloud Managed Databases for PostgreSQL",
+            "Managed PostgreSQL",
+            "A managed PostgreSQL with backups, reachable only from your private network."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "UpCloud Managed Databases for MySQL",
+            "Managed MySQL",
+            "A managed MySQL with backups, reachable only from your private network."
+          ]
+        },
+        "storage": {
+          "any": [
+            "UpCloud Managed Object Storage",
+            "Managed Object Storage",
+            "S3-compatible object storage."
+          ]
+        }
+      }
+    },
+    "exoscale": {
+      "name": "Exoscale",
+      "kind": "cloud",
+      "brand": {
+        "fill": "#DA291C",
+        "stroke": "#8F1B12",
+        "text": "#FFFFFF"
+      },
+      "domains": [
+        "exoscale.com",
+        "www.exoscale.com"
+      ],
+      "pricing_page": "https://www.exoscale.com/pricing/",
+      "overlay": [],
+      "gaps": {
+        "serverless": "Exoscale has no functions service; the server-based model is used.",
+        "db_mongo": "Use MongoDB Atlas.",
+        "cache": "Exoscale offers managed Valkey; add it by hand, or run Redis in the cluster.",
+        "identity": "Use a hosted sign-in service such as Clerk or Auth0.",
+        "search": "Exoscale offers managed OpenSearch; add it by hand.",
+        "queue_kafka": "Exoscale offers managed Kafka; add it by hand."
+      },
+      "services": {
+        "compute": {
+          "any": [
+            "Exoscale Scalable Kubernetes Service (SKS)",
+            "SKS",
+            "Runs your containers on managed Kubernetes.",
+            {
+              "caveat": "Adds Kubernetes you would have to operate."
+            }
+          ]
+        },
+        "ingress": {
+          "any": [
+            "Kubernetes ingress with a cloud load balancer",
+            "Ingress + load balancer",
+            "Receives HTTPS traffic through an ingress controller and a load balancer the provider creates for it."
+          ]
+        },
+        "network": {
+          "any": [
+            "Private network",
+            "Private network",
+            "A private network for the cluster and, where offered, the database."
+          ]
+        },
+        "secrets": {
+          "any": [
+            "Kubernetes Secrets",
+            "Kubernetes Secrets",
+            "Keeps keys and passwords out of code and hands them to the pods.",
+            {
+              "selfmanaged": true,
+              "caveat": "Secrets are stored in the cluster; add an external secrets operator if you need a vault."
+            }
+          ]
+        },
+        "observability": {
+          "any": [
+            "Prometheus and Grafana in the cluster",
+            "Prometheus + Grafana",
+            "Collects metrics and shows dashboards from inside the cluster.",
+            {
+              "selfmanaged": true
+            }
+          ]
+        },
+        "registry": {
+          "any": [
+            "A container registry of your choice",
+            "Container registry",
+            "Stores the container images the cluster pulls.",
+            {
+              "partner": true,
+              "caveat": "Use any registry the cluster can reach, such as GitHub Container Registry or Docker Hub."
+            }
+          ]
+        },
+        "db_postgres": {
+          "any": [
+            "Exoscale DBaaS for PostgreSQL",
+            "DBaaS PostgreSQL",
+            "A managed PostgreSQL that only accepts the addresses you allow."
+          ]
+        },
+        "db_mysql": {
+          "any": [
+            "Exoscale DBaaS for MySQL",
+            "DBaaS MySQL",
+            "A managed MySQL that only accepts the addresses you allow."
+          ]
+        },
+        "storage": {
+          "any": [
+            "Exoscale Simple Object Storage (SOS)",
+            "SOS",
+            "S3-compatible object storage."
+          ]
+        }
+      }
     }
   }
 }

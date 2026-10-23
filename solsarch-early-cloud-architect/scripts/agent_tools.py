@@ -160,7 +160,8 @@ def validate(tool, args):
                 return "argument '%s' must be a string" % name
             if "enum" in spec and value not in spec["enum"]:
                 return "argument '%s' must be one of: %s" % (name, ", ".join(spec["enum"]))
-            if name in ("repo", "narrative", "icon_dir", "key", "url", "also", "clouds", "query", "provider", "sarif", "comment") and value.startswith("-"):
+            # a value that starts with "-" and has no space could be read as an option by the program being run
+            if value.startswith("-") and " " not in value:
                 return "argument '%s' must not start with '-'" % name
     return None
 

@@ -144,7 +144,7 @@ class Aws:
             variable "image_tag" {
               type        = string
               description = "Tag of the container images in the repositories created here."
-              default     = "latest"
+              default     = "0.1.0"
             }
 
             variable "log_retention_days" {
@@ -240,6 +240,12 @@ class Aws:
               tags = {
                 Name = local.name
               }
+            }
+
+            # The default security group of a VPC allows traffic between its members. Leaving it with no rules means a resource
+            # that is attached to it by accident can talk to nothing.
+            resource "aws_default_security_group" "main" {
+              vpc_id = aws_vpc.main.id
             }
 
             resource "aws_internet_gateway" "main" {
@@ -593,7 +599,7 @@ class Aws:
             out.append(T("""
                 resource "aws_ecr_repository" "@@n@@" {
                   name                 = "${local.name}/@@name@@"
-                  image_tag_mutability = "MUTABLE"
+                  image_tag_mutability = "IMMUTABLE"
                   force_delete         = false
 
                   image_scanning_configuration {
@@ -627,7 +633,7 @@ class Aws:
                 "encryption_type = \"KMS\"", "encryption_type = \"KMS\"\n    kms_key         = aws_kms_key.main.arn") if False else T("""
                 resource "aws_ecr_repository" "@@n@@" {
                   name                 = "${local.name}/@@name@@"
-                  image_tag_mutability = "MUTABLE"
+                  image_tag_mutability = "IMMUTABLE"
                   force_delete         = false
 
                   image_scanning_configuration {
@@ -930,6 +936,10 @@ class Aws:
                 status = "Enabled"
 
                 filter {}
+
+                abort_incomplete_multipart_upload {
+                  days_after_initiation = 7
+                }
 
                 transition {
                   days          = 30
@@ -1385,6 +1395,16 @@ class Aws:
                   deletion_protection     = var.enable_deletion_protection
                   skip_final_snapshot     = false
                   final_snapshot_identifier = "${local.name}-docdb-final"
+
+                  enabled_cloudwatch_logs_exports = ["audit"]
+
+                  depends_on = [aws_cloudwatch_log_group.docdb_audit]
+                }
+
+                # DocumentDB creates this group by itself with no expiry when it does not exist, so it is created first with one.
+                resource "aws_cloudwatch_log_group" "docdb_audit" {
+                  name              = "/aws/docdb/${local.name}/audit"
+                  retention_in_days = var.log_retention_days
                 }
 
                 resource "aws_docdb_cluster_instance" "main" {
@@ -1959,6 +1979,54 @@ class Aws:
                   sse_algorithm = "AES256"
                 }
               }
+            }
+
+            resource "aws_s3_bucket_lifecycle_configuration" "state" {
+              bucket = aws_s3_bucket.state.id
+
+              rule {
+                id     = "keep-recent-versions"
+                status = "Enabled"
+
+                filter {}
+
+                noncurrent_version_expiration {
+                  noncurrent_days = 90
+                }
+
+                abort_incomplete_multipart_upload {
+                  days_after_initiation = 7
+                }
+              }
+
+              depends_on = [aws_s3_bucket_versioning.state]
+            }
+
+            data "aws_iam_policy_document" "state_tls_only" {
+              statement {
+                sid       = "DenyInsecureTransport"
+                effect    = "Deny"
+                actions   = ["s3:*"]
+                resources = [aws_s3_bucket.state.arn, "${aws_s3_bucket.state.arn}/*"]
+
+                principals {
+                  type        = "*"
+                  identifiers = ["*"]
+                }
+
+                condition {
+                  test     = "Bool"
+                  variable = "aws:SecureTransport"
+                  values   = ["false"]
+                }
+              }
+            }
+
+            resource "aws_s3_bucket_policy" "state" {
+              bucket = aws_s3_bucket.state.id
+              policy = data.aws_iam_policy_document.state_tls_only.json
+
+              depends_on = [aws_s3_bucket_public_access_block.state]
             }
 
             output "state_bucket" {

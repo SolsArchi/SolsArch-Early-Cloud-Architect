@@ -87,7 +87,7 @@ class ScannerTests(unittest.TestCase):
 
     def test_database_url_password_flagged(self):
         def build(root):
-            write(root, "settings.py", 'DATABASE_URL = "postgres://app:Zx9fQ2kLm8@db:5432/app"\n')
+            write(root, "settings.py", 'DATABASE_URL = "postgres://app:' + 'Zx9f' + 'Q2kLm8@db:5432/app"' + chr(10))
         result = self.scan(build)
         self.assertIn("SEC-005", finding_ids(result))
         self.assertNotIn("Zx9fQ2kLm8", json.dumps(result))

@@ -2,9 +2,11 @@
 
 # SolsArch Early Cloud Architect
 
+**Website: [solsarch.com](https://solsarch.com/)**
+
 An Agent Skill that turns a code repository into a cloud architecture **and everything needed to deploy it**. Ask your AI agent to design the cloud setup for a project and it will:
 
-1. ask three questions: **which cloud or platform** (34 are supported), **servers or serverless**, and **what kind of account you have** (free trial, always-free tier, pay as you go, or standard paid);
+1. ask three questions: **which cloud or platform** (40 are supported), **servers or serverless**, and **what kind of account you have** (free trial, always-free tier, pay as you go, or standard paid);
 2. scan the code and choose services with fixed rules, each tied to the file and line that caused it;
 3. check the chosen services against the vendor's own documentation by web search (by hand, or automatically with any search API);
 4. draw the diagrams: an icon picture of your cloud layout, a service sheet, and Mermaid diagrams (C4 levels, frontend, backend, database schema, sequences);
@@ -52,12 +54,12 @@ flowchart LR
 | Capability | What you get |
 | :--- | :--- |
 | **Understand the code** | Frameworks, databases, queues, services, ports and health paths; monorepos and several repos in one folder |
-| **Choose services** | Fixed rules across 34 clouds and platforms; every choice points to the file that caused it; AWS, Azure and GCP side by side |
+| **Choose services** | Fixed rules across 40 clouds and platforms; every choice points to the file that caused it; AWS, Azure and GCP side by side |
 | **Check on the web** | One official sentence per service from the vendor's own site, with a hash you can re-check later |
 | **Draw** | C4 diagrams, frontend, backend and database-schema diagrams, sequences, and an icon picture of the cloud layout |
-| **Write the infrastructure code** | Terraform for 14 clouds, Kubernetes, Helm, Ansible, Dockerfiles, platform config files, GitHub Actions pipeline, pull-request gate, weekly drift check |
+| **Write the infrastructure code** | Terraform for 17 clouds, Kubernetes, Helm, Ansible, Dockerfiles, platform config files, GitHub Actions pipeline, pull-request gate, weekly drift check |
 | **Estimate cost** | Monthly estimate, range and 12-month view; each line labelled live price, estimate or unpriced |
-| **Check quality and risk** | Five pre-deployment security checks, design rules, end-of-life runtimes, an operations maturity score, and real-tool checks (Terraform, Trivy, Checkov, kubectl) |
+| **Check quality and risk** | Pre-deployment security checks (including secrets left in git history), design rules, end-of-life runtimes, an operations maturity score, real-tool checks (Terraform, Trivy, Checkov, kubectl), and a **quality score out of 100** from seven gates (`docs/solsarch-quality.md`) |
 | **Explain how to deploy** | A beginner-friendly guide for your account type, with terminal and console paths |
 | **Hand off** | Exports for Backstage, Structurizr, PlantUML, LikeC4, draw.io, Score and Port; an executive deck and PDF; everything in one zip |
 
@@ -154,7 +156,7 @@ All outputs are in `docs/solsarch-output.zip`, and also written into your reposi
 | :--- | :--- |
 | `solsarch-report.md`, `report.html` | Verdict, summary, why each service was chosen, every diagram explained, security findings, web checks, cost drivers |
 | `solsarch-deploy-guide.md`, `deploy-guide.html` | The step-by-step guide for non-technical people: account setup for your account type, spending alert, tool install on Windows, Mac and Linux, sign-in, terminal commands with what you should see, the same by clicking in the console, checks, domain and HTTPS, teardown, troubleshooting, glossary |
-| `infrastructure/` | Terraform (14 clouds), Ansible, Kubernetes, Helm, Dockerfiles, platform config files, GitHub Actions deploy pipeline, pull-request gate and drift check |
+| `infrastructure/` | Terraform (17 clouds), Ansible, Kubernetes, Helm, Dockerfiles, platform config files, GitHub Actions deploy pipeline, pull-request gate and drift check |
 | `solsarch-iac.md` | What was written and the 17-point capability checklist, run the same way for every provider |
 | `solsarch-costs.md` | Monthly estimate, range, 12-month view, commitment options, optimisations; each line labelled live, estimate or unpriced |
 | `solsarch-ops-scorecard.md` | Maturity (level 0 to 4) across DevOps, DevSecOps, MLOps, AIOps, LLMOps and AgentOps, counted from files |
@@ -168,9 +170,9 @@ All outputs are in `docs/solsarch-output.zip`, and also written into your reposi
 
 | Kind | Providers | What is written |
 | :--- | :--- | :--- |
-| Major clouds | AWS, Azure, Google Cloud | Terraform (containers or functions, private data tier, WAF, secrets, alarms; a static-site layout when there is no running service) |
-| Other clouds | Hetzner, DigitalOcean, Linode and Akamai, Vultr, Scaleway, OVHcloud, Oracle, Alibaba, Tencent, Huawei, IBM | Terraform, plus Kubernetes and Helm where the cloud runs Kubernetes, plus Ansible for plain servers |
-| Application platforms | Render, Fly.io, Railway, Heroku, Vercel, Netlify | The platform's config file (checked against the vendor schema where one is published), a deploy script, and the guide |
+| Major clouds | AWS, Azure, Google Cloud | Terraform (containers or functions, private data tier, WAF, secrets, alarms; a static-site layout when there is no running service; the same on Oracle, Alibaba, Tencent, Huawei, IBM, Scaleway and DigitalOcean) |
+| Other clouds | Hetzner, DigitalOcean, Linode and Akamai, Vultr, Scaleway, OVHcloud, Civo, UpCloud, Exoscale, Oracle, Alibaba, Tencent, Huawei, IBM | Terraform, plus Kubernetes and Helm where the cloud runs Kubernetes, plus Ansible for plain servers |
+| Application platforms | Render, Fly.io, Railway, Heroku, Vercel, Netlify, Koyeb, Hugging Face Spaces, Cloud Foundry | The platform's config file (checked against the vendor schema where one is published), a deploy script, and the guide |
 | Edge, data and AI | Cloudflare, Deno Deploy, Fastly, Firebase, Supabase, Neon, MongoDB Atlas, Databricks, Snowflake, CoreWeave, Lambda, RunPod, Together AI | Config files or Terraform modules, and the guide |
 | Mixed stacks | any hosting provider plus overlays such as Neon, MongoDB Atlas, Cloudflare, Supabase | `--also neon,cloudflare` |
 
@@ -219,7 +221,7 @@ solsarch-early-cloud-architect/
   references/
     knowledge/                     16-chapter architecture reference library (searchable)
     agents/                        7 specialist playbooks (IaC, Ansible, security, cost, cloud decision, validation, orchestration)
-    providers/                     34 hosting providers and 7 enterprise platforms as data
+    providers/                     40 hosting providers and 7 enterprise platforms as data
     deploy-guides.json             per provider: sign-up, credentials, budget alerts, console steps, teardown
     service-catalog.json, placement-rules.json, eol.json, mcp-sources.json, policies/baseline.rego, eval/
   scripts/
@@ -246,16 +248,39 @@ python solsarch-early-cloud-architect/scripts/validate_skill.py solsarch-early-c
 
 Scripts use only the Python standard library. Tests set `SOLSARCH_OFFLINE=1` so no price lookup uses the network.
 
+## The quality report
+
+Every run ends with `docs/solsarch-quality.md`, the first file in the zip. It scores the generated architecture out of 100 with fixed checks (no language model judges it) and shows the evidence for each point:
+
+| Gate | Question |
+| :--- | :--- |
+| 1 Repository evidence | Were the start command, ports, settings and workload types found in the code? |
+| 2 Architecture compatibility | Can the chosen services run this app (streaming, schedulers, the database driver)? |
+| 3 Constraint enforcement | Does the plan respect the account type, budget and region? An always-free account gets nothing that bills by the hour. |
+| 4 Infrastructure validation | Did real validators pass? A built-in check runs when they are not installed and earns half credit. |
+| 5 Cost reconciliation | Does every billable generated resource have a priced line, a free note or a named unpriced item? |
+| 6 Security and reliability | Wildcard permissions, secrets, log retention, health checks, backups. |
+| 7 Cross-artifact consistency | Do the plan, the code, the costs and the reports describe the same deployment? |
+
+Each check is PASS, FAIL, WARNING or NOT VERIFIED; a check that could not run never counts as passed. A score above 85 needs every acceptance criterion; otherwise it is capped at 84 and the report says which one is missing. A blocking finding stops "deploy ready" whatever the number. Limits and free allowances are kept as sourced records (`references/capabilities.json`) that name the official page and the exact sentence, and are re-read when older than 30 days (`solsarch.py capabilities check|refresh|add`).
+
 ## Limits
 
-- It reads code and files; it does not inspect a live cloud account. The generated weekly drift workflow compares your code with your cloud inside your own pipeline.
-- A clean result means nothing was found in the files read, not that the system is secure. The scanner does not read git history.
-- Provider plan names, sizes, engine versions and free-offer terms change. The generated README and guide say where to check, and the guide never quotes a price. Some provider values (database plans, object-storage tiers) cannot be validated without an account; they are variables with common defaults and a note.
-- Terraform is validated against the real provider schemas, not applied to live accounts. Run `plan` before `apply`.
-- Tools that are not installed (TFLint, Checkov, ansible-lint on Windows ...) are reported as not run, never as passed.
-- Diagrams show the standard pattern for the chosen services; they are derived from files, not from tracing calls. Icons are simple glyphs, not the vendors' official packs (use `--icon-dir` for those).
-- Region is an open question unless you set it in the profile.
+What this tool can and cannot know, stated plainly. Where a limit was lowered, the change is named.
+
+- **Live accounts.** It reads code and files; it does not log in to a cloud account, because it never holds your credentials. The generated weekly drift workflow compares your code with your cloud inside your own pipeline, using your own access.
+- **Clean results.** A clean result means nothing was found in the files read, not that the system is secure. The scanner now also reads the newest 300 commits for secrets that were committed and later removed (finding SEC-006; values are never shown). It reports `not_run` with the reason when git or the repository is missing, and it does not read the contents of binary files.
+- **Prices and terms.** Provider plan names, sizes, engine versions and free-offer terms change. Limits and free allowances the checks depend on are kept as sourced records (official page, the exact sentence, the day it was read, a hash) and are re-read when older than 30 days; a record that is stale, changed or unsourced earns no points and is listed in `docs/solsarch-quality.md`. The guide never quotes a price. Some provider values (database plans, object-storage tiers) cannot be validated without an account; they are variables with common defaults and a note.
+- **Terraform.** It is validated against the real provider schemas (`terraform validate`), not applied to live accounts. Run `plan` before `apply`.
+- **Tools that are not installed** (TFLint, Checkov, ansible-lint on Windows ...) are reported as not run, never as passed. The validation report now says how to install each one, and a built-in check of the generated files runs without any of them; it earns half credit, and the quality score stays at 84 or below until a real validator has run.
+- **Diagrams** show the standard pattern for the chosen services; they are derived from files, not from tracing calls. Icons are simple glyphs, not the vendors' official packs, which cannot be redistributed; pass `--icon-dir` with the packs you downloaded to use them.
+- **Region** is no longer an open question: when the profile names none, the plan states the region the generated code uses as an assumption (for example `us-east-1`), tells you how to change it, and reminds you to check data-residency rules.
+- **The quality score** measures this output under fixed checks. It is not a promise about what an outside reviewer will say, and no real deployment is run.
+
+## Security
+
+The repository you point SolsArch at is treated as untrusted. Names and paths from it are slugged or quoted before they reach a script, a Terraform string or a file path; git history is read with git's own hooks, filters and pager switched off; web requests are https only; and the tool starts programs only with argument lists, never a shell. The generated pipelines pin every third-party action to a commit and download SolsArch at a release tag. The generated Terraform, Dockerfiles, Kubernetes files and workflows are checked with Checkov and Trivy and carry a one-line reason next to each deliberate exception. `tests/test_security.py` builds a hostile repository and checks all of this. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-Dual-licensed under MIT or Apache-2.0 at your option; see `LICENSE`, `LICENSE-MIT` and `LICENSE-APACHE`.
+Dual-licensed: you may use it under the MIT License (`LICENSE`, also `LICENSE-MIT`) **or** the Apache License 2.0 (`LICENSE-APACHE`), at your option.

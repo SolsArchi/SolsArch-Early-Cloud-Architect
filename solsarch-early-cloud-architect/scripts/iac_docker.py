@@ -4,7 +4,9 @@
 Every file builds in stages where that helps, runs as a non-root user, keeps secrets out of the image, and exposes the port
 the code uses. The start command is the one thing a scan cannot always know, so it is the only line marked to check.
 """
-from iac_common import Files, T
+import re
+
+from iac_common import Files, T, shq
 
 PY = "python:3.12-slim"
 NODE = "node:22-slim"
@@ -177,6 +179,36 @@ def java_file(unit, port, lam=False):
 BUILDERS = {"python": python_file, "node": node_file, "go": go_file, "java": java_file}
 
 
+SAFE_PATH = re.compile(r"^/[A-Za-z0-9/_.-]*$")
+
+
+def with_health(text, unit, port, language, lam):
+    """Add a HEALTHCHECK that asks the app's own health path, where the image has something to ask with.
+
+    Python and Node images can make the request themselves. A Lambda image is not health-checked by Docker at all, a worker listens
+    on no port, and distroless or JRE images have no shell or curl; those get a one-line note that a scanner reads as a reasoned exemption."""
+    path = unit.get("health_path") or "/"
+    if not SAFE_PATH.match(path):
+        path = "/"
+    if not lam and unit["kind"] != "worker" and language == "python":
+        check = ("HEALTHCHECK --interval=30s --timeout=3s --start-period=20s CMD "
+                 "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:%d%s', timeout=2)\"" % (port, path))
+    elif not lam and unit["kind"] != "worker" and language == "node":
+        check = ("HEALTHCHECK --interval=30s --timeout=3s --start-period=20s CMD "
+                 "node -e \"fetch('http://127.0.0.1:%d%s').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"" % (port, path))
+    else:
+        why = ("AWS Lambda does not use Docker health checks, the platform checks the function" if lam else
+               "a worker listens on no port" if unit["kind"] == "worker" else
+               "this image has no shell or curl to ask with, so the orchestrator probes the port")
+        return "# checkov:skip=CKV_DOCKER_2:" + why + chr(10) + text
+    lines = text.split(chr(10))
+    at = next((i for i in range(len(lines) - 1, -1, -1) if lines[i].startswith("EXPOSE ")), None)
+    if at is None:
+        return text
+    lines.insert(at + 1, check)
+    return chr(10).join(lines)
+
+
 def generate(model):
     files = Files(model.fingerprint)
     made = []
@@ -191,7 +223,7 @@ def generate(model):
             continue
         name = "Dockerfile.lambda" if (u.get("dockerfile") and lambda_target) else "Dockerfile"
         folder = u["folder"].strip("./") or "."
-        files.add("docker/%s/%s" % (u["name"], name), builder(u, u["port"] or 8080, lambda_target))
+        files.add("docker/%s/%s" % (u["name"], name), with_health(builder(u, u["port"] or 8080, lambda_target), u, u["port"] or 8080, lang(u), lambda_target))
         files.add("docker/%s/.dockerignore" % u["name"], DOCKERIGNORE, header=False)
         made.append((u["name"], folder, name))
     if made:
@@ -199,7 +231,11 @@ def generate(model):
                  "server (uvicorn, Node) answer Lambda invocations unchanged. Where the repository already had a Dockerfile it is left alone "
                  "and a `Dockerfile.lambda` is written beside it; build that one for Lambda." if lambda_target else
                  "These units had no Dockerfile in the repository, so one was written for each from the frameworks the scan found.")
-        listing = "\n".join("- `docker/%s/%s` for `%s` (build with `docker build -f docker/%s/%s %s`)" % (n, f, folder, n, f, folder) for n, folder, f in made)
+        fence = chr(96) * 3
+        commands = chr(10).join("docker build -f %s %s" % (shq("docker/%s/%s" % (n, f)), shq(folder)) for n, folder, f in made)
+        listing = ("One Dockerfile per unit: " + ", ".join("`docker/%s/%s`" % (n, f) for n, folder, f in made) + "." + chr(10) + chr(10)
+                   + "Build them from the repository root (each folder name is quoted, because a name from your repository may hold spaces or shell characters):"
+                   + chr(10) + chr(10) + fence + "bash" + chr(10) + commands + chr(10) + fence)
         files.add("docker/README.md", T("""
             # Dockerfiles for @@project@@
 

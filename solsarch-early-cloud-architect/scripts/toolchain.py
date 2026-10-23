@@ -24,6 +24,18 @@ SAFE_ENV = ("PATH", "SYSTEMROOT", "TEMP", "TMP", "HOME", "USERPROFILE", "LOCALAP
 TIMEOUT = {"fmt": 60, "init": 600, "validate": 120, "tflint": 180, "trivy": 300, "checkov": 300, "kubeconform": 120, "kubectl": 60, "ansible-lint": 180}
 EXTRA_DIRS = (Path.home() / ".solsarch-tools" / "checkov-venv" / "Scripts", Path.home() / ".solsarch-tools" / "checkov-venv" / "bin")
 ROUNDS = 3
+# Where to get each tool. Package-manager names are the vendors' own; where there is no package everyone shares, the release page is named.
+INSTALL_HINTS = (
+    ("terraform", "`winget install Hashicorp.Terraform`, `brew install terraform`, or https://developer.hashicorp.com/terraform/install"),
+    ("tflint", "`brew install tflint`, or the release page https://github.com/terraform-linters/tflint/releases"),
+    ("trivy", "`brew install trivy`, or https://trivy.dev/latest/getting-started/installation/"),
+    ("checkov", "`pip install checkov` (use a virtual environment; run it from a folder with no file called schema.py)"),
+    ("kubeconform", "`brew install kubeconform`, or https://github.com/yannh/kubeconform/releases"),
+    ("kubectl", "https://kubernetes.io/docs/tasks/tools/"),
+    ("ansible-lint", "`pip install ansible-lint` on Linux, macOS or WSL (it does not run on native Windows)"),
+    ("hadolint", "`brew install hadolint`, or https://github.com/hadolint/hadolint/releases"),
+    ("actionlint", "`brew install actionlint`, or https://github.com/rhysd/actionlint/releases"),
+)
 
 
 def clean_env():
@@ -266,6 +278,11 @@ def render_markdown(result):
         lines += ["", "## Failed", ""] + ["- " + f for f in result["failed"]]
     if result["skipped"]:
         lines += ["", "## Not run", ""] + ["- " + f for f in result["skipped"]]
+        hints = [(name, how) for name, how in INSTALL_HINTS if any(name in f for f in result["skipped"])]
+        if hints:
+            lines += ["", "### How to install what did not run", "",
+                      "Install the tool, then run `solsarch.py validate` again. Until then the quality score treats these checks as not verified.", ""]
+            lines += ["- **%s**: %s" % h for h in hints]
     lines += ["", "Rounds run: %d (formatting is repaired in place and checked again; nothing else is changed automatically)." % len(result["rounds"])]
     return "\n".join(lines) + "\n"
 
