@@ -1,0 +1,107 @@
+{
+  "entries": {
+    "aws|cloudwatch_logs_gb|us-east-1": {
+      "currency": "USD",
+      "description": "$0.50 per GB custom log data ingested in Standard log class - US East (Northern Virginia)",
+      "meter": "cloudwatch_logs_gb",
+      "origin": "live",
+      "provider": "aws",
+      "region": "us-east-1",
+      "retrieved": "2026-10-07",
+      "sku": "96K55R2PV3ZZZ3AM",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/us-east-1/index.json",
+      "tiers": [
+        {
+          "from": 0.0,
+          "price": 0.5,
+          "to": null
+        }
+      ],
+      "unit": "GB"
+    },
+    "aws|data_out_gb|us-east-1": {
+      "currency": "USD",
+      "description": "$0.090 per GB - first 10 TB / month data transfer out beyond the global free tier",
+      "meter": "data_out_gb",
+      "origin": "live",
+      "provider": "aws",
+      "region": "us-east-1",
+      "retrieved": "2026-09-16",
+      "sku": "HQEH3ZWJVT46JHRG",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/us-east-1/index.json",
+      "tiers": [
+        {
+          "from": 0.0,
+          "price": 0.09,
+          "to": 10240.0
+        },
+        {
+          "from": 10240.0,
+          "price": 0.085,
+          "to": 51200.0
+        },
+        {
+          "from": 51200.0,
+          "price": 0.07,
+          "to": 153600.0
+        },
+        {
+          "from": 153600.0,
+          "price": 0.05,
+          "to": null
+        }
+      ],
+      "unit": "GB"
+    },
+    "aws|lambda_gb_second|us-east-1": {
+      "currency": "USD",
+      "description": "AWS Lambda - Total Compute - US East (Northern Virginia)-Tier-1",
+      "meter": "lambda_gb_second",
+      "origin": "live",
+      "provider": "aws",
+      "region": "us-east-1",
+      "retrieved": "2026-10-22",
+      "sku": "TG3M4CAGBA3NYQBH",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/us-east-1/index.json",
+      "tiers": [
+        {
+          "from": 0.0,
+          "price": 1.66667e-05,
+          "to": 6000000000.0
+        },
+        {
+          "from": 6000000000.0,
+          "price": 1.5e-05,
+          "to": 15000000000.0
+        },
+        {
+          "from": 15000000000.0,
+          "price": 1.33334e-05,
+          "to": null
+        }
+      ],
+      "unit": "Lambda-GB-Second"
+    },
+    "aws|lambda_request|us-east-1": {
+      "currency": "USD",
+      "description": "AWS Lambda - Total Requests - US East (Northern Virginia)",
+      "meter": "lambda_request",
+      "origin": "live",
+      "provider": "aws",
+      "region": "us-east-1",
+      "retrieved": "2026-10-22",
+      "sku": "GU2ZS9HVP6QTQ7KE",
+      "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSLambda/current/us-east-1/index.json",
+      "tiers": [
+        {
+          "from": 0.0,
+          "price": 2e-07,
+          "to": null
+        }
+      ],
+      "unit": "Requests"
+    }
+  },
+  "note": "Prices read by SolsArch. Delete this file or run costs --refresh for fresh prices.",
+  "schema": 1
+}

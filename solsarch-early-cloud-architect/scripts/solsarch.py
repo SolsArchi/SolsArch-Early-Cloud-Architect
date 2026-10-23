@@ -42,6 +42,9 @@ sys.path.insert(0, str(HERE))
 import ast_scanner  # noqa: E402
 import architect  # noqa: E402
 import build_report  # noqa: E402
+import capabilities  # noqa: E402
+import contract  # noqa: E402
+import static_check  # noqa: E402
 import costs as costs_engine  # noqa: E402
 import deploy_guide  # noqa: E402
 import executive  # noqa: E402
@@ -56,6 +59,7 @@ import mcp_sources  # noqa: E402
 import facts as facts_store  # noqa: E402
 import memory_harness as mh  # noqa: E402
 import package_outputs  # noqa: E402
+import qa  # noqa: E402
 import providers  # noqa: E402
 import recommend  # noqa: E402
 import verify_report  # noqa: E402
@@ -314,6 +318,43 @@ def build_iac(repo):
             "next_steps": manifest["next_steps"]}
 
 
+def build_contract(repo):
+    """Write the shared architecture contract. Never raises."""
+    try:
+        data = contract.write(repo)
+    except Exception as error:  # the contract must not stop the architecture work
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    if data is None:
+        return {"status": "error", "message": "No scan, plan and design found."}
+    return {"status": "written", "decisions": len(data["architecture"]["decisions"]), "resources": len(data["architecture"]["resources"]),
+            "untraced_billable": len(contract.untraced(data)), "unpriced_decisions": contract.unpriced_decisions(data)}
+
+
+def run_quality(repo):
+    """Run the seven gates, re-run the steps a script can repair, and write docs/solsarch-quality.md. Never raises."""
+    online = not os.environ.get("SOLSARCH_OFFLINE")
+
+    def static():
+        write_json(state_dir(repo) / "static-check.json", static_check.run(repo))
+        return "static check written"
+
+    fixers = {"costs": lambda: build_costs(repo, online=online).get("status"), "iac": lambda: build_iac(repo).get("status"), "static": static}
+    import toolchain
+    if online and not os.environ.get("SOLSARCH_SKIP_VALIDATE") and (toolchain.which("terraform") or toolchain.which("tofu")):
+        fixers["validate"] = lambda: build_validation(repo)  # downloads providers, so it takes a minute or two
+    if online:
+        fixers["capabilities"] = lambda: len(capabilities.refresh(repo, max_age=capabilities.STALE_DAYS))
+    try:
+        result = qa.run(repo, fixers)
+        if result["verdict"] != "ok":
+            return {"status": "error", "message": result.get("message", "no result")}
+        qa.write(repo, result)
+    except Exception as error:  # the quality stage must not stop the architecture work
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "score": result["score"], "band": result["band"], "capped": result["capped"], "deploy_ready": result["deploy_ready"],
+            "blockers": len(result["blockers"]), "changes": len(result.get("qa_log", [])), "file": str(Path(repo) / "docs" / "solsarch-quality.md")}
+
+
 def build_scorecard(repo):
     """Write the operations maturity scorecard. Never raises."""
     try:
@@ -359,6 +400,21 @@ def cmd_executive(args):
     return emit(result, 0 if result.get("status") == "written" else 2)
 
 
+def cmd_capabilities(args):
+    """Check, refresh or add the sourced facts (limits and free allowances) the plan relies on."""
+    argv = [args.action] + ([args.id] if args.id else []) + ["--repo", str(args.repo)]
+    if args.quote:
+        argv += ["--quote", args.quote]
+    if args.source:
+        argv += ["--source", args.source]
+    return capabilities.main(argv)
+
+
+def cmd_contract(args):
+    result = build_contract(args.repo)
+    return emit(result, 0 if result["status"] == "written" else 1)
+
+
 def cmd_scorecard(args):
     return emit(build_scorecard(args.repo))
 
@@ -375,6 +431,20 @@ def cmd_gate(args):
     if args.comment:
         Path(args.comment).write_text(gate_engine.comment(result), encoding="utf-8")
     return emit(result, 0 if result["verdict"] == "pass" else (2 if result["verdict"] == "error" else 1))
+
+
+def build_validation(repo, engine="auto", fix=True, offline=False):
+    """Run the real tools over the generated code and write the result. Returns the verdict."""
+    import toolchain
+    root = state_dir(repo) / "iac"
+    if not root.is_dir():
+        return "no infrastructure code"
+    result = toolchain.check_all(root, engine, fix, offline)
+    write_json(state_dir(repo) / "validation.json", result)
+    docs = Path(repo) / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    (docs / "solsarch-validation.md").write_bytes(toolchain.render_markdown(result).encode("utf-8"))
+    return result["verdict"]
 
 
 def cmd_validate(args):
@@ -681,7 +751,19 @@ def cmd_finish(args):
     extras["exports"] = export_result.get("status") if export_result.get("status") != "error" else "error: " + export_result.get("message", "")
     exec_result = build_executive(args.repo)
     extras["executive"] = exec_result.get("status") if exec_result.get("status") != "error" else "error: " + exec_result.get("message", "")
+    if not os.environ.get("SOLSARCH_OFFLINE"):
+        try:
+            capabilities.refresh(args.repo, max_age=capabilities.STALE_DAYS)
+            extras["facts_refresh"] = "done"
+        except Exception as error:  # a refresh failure leaves the old records, which are then reported as stale
+            extras["facts_refresh"] = "error: %s" % error
+    extras["contract"] = build_contract(args.repo).get("status")
+    static = static_check.run(args.repo)
+    write_json(state_dir(args.repo) / "static-check.json", static)
+    extras["static_check"] = static["verdict"]
     extras["infrastructure"] = iac_result.get("status") if iac_result.get("status") != "error" else "error: " + iac_result.get("message", "")
+    quality = run_quality(args.repo)
+    extras["quality"] = quality
     code, package = capture(package_outputs.main, base)
     if code != 0:
         return emit({"status": "error", "step": "zip", "detail": package}, code)
@@ -691,7 +773,8 @@ def cmd_finish(args):
         "diagram_count": report["diagram_count"], "zip": package["zip"], "fingerprint": report["fingerprint"],
         "verification": "failed (forced)" if errors else "passed", "extras": extras,
         "infrastructure_folder": iac_result.get("folder"), "deploy_guide": iac_result.get("guide"),
-        "capability_score": iac_result.get("capability_score"), "monthly_cost_estimate": costs_result.get("monthly"),
+        "capability_score": iac_result.get("capability_score"), "quality_score": quality.get("score"), "quality_band": quality.get("band"),
+        "deploy_ready": quality.get("deploy_ready"), "quality_report": quality.get("file"), "monthly_cost_estimate": costs_result.get("monthly"),
         "warnings": [p["message"] for p in problems if p["severity"] == "warning"],
     })
 
@@ -737,6 +820,14 @@ def main(argv=None):
     p.add_argument("--repo", default=".")
     p = sub.add_parser("executive")
     p.add_argument("--repo", default=".")
+    p = sub.add_parser("capabilities")
+    p.add_argument("action", choices=("check", "refresh", "show", "add"))
+    p.add_argument("id", nargs="?")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--quote")
+    p.add_argument("--source")
+    p = sub.add_parser("contract")
+    p.add_argument("--repo", default=".")
     p = sub.add_parser("scorecard")
     p.add_argument("--repo", default=".")
     p = sub.add_parser("export")
@@ -779,7 +870,7 @@ def main(argv=None):
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
                "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
-               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "export": cmd_export, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
+               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "contract": cmd_contract, "capabilities": cmd_capabilities, "export": cmd_export, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

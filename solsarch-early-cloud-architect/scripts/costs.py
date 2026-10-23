@@ -22,6 +22,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import capabilities  # noqa: E402
 import price_sources as ps  # noqa: E402
 
 HOURS = 730.0
@@ -585,7 +586,7 @@ class Pricer:
             cost = ps.tier_cost(item["tiers"], s["qty"])
             lines.append({"decision": s["decision"], "provider": s["provider"], "label": s["label"], "quantity": round(s["qty"], 4),
                           "unit": s["unit"], "unit_price": round(ps.first_price(item), 8), "monthly": round(cost, 4),
-                          "scales": s["scales"], "ha": s["ha"], "note": s["note"], "meter": s["meter"], "region": s["region"],
+                          "resource_id": "res.%s.%s" % (s["decision"], s["provider"]), "scales": s["scales"], "ha": s["ha"], "note": s["note"], "meter": s["meter"], "region": s["region"],
                           "price_unit": item.get("unit"), "origin": item["origin"], "source": item["source"],
                           "retrieved": item["retrieved"], "sku": item.get("sku"), "sku_description": item.get("description")})
         self.included_items = included
@@ -672,17 +673,25 @@ def commitments(lines, provider):
             "discounts": {"flexible_1yr": one, "flexible_3yr": three, "reserved_1yr": RESERVED_GUIDE["reserved_1yr"], "reserved_3yr": RESERVED_GUIDE["reserved_3yr"]}}
 
 
-FREE_ALLOWANCE = {("aws", "lambda_request"): 1000000.0, ("aws", "lambda_gb_second"): 400000.0}
+# meter -> the sourced record that states its monthly free allowance (see capabilities.py); no verified record, no allowance applied
+ALLOWANCE_RECORDS = {("aws", "lambda_request"): "aws.lambda.free_requests", ("aws", "lambda_gb_second"): "aws.lambda.free_gb_seconds"}
 SCENARIO_REQUESTS = (10000, 100000, 1200000)
 
 
-def scenarios(lines, base_monthly, account_type):
+def scenarios(lines, base_monthly, account_type, repo=None):
     """What the bill is at three fixed request volumes, before and after the always-free allowance.
 
     Lines that grow with use are scaled from the estimate; fixed lines stay. The allowance is applied to the pooled
     usage of each metered meter, so several functions share one allowance, as they do in an account."""
     base = base_monthly or 1.0
-    free = account_type in ("free_tier", "free_trial") or account_type == "standard"
+    free = True  # the always-free allowance applies to every account type
+    allowance_of, unverified = {}, []
+    for key, rid in ALLOWANCE_RECORDS.items():
+        amount, state = capabilities.value(rid, repo)
+        if amount is None:
+            unverified.append("%s (%s)" % (rid, state))
+        else:
+            allowance_of[key] = float(amount)
     rows = []
     for req in SCENARIO_REQUESTS:
         k = req / base
@@ -697,15 +706,18 @@ def scenarios(lines, base_monthly, account_type):
             cost = l["monthly"] * k
             gross += cost
             key = (l["provider"], l["meter"])
-            if key in FREE_ALLOWANCE and l["unit_price"]:
+            if key in allowance_of and l["unit_price"]:
                 pooled.setdefault(key, [0.0, l["unit_price"]])[0] += l["quantity"] * k
         if free:
             for key, (qty, price) in pooled.items():
-                allowance += min(qty, FREE_ALLOWANCE[key]) * price
+                allowance += min(qty, allowance_of[key]) * price
         rows.append({"requests": req, "gross": round(gross, 2), "allowance": round(allowance, 2), "net": round(max(0.0, gross - allowance), 2),
                      "fixed": round(fixed, 2)})
-    return {"rows": rows, "note": "Request volumes are fixed planning points. Net is gross minus the always-free allowance for metered Lambda use; "
-                                  "fixed charges (for example a NAT gateway or a database node) are never reduced by it."}
+    note = ("Request volumes are fixed planning points. Net is gross minus the always-free allowance for metered Lambda use (allowances come from "
+            "sourced records read on the official pages); fixed charges (for example a NAT gateway or a database node) are never reduced by it.")
+    if unverified:
+        note += " Allowance not applied, because it is not verified: %s." % ", ".join(unverified)
+    return {"rows": rows, "note": note, "allowance_verified": not unverified}
 
 
 def optimizations(plan, design, lines, total):
@@ -827,7 +839,7 @@ def build(plan, design, profile, book_path, fetcher=None, online=True, refresh=F
                                                                            "Quantities come from a labelled capacity estimate unless you supplied traffic.",
                                                                            "Taxes, support plans and third-party services (language model APIs, hosted vendors outside the plan) are not included."],
         "ha_monthly": round(sum(l["monthly"] for l in lines if l["ha"]), 2),
-        "scenarios": scenarios(lines, cap["daily_requests"] * 30.0, profile.get("account_type") or "standard") if lines else None,
+        "scenarios": scenarios(lines, cap["daily_requests"] * 30.0, profile.get("account_type") or "standard", Path(book_path).parent.parent) if lines else None,
     }
     return result
 

@@ -5,6 +5,7 @@ gateway, API Gateway and Secrets Manager, none of which has a free allowance. Th
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -54,7 +55,10 @@ class FreeTierServerlessScore(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.repo = Path(cls.tmp.name) / "dbai"
         build_repo(cls.repo)
-        cls.env = dict(os.environ, SOLSARCH_OFFLINE="1", PYTHONIOENCODING="utf-8")
+        # Prices are a recorded snapshot of the vendor's live price file (tests/fixtures), read on the date below, so the run is offline and repeatable.
+        cls.env = dict(os.environ, SOLSARCH_OFFLINE="1", PYTHONIOENCODING="utf-8", SOLSARCH_TODAY="2026-10-23")
+        (cls.repo / ".solsarch").mkdir(parents=True, exist_ok=True)
+        shutil.copy(Path(__file__).parent / "fixtures" / "prices_snapshot_aws_us_east_1.json", cls.repo / ".solsarch" / "prices.json")
         for args in (["scan"], ["profile", "--set", "account_type=free_tier"], ["plan", "--cloud", "aws", "--compute", "serverless"],
                      ["facts", "skip", "--reason", "test run"], ["finish"]):
             cls.run_step(args)
@@ -80,11 +84,26 @@ class FreeTierServerlessScore(unittest.TestCase):
         return {d["key"]: d["service"] for d in self.plan["decisions"]}
 
     def test_readiness_is_above_the_threshold(self):
-        self.assertGreater(self.gate["readiness"]["score"], 85, self.gate["readiness"]["parts"])
+        quality = self.gate["quality"]
+        self.assertGreater(quality["score"], 85, [a for a in quality["areas"] if a["lost"]])
+        self.assertFalse(quality["capped"], quality["unmet"])
+        self.assertEqual(quality["blockers"], [])
+
+    def test_without_a_real_validator_run_the_score_is_capped(self):
+        path = self.repo / ".solsarch" / "validation.json"
+        saved = path.read_text(encoding="utf-8")
+        path.unlink()
+        try:
+            done = subprocess.run([sys.executable, "-I", str(SCRIPT), "gate", "--repo", str(self.repo)], capture_output=True, text=True, env=self.env)
+            quality = json.loads(done.stdout)["quality"]
+        finally:
+            path.write_text(saved, encoding="utf-8")
+        self.assertTrue(quality["capped"])
+        self.assertLessEqual(quality["score"], 84)
+        self.assertIn("Real validators ran and passed", [u["name"] for u in quality["unmet"]])
 
     def test_no_contradiction_between_plan_code_and_costs(self):
-        row = next(c for c in self.gate["checks"] if c["check"] == "Plan, code and cost report agree")
-        self.assertEqual(row["status"], "pass", row["items"])
+        self.assertEqual(self.gate["quality"]["contradictions"], [])
 
     def test_free_services_are_chosen(self):
         s = self.services()

@@ -1,0 +1,407 @@
+{
+  "note": "Sourced facts. Each record names the official page and the sentence it rests on.",
+  "schema": 1,
+  "records": [
+    {
+      "id": "aws.apigw.max_integration_timeout_seconds",
+      "provider": "aws",
+      "topic": "API Gateway integration timeout",
+      "value": 29,
+      "unit": "seconds",
+      "source": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-execution-service-limits-table.html",
+      "pattern": "29 seconds for all integration types",
+      "must_contain": [
+        "29 seconds"
+      ],
+      "quote": "50 milliseconds - 29 seconds for all integration types, including Lambda,",
+      "sha256": "b95843681ef4977b",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "serverless",
+        "streaming"
+      ]
+    },
+    {
+      "id": "aws.cloudwatch.free_logs_gb",
+      "provider": "aws",
+      "topic": "CloudWatch Logs free data per month",
+      "value": 5,
+      "unit": "GB/month",
+      "source": "https://aws.amazon.com/cloudwatch/pricing/",
+      "pattern": "^5 GB Data",
+      "must_contain": [
+        "5 GB"
+      ],
+      "quote": "5 GB Data (ingestion, archive storage, and data scanned by Logs Insights queries)",
+      "sha256": "2cc2ba0308f42466",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "observability"
+      ]
+    },
+    {
+      "id": "aws.dynamodb.free_tier",
+      "provider": "aws",
+      "topic": "DynamoDB free tier exists",
+      "value": true,
+      "unit": "free tier",
+      "source": "https://aws.amazon.com/dynamodb/pricing/on-demand/",
+      "pattern": "free tier offers the following benefits",
+      "must_contain": [
+        "free tier"
+      ],
+      "quote": "The DynamoDB free tier offers the following benefits each month on a per Region, per-payer account basis:",
+      "sha256": "6e4781a540d67a45",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "nosql_key_value"
+      ]
+    },
+    {
+      "id": "aws.ecr.free_storage_mb",
+      "provider": "aws",
+      "topic": "ECR free private storage for new customers",
+      "value": 500,
+      "unit": "MB/month",
+      "source": "https://aws.amazon.com/ecr/pricing/",
+      "pattern": "500 MB per month of storage",
+      "must_contain": [
+        "500 MB"
+      ],
+      "quote": "As a new Amazon ECR customer, you get 500 MB per month of storage for your private repositories for one year as part of the AWS Free Tier .",
+      "sha256": "3a5b4f343bdf69c5",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "registry"
+      ]
+    },
+    {
+      "id": "aws.lambda.free_gb_seconds",
+      "provider": "aws",
+      "topic": "Lambda free compute per month",
+      "value": 400000,
+      "unit": "GB-seconds/month",
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "pattern": "free tier includes",
+      "must_contain": [
+        "one million requests",
+        "400,000 GB-seconds"
+      ],
+      "quote": "The free tier includes one million requests and 400,000 GB-seconds per month.",
+      "sha256": "79ef379ed1c0624d",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "serverless"
+      ]
+    },
+    {
+      "id": "aws.lambda.free_requests",
+      "provider": "aws",
+      "topic": "Lambda free requests per month",
+      "value": 1000000,
+      "unit": "requests/month",
+      "source": "https://aws.amazon.com/lambda/pricing/",
+      "pattern": "free tier includes",
+      "must_contain": [
+        "one million requests",
+        "400,000 GB-seconds"
+      ],
+      "quote": "The free tier includes one million requests and 400,000 GB-seconds per month.",
+      "sha256": "79ef379ed1c0624d",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "serverless"
+      ]
+    },
+    {
+      "id": "aws.lambda.max_timeout_seconds",
+      "provider": "aws",
+      "topic": "Lambda longest single run",
+      "value": 900,
+      "unit": "seconds",
+      "source": "https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html",
+      "pattern": "run for up to 15 minutes",
+      "must_contain": [
+        "15 minutes"
+      ],
+      "quote": "Code can run for up to 15 minutes in a single invocation (up to 90 minutes for Lambda Managed Instances functions invoked asynchronously or through any event source mapping except Amazon MQ and Amazon DocumentDB) and a single function can use up to",
+      "sha256": "07d443bcecdab3b4",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "serverless",
+        "streaming"
+      ]
+    },
+    {
+      "id": "aws.scheduler.free_invocations",
+      "provider": "aws",
+      "topic": "EventBridge Scheduler free invocations per month",
+      "value": 14000000,
+      "unit": "invocations/month",
+      "source": "https://aws.amazon.com/eventbridge/pricing/",
+      "pattern": "14 million free",
+      "must_contain": [
+        "14 million"
+      ],
+      "quote": "{priceOf!events/events!Scheduled!Invocation!for!14000000!to!Inf!Invocations!*!1000000}/million scheduled invocations per month, after 14 million free invocations per month",
+      "sha256": "896bdbcd5471741a",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "scheduler"
+      ]
+    },
+    {
+      "id": "aws.ssm.standard_parameters_free",
+      "provider": "aws",
+      "topic": "Parameter Store standard parameters cost",
+      "value": true,
+      "unit": "no charge",
+      "source": "https://aws.amazon.com/systems-manager/pricing/",
+      "pattern": "Standard parameters are available at no additional charge",
+      "must_contain": [
+        "no additional charge"
+      ],
+      "quote": "Standard parameters are available at no additional charge.",
+      "sha256": "625a7122089b32de",
+      "retrieved": "2026-10-23",
+      "when": [
+        "aws",
+        "secrets"
+      ]
+    },
+    {
+      "id": "azure.containerapps.free_gib_seconds",
+      "provider": "azure",
+      "topic": "Container Apps free GiB-seconds per month",
+      "value": 360000,
+      "unit": "GiB-seconds/month",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/container-apps/",
+      "pattern": "first 180,000 vCPU-seconds",
+      "must_contain": [
+        "360,000 GiB-seconds"
+      ],
+      "quote": "The first 180,000 vCPU-seconds, 360,000 GiB-seconds, and 2 million requests per subscription per month are free.",
+      "sha256": "f0a563961b7369aa",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "serverless"
+      ]
+    },
+    {
+      "id": "azure.containerapps.free_requests",
+      "provider": "azure",
+      "topic": "Container Apps free requests per month",
+      "value": 2000000,
+      "unit": "requests/month",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/container-apps/",
+      "pattern": "first 180,000 vCPU-seconds",
+      "must_contain": [
+        "2 million requests"
+      ],
+      "quote": "The first 180,000 vCPU-seconds, 360,000 GiB-seconds, and 2 million requests per subscription per month are free.",
+      "sha256": "f0a563961b7369aa",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "serverless"
+      ]
+    },
+    {
+      "id": "azure.containerapps.free_vcpu_seconds",
+      "provider": "azure",
+      "topic": "Container Apps free vCPU-seconds per month",
+      "value": 180000,
+      "unit": "vCPU-seconds/month",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/container-apps/",
+      "pattern": "first 180,000 vCPU-seconds",
+      "must_contain": [
+        "180,000 vCPU-seconds",
+        "360,000 GiB-seconds"
+      ],
+      "quote": "The first 180,000 vCPU-seconds, 360,000 GiB-seconds, and 2 million requests per subscription per month are free.",
+      "sha256": "f0a563961b7369aa",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "serverless"
+      ]
+    },
+    {
+      "id": "azure.cosmos.free_ru",
+      "provider": "azure",
+      "topic": "Cosmos DB free tier throughput",
+      "value": 1000,
+      "unit": "RU/s",
+      "source": "https://learn.microsoft.com/en-us/azure/cosmos-db/free-tier",
+      "pattern": "free tier is enabled",
+      "must_contain": [
+        "1000 RU/s",
+        "25 GB"
+      ],
+      "quote": "When free tier is enabled on an account, you get the first 1000 RU/s and 25 GB of storage in the account for free.",
+      "sha256": "2073e3d74309ee14",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "database_mongo"
+      ]
+    },
+    {
+      "id": "azure.cosmos.free_storage_gb",
+      "provider": "azure",
+      "topic": "Cosmos DB free tier storage",
+      "value": 25,
+      "unit": "GB",
+      "source": "https://learn.microsoft.com/en-us/azure/cosmos-db/free-tier",
+      "pattern": "free tier is enabled",
+      "must_contain": [
+        "25 GB"
+      ],
+      "quote": "When free tier is enabled on an account, you get the first 1000 RU/s and 25 GB of storage in the account for free.",
+      "sha256": "2073e3d74309ee14",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "database_mongo"
+      ]
+    },
+    {
+      "id": "azure.functions.free_gb_seconds",
+      "provider": "azure",
+      "topic": "Functions consumption free compute per month",
+      "value": 400000,
+      "unit": "GB-seconds/month",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/functions/",
+      "pattern": "monthly free grant of 1 million requests",
+      "must_contain": [
+        "400,000 GB-s"
+      ],
+      "quote": "Consumption plan pricing includes a monthly free grant of 1 million requests and 400,000 GB-s of resource consumption per month per subscription in pay-as-you-go pricing across all function apps in that subscription.",
+      "sha256": "b1070eb530b3d862",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "serverless_functions"
+      ]
+    },
+    {
+      "id": "azure.functions.free_requests",
+      "provider": "azure",
+      "topic": "Functions consumption free requests per month",
+      "value": 1000000,
+      "unit": "requests/month",
+      "source": "https://azure.microsoft.com/en-us/pricing/details/functions/",
+      "pattern": "monthly free grant of 1 million requests",
+      "must_contain": [
+        "1 million requests",
+        "400,000 GB-s"
+      ],
+      "quote": "Consumption plan pricing includes a monthly free grant of 1 million requests and 400,000 GB-s of resource consumption per month per subscription in pay-as-you-go pricing across all function apps in that subscription.",
+      "sha256": "b1070eb530b3d862",
+      "retrieved": "2026-10-23",
+      "when": [
+        "azure",
+        "serverless_functions"
+      ]
+    },
+    {
+      "id": "gcp.cloudrun.default_timeout_minutes",
+      "provider": "gcp",
+      "topic": "Cloud Run default request timeout",
+      "value": 5,
+      "unit": "minutes",
+      "source": "https://cloud.google.com/run/docs/configuring/request-timeout",
+      "pattern": "timeout is set by default to 5 minutes",
+      "must_contain": [
+        "5 minutes"
+      ],
+      "quote": "The timeout is set by default to 5 minutes",
+      "sha256": "33747e449002f126",
+      "retrieved": "2026-10-23",
+      "when": [
+        "gcp",
+        "serverless",
+        "streaming"
+      ]
+    },
+    {
+      "id": "gcp.cloudrun.free_requests",
+      "provider": "gcp",
+      "topic": "Cloud Run free requests per month",
+      "value": 2000000,
+      "unit": "requests/month",
+      "source": "https://cloud.google.com/run/pricing",
+      "pattern": "2 million requests",
+      "must_contain": [
+        "2 million requests"
+      ],
+      "state": "changed",
+      "when": [
+        "gcp",
+        "serverless"
+      ]
+    },
+    {
+      "id": "gcp.firestore.free_storage_gib",
+      "provider": "gcp",
+      "topic": "Firestore free stored data",
+      "value": 1,
+      "unit": "GiB",
+      "source": "https://cloud.google.com/firestore/pricing",
+      "pattern": "1 GiB",
+      "must_contain": [
+        "1 GiB"
+      ],
+      "state": "changed",
+      "when": [
+        "gcp",
+        "nosql_key_value"
+      ]
+    },
+    {
+      "id": "gcp.secretmanager.free_versions",
+      "provider": "gcp",
+      "topic": "Secret Manager free active secret versions",
+      "value": 6,
+      "unit": "versions",
+      "source": "https://cloud.google.com/secret-manager/pricing",
+      "pattern": "active secret versions",
+      "must_contain": [
+        "6 active"
+      ],
+      "state": "changed",
+      "when": [
+        "gcp",
+        "secrets"
+      ]
+    },
+    {
+      "id": "mongodb.atlas.m0_storage_mb",
+      "provider": "mongodbatlas",
+      "topic": "Atlas free cluster storage",
+      "value": 512,
+      "unit": "MB",
+      "source": "https://www.mongodb.com/pricing",
+      "pattern": "free tier includes 512",
+      "must_contain": [
+        "512 MB"
+      ],
+      "quote": "Atlas’s free tier includes 512 MB of storage, 32MB of sort memory, and up to 100 operations per second.",
+      "sha256": "36a8ca1682e95849",
+      "retrieved": "2026-10-23",
+      "when": [
+        "mongodbatlas",
+        "database_mongo"
+      ]
+    }
+  ]
+}

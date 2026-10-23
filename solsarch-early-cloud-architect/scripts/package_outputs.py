@@ -27,6 +27,8 @@ FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 README = """SolsArch Early Cloud Architect output
 =====================================
 
+solsarch-quality.md       START HERE. The quality score out of 100, the seven checks behind it, what failed or could not be
+                          verified, and the official source for every limit and price the plan relies on.
 solsarch-report.md        The full report: verdict, why each service was chosen, every diagram
                           with an explanation, security findings, web checks, cost drivers.
 solsarch-architecture.md  The diagrams with their explanations, on their own.
@@ -40,6 +42,8 @@ data/plan.json            The machine-readable plan: services, evidence, alterna
 data/scan.json            What the scanner found in the code.
 data/facts.json           Which service names were checked on the web, with sources.
 data/decisions.json       The saved decision records.
+data/contract.json        The shared architecture contract: every decision, generated resource and cost entry with one id.
+data/quality.json         The quality score and every check in machine-readable form. data/qa-log.json lists what the quality stage re-ran.
 solsarch-deploy-guide.md  Step-by-step deployment guide for someone who has never deployed (terminal and
                           console paths, written for your account type). deploy-guide.html is the same,
                           ready to print.
@@ -111,7 +115,11 @@ def deploy_files(repo, docs, state):
     for name in ("solsarch-executive-deck.pptx", "solsarch-executive-deck.html", "solsarch-executive-summary.pdf"):
         if (docs / name).exists():
             files[name] = (docs / name).read_bytes()
-    for name in ("solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md"):
+    for name, source in (("data/contract.json", state / "contract.json"), ("data/quality.json", state / "quality.json"),
+                         ("data/qa-log.json", state / "qa-log.json"), ("data/static-check.json", state / "static-check.json")):
+        if source.exists():
+            files[name] = source.read_bytes()
+    for name in ("solsarch-quality.md", "solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md"):
         source = docs / name
         if source.exists():
             text = brand.watermark_markdown(source.read_text(encoding="utf-8"))
@@ -166,7 +174,8 @@ def write_zip(files, target):
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
-        for name in sorted(files):
+        first = ("README.txt", "solsarch-quality.md")  # the first things a reader should open
+        for name in sorted(files, key=lambda n: (first.index(n) if n in first else len(first), n)):
             info = zipfile.ZipInfo(name, date_time=FIXED_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
