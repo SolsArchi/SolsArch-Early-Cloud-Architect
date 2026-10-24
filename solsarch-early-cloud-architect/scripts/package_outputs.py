@@ -116,10 +116,15 @@ def deploy_files(repo, docs, state):
         if (docs / name).exists():
             files[name] = (docs / name).read_bytes()
     for name, source in (("data/contract.json", state / "contract.json"), ("data/quality.json", state / "quality.json"),
-                         ("data/qa-log.json", state / "qa-log.json"), ("data/static-check.json", state / "static-check.json")):
+                         ("data/qa-log.json", state / "qa-log.json"), ("data/rules.json", state / "rules.json"),
+                         ("policy/solsarch-company.rego", state / "policy" / "solsarch-company.rego"), ("data/static-check.json", state / "static-check.json")):
         if source.exists():
             files[name] = source.read_bytes()
-    for name in ("solsarch-quality.md", "solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md"):
+    adr = docs / "adr"
+    if adr.is_dir():
+        for path in sorted(adr.glob("*.md")):
+            files["adr/" + path.name] = path.read_bytes()
+    for name in ("solsarch-quality.md", "solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md", "solsarch-rules.md"):
         source = docs / name
         if source.exists():
             text = brand.watermark_markdown(source.read_text(encoding="utf-8"))

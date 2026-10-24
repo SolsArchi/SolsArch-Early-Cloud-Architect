@@ -39,6 +39,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import adr as adr_records  # noqa: E402
 import ast_scanner  # noqa: E402
 import architect  # noqa: E402
 import build_report  # noqa: E402
@@ -62,6 +63,8 @@ import package_outputs  # noqa: E402
 import qa  # noqa: E402
 import providers  # noqa: E402
 import recommend  # noqa: E402
+import rules as company_rules  # noqa: E402
+import rules_ingest  # noqa: E402
 import verify_report  # noqa: E402
 
 CLOUD_LABELS = {"aws": "AWS", "azure": "Azure", "gcp": "Google Cloud"}
@@ -151,7 +154,10 @@ def cmd_questions(args):
                                       {"value": "pay_as_you_go", "label": "Pay as you go (card on file, billed for use)"},
                                       {"value": "standard", "label": "Standard paid account (company or team)"}],
                           "then": "Run: solsarch.py profile --repo REPO --set account_type=VALUE  before the plan step. Free trial and free tier give a smaller, cheaper design; the deploy guide is written for the account type."})
+    found, _ = rules_ingest.discover(args.repo)
     payload = {"status": "ok", "ask": questions, "already_known": known,
+               "company_rules": {"documents": [name for name, _ in found],
+                                 "do": "If documents are listed, run solsarch.py rules ingest --repo REPO and tell the user which rules apply; they limit the cloud, region, budget and compliance choices."},
                "if_user_cannot_answer": {"cloud": suggested or "aws", "compute": "server", "account_type": "standard", "mark_as": "assumed"},
                "rule": "Ask only these questions. Do not ask about region, budget or compliance."}
     if warning:
@@ -184,6 +190,17 @@ def cmd_plan(args):
     scan = read_json(state_dir(args.repo) / "scan.json")
     if not scan or "components" not in scan:
         return emit({"status": "error", "message": "No scan found. Run the scan step first."}, 2)
+    rules_data = company_rules.ensure(args.repo, getattr(args, "rules", None))
+    rule_notes = []
+    if rules_data:
+        found = company_rules.violations(rules_data, args.cloud, args.compute, split_also(args.also))
+        stop = company_rules.blocking(found)
+        if stop:
+            return emit({"status": "error", "message": "The company rules do not allow this choice: " + "; ".join("%s (%s)" % (v["message"], v["rule"]) for v in stop),
+                         "violations": stop, "compliant_clouds": rules_data.get("constraints", {}).get("compliant_clouds", []),
+                         "next": "Choose one of the compliant clouds, or add an exception with a reason and an expiry date to the rules file."}, 1)
+        rule_notes = ["%s (%s)" % (v["message"], v["rule"]) for v in found]
+        company_rules.resolve(args.repo, args.cloud)
     try:
         plan = recommend.build_plan(scan, recommend.load_catalog(), args.cloud, args.compute, split_also(args.also),
                                     architect.load_profile(args.repo))
@@ -226,6 +243,9 @@ def cmd_plan(args):
     }
     if warning or sync_warning:
         payload["warning"] = warning or sync_warning
+    if rules_data:
+        payload["company_rules"] = {"rules": len(company_rules.active(rules_data)), "advisory_notes": rule_notes,
+                                    "not_enforced": len(rules_data.get("not_enforced", []))}
     return emit(payload)
 
 
@@ -298,7 +318,7 @@ def build_iac(repo):
         return {"status": "error", "message": "No scan, plan and design found. Run the scan, plan and evidence steps first."}
     try:
         profile = architect.load_profile(repo)
-        result = iac_engine.build(plan, design, profile, scan, Path(repo).resolve().name)
+        result = iac_engine.build(plan, design, profile, scan, Path(repo).resolve().name, company_rules.load(repo))
         out_dir = state_dir(repo) / "iac"
         if out_dir.exists():
             remove_tree(out_dir)
@@ -546,12 +566,16 @@ GUIDE = {
         "Never choose, rename or remove services yourself and never edit the generated report or diagrams.",
         "Never print a secret value. State a cost only as the cost report gives it, with its label (live, estimate, unpriced).",
         "If the user cannot be asked, use the defaults and mark the answers as assumed.",
+        "Company rules come only from documents the user attached or placed beside the code. Never invent a rule; list what was not understood.",
     ],
     "steps": [
         {"id": "questions", "command": "solsarch.py questions --repo REPO",
          "do": "Ask exactly the questions listed in 'ask'. Skip any already answered."},
         {"id": "scan", "command": "solsarch.py scan --repo REPO",
          "do": "Reads the code. If components is empty, ask the user to describe the system and stop."},
+        {"id": "rules", "command": "solsarch.py rules ingest --repo REPO [--rules PATH ...]", "optional": True,
+         "do": "If the user has company standards (policies, security rules, approved clouds, regions, tags, budgets) as json, yaml, md, txt, html, docx or pdf files in .solsarch/rules, docs/policies or policies, or anywhere the user points to, ingest them. "
+               "Show the rules found, the sentences listed under not_enforced and any conflict. If you can read a prose rule the scripts could not, write it as a rule line (rule: KIND = VALUE) or a JSON rules file in .solsarch/rules/ so the scripts enforce it; never add a rule the documents do not state."},
         {"id": "profile", "command": "solsarch.py profile --repo REPO --set account_type=free_trial|free_tier|pay_as_you_go|standard",
          "do": "Record the account type before the plan step; it shapes the design (lean for free accounts) and the deploy guide."},
         {"id": "compare", "command": "solsarch.py compare --repo REPO --compute server", "optional": True,
@@ -594,14 +618,20 @@ def cmd_run(args):
     memory = memory or {}
     cloud = args.cloud or (memory.get("primary_cloud") if "primary_cloud" not in (memory.get("assumed_fields") or []) else None)
     compute = args.compute or (memory.get("compute_model") if "compute_model" not in (memory.get("assumed_fields") or []) else None)
+    rules_data = company_rules.ensure(repo, getattr(args, "rules", None))
     if not cloud:
         hints = out.get("suggested_cloud")
         cloud, assumed = hints or "aws", True
+        ok = (rules_data or {}).get("constraints", {}).get("compliant_clouds")
+        if ok and cloud not in ok:
+            cloud = next((c for c in ("aws", "azure", "gcp") if c in ok), ok[0])
     if not compute:
         compute, assumed = "server", True
     also = args.also or ",".join(memory.get("overlays") or [])
     plan_args = ["plan", "--repo", repo, "--cloud", cloud, "--compute", compute] + (["--also", also] if also else []) \
         + (["--assumed"] if assumed else [])
+    for item in getattr(args, "rules", None) or []:
+        plan_args += ["--rules", item]
     code, plan = capture(main, plan_args)
     steps["plan"] = {"status": plan.get("status"), "cloud": cloud, "compute": compute, "assumed": assumed}
     if code != 0:
@@ -621,6 +651,8 @@ def cmd_run(args):
         return emit({"status": "error", "step": "finish", "steps": steps, "detail": done}, code)
     done["steps"] = steps
     done["assumed_answers"] = assumed
+    if rules_data:
+        done["company_rules"] = {"rules": len(company_rules.active(rules_data)), "file": str(Path(repo) / "docs" / "solsarch-rules.md")}
     done["next"] = ("If you can search the web, run 'facts queue', record the sources, then 'finish' again. "
                     "If the answers were assumed, ask the user and rerun with --cloud and --compute.")
     return emit(done)
@@ -645,6 +677,13 @@ def cmd_compare(args):
                 order.append(d["key"])
                 roles[d["key"]] = d["role"]
     rows = []
+    rules_data = company_rules.ensure(args.repo)
+    if rules_data:
+        cells = []
+        for cloud in chosen:
+            found = company_rules.blocking(company_rules.violations(rules_data, cloud, args.compute))
+            cells.append("allowed" if not found else "blocked: " + "; ".join(v["message"] for v in found))
+        rows.append(("Company rules", cells))
     for key in order:
         cells = []
         for cloud in chosen:
@@ -662,6 +701,7 @@ def cmd_compare(args):
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(chr(10).join(lines).encode("utf-8"))
     return emit({"status": "written", "file": str(target), "roles": len(rows),
+                 "blocked_by_company_rules": [c for c in chosen if rules_data and company_rules.blocking(company_rules.violations(rules_data, c, args.compute))],
                  "fingerprints": {c: p["fingerprint"] for c, p in plans.items()}})
 
 
@@ -727,8 +767,61 @@ def cmd_verify(args):
                  "warnings": [p for p in problems if p["severity"] != "error"]}, 1 if errors else 0)
 
 
+def build_rules_docs(repo):
+    """Write docs/solsarch-rules.md and the OPA policy for the rules. Never raises."""
+    try:
+        data = company_rules.load(repo)
+        if not data:
+            return {"status": "none"}
+        quality = read_json(state_dir(repo) / "quality.json") or {}
+        by_id = {r["rule"]: r for r in quality.get("rule_results", [])}
+        results = [{"rule": rule, "status": by_id[rule["id"]]["status"]} for rule in data["rules"] if rule["id"] in by_id]
+        docs = Path(repo) / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / "solsarch-rules.md").write_bytes(company_rules.render_markdown(data, results).encode("utf-8"))
+        (state_dir(repo) / "policy").mkdir(parents=True, exist_ok=True)
+        (state_dir(repo) / "policy" / "solsarch-company.rego").write_bytes(company_rules.rego(data).encode("utf-8"))
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "rules": len(company_rules.active(data))}
+
+
+def build_adr(repo):
+    """Write docs/adr, one decision record per service decision. Never raises."""
+    try:
+        written = adr_records.write(repo)
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "files": len(written)} if written else {"status": "none"}
+
+
+def cmd_adr(args):
+    result = build_adr(args.repo)
+    return emit(result, 0 if result.get("status") == "written" else 2)
+
+
+def cmd_rules(args):
+    if args.rules:
+        company_rules.set_sources(args.repo, args.rules)
+    data = company_rules.build(args.repo) if args.action == "ingest" else company_rules.ensure(args.repo)
+    if data is None:
+        return emit({"status": "none", "message": "No rules documents found. Put them in .solsarch/rules/, docs/policies/ or policies/, or pass --rules PATH."}, 1)
+    if args.action == "check":
+        quality = read_json(state_dir(args.repo) / "quality.json") or {}
+        return emit({"status": "ok", "results": quality.get("rule_results", []),
+                     "note": "Run finish to refresh these after changing the rules or the plan."})
+    docs = Path(args.repo) / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    (docs / "solsarch-rules.md").write_bytes(company_rules.render_markdown(data).encode("utf-8"))
+    return emit({"status": "ok", "rules": len(company_rules.active(data)), "constraints": data["constraints"], "conflicts": data["conflicts"],
+                 "not_enforced": data["not_enforced"], "problems": data["problems"], "file": str(docs / "solsarch-rules.md"),
+                 "rules_list": [{"id": r["id"], "kind": r["kind"], "value": r["value"], "level": r["level"], "origin": r["origin"], "status": r.get("status")}
+                                for r in data["rules"]]})
+
+
 def cmd_finish(args):
     base = ["--repo", str(args.repo)]
+    company_rules.ensure(args.repo, getattr(args, "rules", None))
     try:
         build_evidence(args.repo, args.icon_dir)
     except ValueError as error:
@@ -764,6 +857,8 @@ def cmd_finish(args):
     extras["infrastructure"] = iac_result.get("status") if iac_result.get("status") != "error" else "error: " + iac_result.get("message", "")
     quality = run_quality(args.repo)
     extras["quality"] = quality
+    extras["company_rules"] = build_rules_docs(args.repo).get("status")
+    extras["adr"] = build_adr(args.repo).get("status")
     code, package = capture(package_outputs.main, base)
     if code != 0:
         return emit({"status": "error", "step": "zip", "detail": package}, code)
@@ -788,6 +883,7 @@ def main(argv=None):
         if name in ("finish", "evidence"):
             p.add_argument("--icon-dir", help="Folder of official vendor icon SVGs to use in the icon picture")
         if name == "finish":
+            p.add_argument("--rules", action="append", metavar="PATH", help="Company rules documents (file or folder, repeatable)")
             p.add_argument("--narrative", help="Optional markdown notes to include in the report")
             p.add_argument("--force", action="store_true", help="Package even if verification found errors")
     p = sub.add_parser("run")
@@ -797,7 +893,14 @@ def main(argv=None):
     p.add_argument("--compute", choices=("server", "serverless"))
     p.add_argument("--icon-dir")
     p.add_argument("--force", action="store_true")
+    p.add_argument("--rules", action="append", metavar="PATH", help="Company rules documents (file or folder, repeatable)")
     sub.add_parser("guide")
+    p = sub.add_parser("adr")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("rules")
+    p.add_argument("action", nargs="?", choices=("ingest", "show", "check"), default="show")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--rules", action="append", metavar="PATH", help="Company rules documents (file or folder, repeatable)")
     p = sub.add_parser("costs")
     p.add_argument("action", nargs="?", choices=("run", "add"), default="run")
     p.add_argument("--repo", default=".")
@@ -864,13 +967,14 @@ def main(argv=None):
     p.add_argument("--also", default="", help="Comma-separated overlay providers, for example neon,cloudflare")
     p.add_argument("--compute", required=True, choices=("server", "serverless"))
     p.add_argument("--assumed", action="store_true", help="The user did not choose these; mark them as assumed")
+    p.add_argument("--rules", action="append", metavar="PATH", help="Company rules documents (file or folder, repeatable)")
     p = sub.add_parser("facts")
     p.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
                "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
-               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "contract": cmd_contract, "capabilities": cmd_capabilities, "export": cmd_export, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
+               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "contract": cmd_contract, "capabilities": cmd_capabilities, "export": cmd_export, "rules": cmd_rules, "adr": cmd_adr, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

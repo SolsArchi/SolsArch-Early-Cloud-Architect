@@ -42,7 +42,7 @@ def tf_dir(provider):
     return "terraform"
 
 
-def build(plan, design, profile, scan, project=None):
+def build(plan, design, profile, scan, project=None, rules=None):
     import iac_ansible
     import iac_data
     import iac_k8s
@@ -80,6 +80,10 @@ def build(plan, design, profile, scan, project=None):
         add(docker, "docker", "Dockerfiles for units without one")
     ci_dir = "terraform" if provider in iac_ci.TERRAFORM_PROVIDERS else "."
     add(iac_ci.generate(model, provider, ci_dir), "ci", "GitHub Actions pipeline")
+    rule_notes = []
+    if rules and rules.get("constraints"):
+        import rules as company_rules
+        out, rule_notes = company_rules.apply_to_files(out, rules, provider)
     parity = iac_parity.evaluate(model, provider, kind, out)
     manifest = {
         "schema": 1, "provider": provider, "provider_name": plan["cloud_name"], "provider_kind": kind, "compute_model": plan["compute_model"],
@@ -91,6 +95,7 @@ def build(plan, design, profile, scan, project=None):
         "streaming_compatible": any("RESPONSE_STREAM" in t for p, t in out.items() if p.endswith(".tf")),
         "has_scheduler": any("aws_scheduler_schedule" in t for p, t in out.items() if p.endswith(".tf")),
         "injected_env_vars": sorted({v["name"] for v in model.config_inputs}),
+        "company_rules_notes": rule_notes,
     }
     return {"files": out, "manifest": manifest}
 

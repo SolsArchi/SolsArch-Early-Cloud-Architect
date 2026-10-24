@@ -1,6 +1,6 @@
 ---
 name: solsarch-early-cloud-architect
-description: Designs cloud architecture from a local codebase and delivers it ready to deploy. Scans the repo, picks services with fixed rules on 40 clouds and platforms (AWS, Azure, GCP, Hetzner, Render, Vercel, Railway and more), draws C4 and icon diagrams, writes Terraform, Ansible, Kubernetes, Helm, Dockerfiles, platform configs and a CI pipeline, estimates cost, scores ops maturity, runs a pre-deploy gate, exports to Backstage, Structurizr and draw.io, and writes a step-by-step deploy guide for non-technical people matched to their account type (free trial, free tier, pay as you go, paid). Use when the user asks to design cloud architecture, choose or compare clouds, deploy an app to AWS, Azure, GCP, Vercel, Render, Railway or any listed provider, generate Terraform or Ansible, draw a C4 diagram, review an architecture, check deployment blockers, or explain how to deploy step by step.
+description: Designs cloud architecture from a local codebase and the company's own rules, not from a prompt. Scans the repo, reads the standards attached beside it (policies as md, pdf, docx, json or yaml), picks services with fixed rules on 40 clouds and platforms (AWS, Azure, GCP, Hetzner, Render, Vercel and more), draws C4 diagrams, writes Terraform, Kubernetes, Ansible, Dockerfiles and CI, estimates cost, checks every company rule, and writes a step-by-step deploy guide matched to the account type. Use when the user asks to design or compare cloud architecture for a repo, follow company policies or compliance (approved clouds, regions, tags, spend limits), generate Terraform, draw C4, check deployment blockers, or explain how to deploy.
 compatibility: Needs Python 3.8 or newer with the standard library only. Web search, Terraform, Docker and the security scanners are used when present and reported as not run when absent. Works in Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf, MCP clients and custom agents.
 license: MIT OR Apache-2.0
 metadata:
@@ -53,6 +53,23 @@ python scripts/solsarch.py scan --repo REPO
 
 If `truncated` is true, say only part of the repo was scanned. If `components` is empty, ask the user to describe the system
 and stop. `suggested_cloud` is only a default for Step 1.
+
+## Company rules (when the user has standards)
+
+Look for the company's own standards: `python scripts/solsarch.py questions --repo REPO` lists `company_rules.documents` it found in
+`.solsarch/rules/`, `docs/policies/`, `policies/` and `solsarch.rules.*`. The user may also point to files or folders anywhere (json,
+yaml, md, txt, html, docx, pdf) with `--rules PATH`, repeatable on `plan`, `run` and `finish`.
+
+```bash
+python scripts/solsarch.py rules ingest --repo REPO [--rules PATH ...]
+```
+
+Show the user `rules_list` (each rule has the sentence it came from), `conflicts`, `problems` and `not_enforced` (sentences that
+sound like rules but were not understood). If you can read a rule in prose that the scripts did not pick up, write it as a line
+`rule: KIND = VALUE ; level=blocking` in a file under `.solsarch/rules/`; never add a rule the documents do not state. Exceptions
+need a reason, an owner and an expiry date. `plan` refuses a cloud the rules forbid and lists the clouds that are allowed.
+The rules fill the region, the spend limit, compliance and recovery objectives, add tags, a name prefix and log retention to the generated
+Terraform, and `finish` checks every rule (gate 8) and writes `docs/solsarch-rules.md` and an OPA policy for the pipeline.
 
 ## Step 3: Plan
 
@@ -167,7 +184,7 @@ servers and open-source tools are listed by `python scripts/solsarch.py mcp tool
 Does: static analysis of a repository, a cited service plan on 40 clouds and platforms, validated diagrams, infrastructure code and a
 deploy guide, cost estimates with honest labels, ops maturity, a pre-deploy gate, exports, web-checked service names, one zip.
 Does not: deploy, hold credentials, inspect a live cloud account (the drift workflow compares a plan against state in the user's own
-pipeline), or map controls to compliance frameworks. Enterprise platforms (SAP, Salesforce and similar) are read-only structure sources.
+pipeline), or certify compliance (it checks the company rules the user attaches; a framework name only adds the checks it maps to). Enterprise platforms (SAP, Salesforce and similar) are read-only structure sources.
 If the user needs something else, say it is outside this skill.
 
 ## Troubleshooting

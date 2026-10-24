@@ -1,6 +1,6 @@
 # SolsArch Early Cloud Architect: instructions for AI agents
 
-This repository is an Agent Skill that designs cloud architecture for a local codebase and delivers it ready to deploy:
+This repository is an Agent Skill that designs cloud architecture from a local codebase and the company's own rules (attached as docs, PDFs, Markdown or JSON), and delivers it ready to deploy:
 40 clouds and platforms (AWS, Azure, Google Cloud, Hetzner, Render, Vercel, Railway and more), with Terraform, Ansible,
 Kubernetes, platform config files, a CI pipeline, a cost estimate and a step-by-step deploy guide.
 The skill lives in `solsarch-early-cloud-architect/`; `SKILL.md` there has the full rules. These instructions work
@@ -18,6 +18,7 @@ Step by step (what the skill expects an agent to do):
 
 1. `solsarch.py questions --repo PROJECT`: ask the user only the questions listed (cloud or platform; server or
    serverless; account type). Record the account type: `solsarch.py profile --repo PROJECT --set account_type=free_trial|free_tier|pay_as_you_go|standard`.
+1b. Company rules: if the user has standards (docs, PDFs, Markdown, JSON, YAML in `.solsarch/rules/`, `docs/policies/`, `policies/`, or any path), run `solsarch.py rules ingest --repo PROJECT [--rules PATH]`, show the rules, the conflicts and the `not_enforced` sentences, and never invent a rule. `plan` refuses a cloud the rules forbid.
 2. `solsarch.py scan --repo PROJECT`, then `plan --repo PROJECT --cloud ID --compute server|serverless` (add `--also neon,cloudflare` to mix providers).
 3. Web check: with a search API key set run `facts auto`; otherwise `facts queue`, search each query, record one official
    sentence with `facts add`; without any web search `facts skip --reason "no web search tool"`.

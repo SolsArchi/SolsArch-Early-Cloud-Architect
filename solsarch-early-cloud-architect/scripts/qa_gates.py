@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import contract as contract_mod  # noqa: E402
 import capabilities  # noqa: E402
 import static_check  # noqa: E402
+import rules as company_rules  # noqa: E402
 
 PASS, FAIL, WARNING, NOT_VERIFIED, NA = "PASS", "FAIL", "WARNING", "NOT_VERIFIED", "N/A"
 AREAS = [("repository", "Repository understanding", 15), ("architecture", "Architecture compatibility", 20),
@@ -31,7 +32,8 @@ AREAS = [("repository", "Repository understanding", 15), ("architecture", "Archi
          ("security", "Security and compliance", 15), ("reliability", "Reliability and scalability", 10),
          ("evidence", "Evidence and consistency", 5)]
 GATES = [(1, "Repository evidence"), (2, "Architecture compatibility"), (3, "Constraint enforcement"), (4, "Infrastructure validation"),
-         (5, "Cost reconciliation"), (6, "Security and reliability"), (7, "Cross-artifact consistency")]
+         (5, "Cost reconciliation"), (6, "Security and reliability"), (7, "Cross-artifact consistency"),
+         (8, "Company rules")]
 CREDIT = {PASS: 1.0, WARNING: 0.5, FAIL: 0.0, NOT_VERIFIED: 0.0}
 BANDS = [(90, "Excellent", "Production candidate, subject to validation"), (85, "Strong", "Minor improvements required"),
          (70, "Conditional", "Resolve important findings"), (50, "Weak", "Architecture revision required"),
@@ -110,6 +112,7 @@ class Inputs:
         self.native = {d["key"]: d for d in (self.plan or {}).get("decisions", []) if d.get("provider", cloud) == cloud}
         self.profile = (self.plan or {}).get("profile", {})
         self.signals = (self.scan or {}).get("signals", {})
+        self.company = company_rules.load(repo)
         self.parity = {c["id"]: c["status"] for c in ((self.manifest or {}).get("parity", {}).get("capabilities", []))}
 
     @property
@@ -451,6 +454,30 @@ def gate7(i):
     return out
 
 
+# ---------------------------------------------------------------- gate 8: company rules
+RULE_AREA = {"budget_monthly": "cost", "no_public_database": "security", "no_public_storage": "security", "encryption_at_rest": "security",
+             "encryption_in_transit": "security", "customer_managed_keys": "security", "ha_multi_az": "reliability", "rpo_minutes": "reliability",
+             "rto_minutes": "reliability", "log_retention_min_days": "reliability", "log_retention_max_days": "security", "required_tags": "infrastructure",
+             "naming_prefix": "infrastructure", "iac_tool": "infrastructure", "ci_provider": "infrastructure"}
+
+
+def gate8(i):
+    """Every active company rule, checked against the plan and the generated files. No rules documents means no checks."""
+    data = i.company
+    out = []
+    if not data:
+        return out
+    for conflict in data.get("conflicts", []):
+        out.append(chk("P-conflict", "architecture", 8, "Company rules agree with each other", FAIL, "%s (%s)." % (conflict["message"], ", ".join(conflict["rules"])),
+                       conflict["rules"], blocker=True, criterion="constraints"))
+    for rule in company_rules.active(data):
+        status, detail, evidence = company_rules.check(rule, i.plan, i.iac, i.costs, i.design, i.profile, i.manifest)
+        name = "%s %s" % (rule["kind"].replace("_", " "), "" if rule["value"] is True else json.dumps(rule["value"], ensure_ascii=False)[:60])
+        out.append(chk(rule["id"], RULE_AREA.get(rule["kind"], "architecture"), 8, "Company rule: " + name.strip(), status, detail, evidence,
+                       blocker=(rule["level"] == "blocking"), criterion="constraints" if rule["level"] != "advisory" else None))
+    return out
+
+
 # ---------------------------------------------------------------- scoring
 def score(checks):
     areas = []
@@ -490,7 +517,7 @@ def evaluate(repo):
     i = Inputs(repo)
     if not (i.scan and i.plan and i.design):
         return {"verdict": "error", "message": "No scan, plan and design found. Run the scan, plan and finish steps first."}
-    checks = gate1(i) + gate2(i) + gate3(i) + gate4(i) + gate5(i) + gate6(i) + gate7(i)
+    checks = gate1(i) + gate2(i) + gate3(i) + gate4(i) + gate5(i) + gate6(i) + gate7(i) + gate8(i)
     raw, areas = score(checks)
     blockers = [c for c in checks if c["blocker"]]
     acceptance = [{"id": k, "name": n, "met": bool(f(checks, blockers))} for k, n, f in ACCEPTANCE]
@@ -508,7 +535,8 @@ def evaluate(repo):
             "band": name, "advice": advice, "areas": areas, "gates": gates,
             "blockers": [{"id": c["id"], "name": c["name"], "detail": c["detail"]} for c in blockers], "deploy_ready": not blockers and final >= 85,
             "not_verified": [{"id": c["id"], "name": c["name"], "detail": c["detail"]} for c in checks if c["status"] == NOT_VERIFIED],
-            "contradictions": contradictions(i)}
+            "contradictions": contradictions(i),
+            "rule_results": [{"rule": c["id"], "status": c["status"], "detail": c["detail"]} for c in checks if c["gate"] == 8]}
 
 
 def main(argv=None):

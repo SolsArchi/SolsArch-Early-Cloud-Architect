@@ -1,0 +1,15 @@
+{
+  "_comment": "Compliance frameworks a rules document can name, and the checks SolsArch can run for each. This is a mapping to checks on generated files, not a certification and not legal advice. A framework never implies a region: GDPR, for example, does not require data to stay in the EU.",
+  "frameworks": {
+    "soc2": {"name": "SOC 2", "implies": ["encryption_at_rest", "encryption_in_transit", "no_public_database"]},
+    "hipaa": {"name": "HIPAA", "implies": ["encryption_at_rest", "encryption_in_transit", "no_public_database", "no_public_storage"]},
+    "pci-dss": {"name": "PCI DSS", "implies": ["encryption_at_rest", "encryption_in_transit", "no_public_database", "no_public_storage"]},
+    "gdpr": {"name": "GDPR", "implies": ["encryption_at_rest", "encryption_in_transit"]},
+    "iso27001": {"name": "ISO 27001", "implies": ["encryption_at_rest", "encryption_in_transit", "no_public_database"]},
+    "nist-csf": {"name": "NIST CSF", "implies": ["encryption_at_rest", "encryption_in_transit"]},
+    "fedramp": {"name": "FedRAMP", "implies": ["encryption_at_rest", "encryption_in_transit", "no_public_database", "no_public_storage"]},
+    "eu-ai-act": {"name": "EU AI Act", "implies": []},
+    "dora": {"name": "DORA", "implies": ["encryption_at_rest", "encryption_in_transit", "ha_multi_az"]},
+    "nis2": {"name": "NIS2", "implies": ["encryption_at_rest", "encryption_in_transit", "ha_multi_az"]}
+  }
+}

@@ -35,6 +35,14 @@ def _prop(kind, description, **extra):
     return dict({"type": kind, "description": description}, **extra)
 
 
+RULES = _prop("string", "Comma-separated paths of company rules documents (json, yaml, md, txt, html, docx, pdf; a file or a folder). "
+                        "Default: .solsarch/rules, docs/policies, policies and solsarch.rules.* in the project.")
+
+
+def _rules_args(a):
+    return [x for path in (a.get("rules") or "").split(",") if path.strip() for x in ("--rules", path.strip())]
+
+
 TOOLS = [
     {"name": "solsarch_guide", "description": "Return the SolsArch workflow, rules and steps as JSON. Call this first if you do not know the workflow.",
      "properties": {}, "required": [], "argv": lambda a: ["guide"]},
@@ -47,10 +55,10 @@ TOOLS = [
      "properties": {"repo": REPO, "cloud": _prop("string", "Cloud to use.", enum=CLOUDS),
                     "compute": _prop("string", "server = always-on containers, serverless = scales to zero.", enum=COMPUTE),
                     "assumed": _prop("boolean", "True when the user did not choose these answers."),
-                    "also": _prop("string", "Comma-separated overlay providers, for example neon,cloudflare.")},
+                    "also": _prop("string", "Comma-separated overlay providers, for example neon,cloudflare."), "rules": RULES},
      "required": ["cloud", "compute"],
      "argv": lambda a: ["plan", "--repo", a.get("repo", "."), "--cloud", a["cloud"], "--compute", a["compute"]]
-                       + (["--also", a["also"]] if a.get("also") else []) + (["--assumed"] if a.get("assumed") else [])},
+                       + (["--also", a["also"]] if a.get("also") else []) + (["--assumed"] if a.get("assumed") else []) + _rules_args(a)},
     {"name": "solsarch_compare", "description": "Place the same scan on AWS, Azure and Google Cloud and write a side-by-side table. Does not save a plan.",
      "properties": {"repo": REPO, "compute": _prop("string", "Compute model to compare.", enum=COMPUTE),
                     "clouds": _prop("string", "Comma-separated provider ids, or all. Default aws,azure,gcp.")}, "required": [],
@@ -72,10 +80,10 @@ TOOLS = [
     {"name": "solsarch_finish", "description": "Write the evidence, report, diagrams, verification and the output zip. Needs scan and plan first.",
      "properties": {"repo": REPO, "narrative": _prop("string", "Path of an optional markdown file of notes to include."),
                     "icon_dir": _prop("string", "Folder of official vendor icon SVGs."),
-                    "force": _prop("boolean", "Package even if verification failed. Only when the user asks.")},
+                    "force": _prop("boolean", "Package even if verification failed. Only when the user asks."), "rules": RULES},
      "required": [],
      "argv": lambda a: ["finish", "--repo", a.get("repo", ".")] + (["--narrative", a["narrative"]] if a.get("narrative") else [])
-                       + (["--icon-dir", a["icon_dir"]] if a.get("icon_dir") else []) + (["--force"] if a.get("force") else [])},
+                       + (["--icon-dir", a["icon_dir"]] if a.get("icon_dir") else []) + (["--force"] if a.get("force") else []) + _rules_args(a)},
     {"name": "solsarch_verify", "description": "Check the written report against the scan evidence: invented ids, leaked secrets, broken diagrams.",
      "properties": {"repo": REPO}, "required": [], "argv": lambda a: ["verify", "--repo", a.get("repo", ".")]},
     {"name": "solsarch_run",
@@ -83,9 +91,9 @@ TOOLS = [
      "properties": {"repo": REPO, "cloud": _prop("string", "Cloud to use.", enum=CLOUDS),
                     "compute": _prop("string", "Compute model.", enum=COMPUTE),
                     "also": _prop("string", "Comma-separated overlay providers, for example neon,cloudflare."),
-                    "icon_dir": _prop("string", "Folder of official vendor icon SVGs.")},
+                    "icon_dir": _prop("string", "Folder of official vendor icon SVGs."), "rules": RULES},
      "required": [],
-     "argv": lambda a: ["run", "--repo", a.get("repo", ".")] + (["--cloud", a["cloud"]] if a.get("cloud") else [])
+     "argv": lambda a: ["run", "--repo", a.get("repo", ".")] + _rules_args(a) + (["--cloud", a["cloud"]] if a.get("cloud") else [])
                        + (["--compute", a["compute"]] if a.get("compute") else [])
                        + (["--also", a["also"]] if a.get("also") else [])
                        + (["--icon-dir", a["icon_dir"]] if a.get("icon_dir") else [])},
@@ -94,6 +102,11 @@ TOOLS = [
      "properties": {"repo": REPO, "set": _prop("string", "Comma-separated KEY=VALUE pairs, for example account_type=free_trial,region=us-east-1.")},
      "required": [],
      "argv": lambda a: ["profile", "--repo", a.get("repo", ".")] + [x for pair in (a.get("set") or "").split(",") if pair.strip() for x in ("--set", pair.strip())]},
+    {"name": "solsarch_rules",
+     "description": "Company rules from documents attached beside the code (json, yaml, md, txt, html, docx, pdf). action=ingest reads them and lists every rule with its source sentence; show lists the rules in force, what could not be understood and any conflict; check shows each rule's result from the last finish. Rules limit the cloud, region, budget and compliance choices, add tags, name prefix and log retention to the generated code, and are checked by the quality gate.",
+     "properties": {"repo": REPO, "action": _prop("string", "ingest, show or check. Default show.", enum=["ingest", "show", "check"]), "rules": RULES},
+     "required": [],
+     "argv": lambda a: ["rules", a.get("action", "show"), "--repo", a.get("repo", ".")] + _rules_args(a)},
     {"name": "solsarch_costs", "description": "Write the monthly cost estimate (live vendor prices where available, estimates labelled). Needs scan, plan and finish or evidence first.",
      "properties": {"repo": REPO, "offline": _prop("boolean", "Use the saved price book only; no network."), "refresh": _prop("boolean", "Read fresh vendor prices.")},
      "required": [],

@@ -1,0 +1,15 @@
+# The same kind of rules written as data (sample). YAML and JSON are read exactly.
+rules:
+  - kind: denied_services
+    value: [nat_gateway]
+    level: required
+    reason: Hourly cost with no benefit for our workloads
+  - kind: naming_prefix
+    value: acme-
+
+# An exception needs a reason, an owner and an expiry date. After the date the rule applies again.
+exceptions:
+  - rule: denied_services
+    reason: Private subnets need outbound access until the egress proxy ships
+    owner: platform-team
+    expires: 2027-06-30

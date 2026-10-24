@@ -168,7 +168,7 @@ def write(repo, result):
     except (OSError, ValueError):
         return
     gates = {g["gate"]: [{"id": c["id"], "status": c["status"], "detail": c["detail"]} for c in g["checks"]] for g in result["gates"]}
-    data["validation"] = {"compatibility": gates[2], "infrastructure": gates[4], "security": gates[6], "cost": gates[5], "consistency": gates[7]}
+    data["validation"] = {"compatibility": gates[2], "infrastructure": gates[4], "security": gates[6], "cost": gates[5], "consistency": gates[7], "company_rules": gates.get(8, [])}
     data["evaluation"] = {"score": result["score"], "critical_findings": [b["detail"] for b in result["blockers"]],
                           "warnings": [c["id"] for g in result["gates"] for c in g["checks"] if c["status"] == qa_gates.WARNING],
                           "verified": not result["not_verified"], "deploy_ready": result["deploy_ready"]}

@@ -30,6 +30,7 @@ These are in scope:
 - Names and paths that come from a repository are slugged or quoted before they reach a shell command, a Terraform string or a file path; a generated path can never leave the output folder.
 - Third-party GitHub Actions in generated pipelines are pinned to commits, and the pipeline downloads SolsArch at a release tag, not a moving branch.
 - Secret values found in a repository are redacted in every output.
+- Company rules documents are untrusted too: each file has a size cap, docx and pdf are unpacked with a size limit and no XML or PDF parser, nothing is fetched from the network, symlinks are not followed, and every value that reaches a generated file (tag keys, name prefix, region ids, numbers) is validated against a strict pattern first.
 
 The tests in `tests/test_security.py` run these protections against a hostile repository.
 

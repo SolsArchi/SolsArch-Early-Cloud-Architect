@@ -4,10 +4,33 @@
 
 **Website: [solsarch.com](https://solsarch.com/)**
 
-An Agent Skill that turns a code repository into a cloud architecture **and everything needed to deploy it**. Ask your AI agent to design the cloud setup for a project and it will:
+**Cloud architect, DevOps and AIOps for your team. Early architecture from your codebase and your company's rules. Not from a prompt.**
+
+Most tools ask you to describe your system to an AI and then draw what it imagines: prompt to architecture, prompt to diagram, prompt to Terraform. The answer changes with the wording, nobody can check where it came from, and it has never read your company's standards.
+
+SolsArch starts from two things you already have:
+
+- **Your codebase.** It reads the files and picks services with fixed rules. Every choice points to the file and line that caused it.
+- **Your rules.** Attach the standards you already write (approved clouds, regions, tags, budgets, encryption, retention, compliance) as docs, PDFs, Markdown or JSON beside the code. They limit the choices, appear in the generated Terraform, and every rule is checked and reported with the sentence it came from.
+
+The same inputs give the same files, byte for byte, whichever AI agent runs it.
+
+| | Prompt to architecture, diagram or IaC | SolsArch |
+| :--- | :--- | :--- |
+| Starts from | A description you type | Your repository and the rules you attach |
+| Same input, same output | Changes with the wording and the model | Identical files on every run, on every agent |
+| Where a choice came from | Not shown | File and line for the code; document and sentence for the rule |
+| Company policy | Pasted into a prompt and hoped for | Read from your documents, enforced, checked, exceptions need a reason and an expiry date |
+| What you get | A picture or a snippet | Report, diagrams, Terraform, Kubernetes, Ansible, CI, cost estimate, deploy guide, ops scorecard, quality score, in one zip |
+| Where | One vendor | 40 clouds and platforms, side by side |
+| Your credentials | Often requested | Never seen; you deploy with your own keys |
+
+**Who it is for:** platform and DevOps teams that want a first architecture that already follows house rules; consultancies that need comparable proposals across clouds; startups on a free tier who need a design that will not surprise them with a bill; security and compliance leads who want every rule traced to evidence; and teams that run AI services and want DevOps, DevSecOps, MLOps, AIOps, LLMOps and AgentOps maturity scored from their own files.
+
+In detail, it is an Agent Skill that turns a code repository into a cloud architecture **and everything needed to deploy it**. Ask your AI agent to design the cloud setup for a project and it will:
 
 1. ask three questions: **which cloud or platform** (40 are supported), **servers or serverless**, and **what kind of account you have** (free trial, always-free tier, pay as you go, or standard paid);
-2. scan the code and choose services with fixed rules, each tied to the file and line that caused it;
+2. scan the code and choose services with fixed rules, each tied to the file and line that caused it, and read the company rules you attached;
 3. check the chosen services against the vendor's own documentation by web search (by hand, or automatically with any search API);
 4. draw the diagrams: an icon picture of your cloud layout, a service sheet, and Mermaid diagrams (C4 levels, frontend, backend, database schema, sequences);
 5. write the **infrastructure code**: Terraform, Ansible, Kubernetes manifests, a Helm chart, Dockerfiles, the platform's own config file (Render, Fly, Vercel ...) and a CI pipeline with a pull-request gate;
@@ -54,14 +77,58 @@ flowchart LR
 | Capability | What you get |
 | :--- | :--- |
 | **Understand the code** | Frameworks, databases, queues, services, ports and health paths; monorepos and several repos in one folder |
+| **Follow your rules** | Approved clouds, regions, budgets, tags, encryption, retention and compliance names read from the documents you attach (docs, PDF, Markdown, JSON, YAML); enforced, checked and traced to the sentence they came from |
 | **Choose services** | Fixed rules across 40 clouds and platforms; every choice points to the file that caused it; AWS, Azure and GCP side by side |
 | **Check on the web** | One official sentence per service from the vendor's own site, with a hash you can re-check later |
 | **Draw** | C4 diagrams, frontend, backend and database-schema diagrams, sequences, and an icon picture of the cloud layout |
 | **Write the infrastructure code** | Terraform for 17 clouds, Kubernetes, Helm, Ansible, Dockerfiles, platform config files, GitHub Actions pipeline, pull-request gate, weekly drift check |
 | **Estimate cost** | Monthly estimate, range and 12-month view; each line labelled live price, estimate or unpriced |
-| **Check quality and risk** | Pre-deployment security checks (including secrets left in git history), design rules, end-of-life runtimes, an operations maturity score, real-tool checks (Terraform, Trivy, Checkov, kubectl), and a **quality score out of 100** from seven gates (`docs/solsarch-quality.md`) |
+| **Check quality and risk** | Pre-deployment security checks (including secrets left in git history), design rules, end-of-life runtimes, an operations maturity score, real-tool checks (Terraform, Trivy, Checkov, kubectl), and a **quality score out of 100** from seven gates, plus an eighth for your company rules (`docs/solsarch-quality.md`) |
 | **Explain how to deploy** | A beginner-friendly guide for your account type, with terminal and console paths |
 | **Hand off** | Exports for Backstage, Structurizr, PlantUML, LikeC4, draw.io, Score and Port; an executive deck and PDF; everything in one zip |
+
+## Bring your company rules
+
+Put your standards next to the code, or point to them. SolsArch looks in `.solsarch/rules/`, `docs/policies/`, `policies/` and `solsarch.rules.*`, or you pass `--rules PATH` (a file or a folder, repeatable) to `plan`, `run` and `finish`.
+
+| Attach as | How it is read |
+| :--- | :--- |
+| JSON or YAML | Exact. A `rules` list, or the rule names as keys. Values are validated before they reach any generated file |
+| Markdown, text, HTML | Lines such as `rule: allowed_clouds = aws, azure ; level=blocking` are exact. Plain sentences ("All customer data must stay in the EU.") are picked out by fixed patterns |
+| Word (.docx), PDF | The text is extracted with the standard library. A scanned PDF has no text layer and is reported as such |
+
+No language model decides what a sentence means. A sentence that sounds like a rule but is not understood is listed under **Attached but not enforced** in `docs/solsarch-rules.md`, never dropped silently. Your agent can read it and write it as a `rule:` line.
+
+| Rule | What it does |
+| :--- | :--- |
+| Approved, denied or preferred clouds | `plan` refuses a forbidden cloud and lists the allowed ones; `compare` marks blocked clouds; `run` picks only an allowed one |
+| Data residency and allowed regions | Picks a region inside the area (for example `eu-central-1`, `germanywestcentral`, `europe-west3`) and checks every region in the generated code |
+| Budget, recovery objectives, compliance names | Fill the profile; the budget is checked against the cost estimate. A framework name (SOC 2, ISO 27001, HIPAA, PCI DSS, GDPR, DORA, NIS2 ...) adds the checks it maps to. It is a mapping, not a certification |
+| Required tags and name prefix | Added to the generated Terraform (merged into AWS default tags, Azure tags and Google labels) |
+| Log retention | Raised or lowered to meet the rule (rounded to a value CloudWatch accepts) |
+| Forbidden services, public databases or storage, encryption, customer-managed keys | Checked against the plan and every generated file; a failure names the file |
+| Serverless-first, Terraform or OpenTofu, GitHub Actions | Checked against the plan and the generated files |
+
+Each rule has a level: `advisory` (a warning), `required` (a failed check) or `blocking` (a failed check that stops "deploy ready"). An exception needs a reason, an owner and an expiry date; after the date the rule applies again.
+
+```yaml
+# .solsarch/rules/company.yaml
+rules:
+  - kind: allowed_clouds
+    value: [aws, azure]
+    level: blocking
+  - kind: data_residency
+    value: [eu]
+  - kind: required_tags
+    value: [owner, cost-center]
+exceptions:
+  - rule: R-denied-services-1a2b3c
+    reason: Legacy batch job, ends in Q3
+    owner: platform-team
+    expires: 2027-03-31
+```
+
+You get `docs/solsarch-rules.md` (every rule with its source, result and the unread sentences), gate 8 "Company rules" in the quality report, `adr/`, one architecture decision record per service (evidence, alternatives, the rules that apply), and `policy/solsarch-company.rego`, an OPA policy for the rules that can be tested on a Terraform plan, so the pipeline keeps enforcing them after the first architecture. If the design breaks a rule (for example a private network that needs a NAT gateway when the rules forbid one), the report says so and names the file; it does not quietly change the design.
 
 ## The user journey
 
@@ -119,7 +186,7 @@ An existing instruction file is extended, never replaced, and running the instal
 claude mcp add solsarch -- python /path/to/solsarch-early-cloud-architect/scripts/mcp_server.py   # Claude Code
 ```
 
-Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`. It exposes 21 tools: `solsarch_run`, `solsarch_questions`, `solsarch_profile`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`, `solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_costs`, `solsarch_iac`, `solsarch_deploy_guide`, `solsarch_validate`, `solsarch_gate`, `solsarch_scorecard`, `solsarch_export`, `solsarch_executive`, `solsarch_knowledge`, `solsarch_eol`, `solsarch_mcp` and `solsarch_guide`.
+Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`. It exposes 22 tools: `solsarch_run`, `solsarch_questions`, `solsarch_profile`, `solsarch_rules`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`, `solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_costs`, `solsarch_iac`, `solsarch_deploy_guide`, `solsarch_validate`, `solsarch_gate`, `solsarch_scorecard`, `solsarch_export`, `solsarch_executive`, `solsarch_knowledge`, `solsarch_eol`, `solsarch_mcp` and `solsarch_guide`.
 
 ### Custom agents and scripts
 
@@ -138,6 +205,10 @@ Open your agent in a repository and ask in plain words:
 - "Design the cloud architecture for this project and give me the Terraform."
 - "I have a free trial on Azure. Show me how to deploy this step by step."
 - "Deploy this to Render" (or Vercel, Railway, Fly.io, Hetzner ...).
+- "Design this for AWS and follow our policies in `docs/policies`." Or point to any file: "Use the standards in `~/Downloads/cloud-policy.pdf`."
+- "Which clouds does our policy allow for this project?" (`compare` marks the blocked ones.)
+
+To try the rules feature, copy `examples/company-rules/` into your repository's `policies/` folder (or run with `--rules examples/company-rules`), then run `solsarch.py run --repo . --cloud aws --compute server` and open `docs/solsarch-rules.md`.
 - "Are there deployment blockers in this repo?" / "Which cloud fits best?"
 
 The agent asks the three questions, runs the steps, and walks you through `docs/solsarch-deploy-guide.md`.
@@ -156,6 +227,7 @@ All outputs are in `docs/solsarch-output.zip`, and also written into your reposi
 | :--- | :--- |
 | `solsarch-report.md`, `report.html` | Verdict, summary, why each service was chosen, every diagram explained, security findings, web checks, cost drivers |
 | `solsarch-deploy-guide.md`, `deploy-guide.html` | The step-by-step guide for non-technical people: account setup for your account type, spending alert, tool install on Windows, Mac and Linux, sign-in, terminal commands with what you should see, the same by clicking in the console, checks, domain and HTTPS, teardown, troubleshooting, glossary |
+| `solsarch-rules.md`, `policy/solsarch-company.rego`, `adr/` | Your company rules with their source sentences and results, an OPA policy for the pipeline, and one decision record per service (only when you attached rules; `adr/` always) |
 | `infrastructure/` | Terraform (17 clouds), Ansible, Kubernetes, Helm, Dockerfiles, platform config files, GitHub Actions deploy pipeline, pull-request gate and drift check |
 | `solsarch-iac.md` | What was written and the 17-point capability checklist, run the same way for every provider |
 | `solsarch-costs.md` | Monthly estimate, range, 12-month view, commitment options, optimisations; each line labelled live, estimate or unpriced |
@@ -198,12 +270,14 @@ S=solsarch-early-cloud-architect/scripts/solsarch.py
 python $S questions --repo REPO                       # three questions
 python $S profile   --repo REPO --set account_type=free_trial
 python $S scan      --repo REPO
-python $S plan      --repo REPO --cloud aws --compute server [--also neon]
+python $S rules ingest --repo REPO [--rules PATH]     # read your company standards (docs, pdf, md, json, yaml); also: rules show / rules check
+python $S plan      --repo REPO --cloud aws --compute server [--also neon] [--rules PATH]
 python $S facts auto --repo REPO [--llm]              # or: facts queue / facts add / facts skip / facts recheck
 python $S finish    --repo REPO                       # report, diagrams, costs, infrastructure, guide, scorecard, exports, deck, zip
 python $S validate  --repo REPO                       # run the real tools over the generated code
 python $S gate      --repo REPO --sarif out.sarif --comment out.md
-python $S compare   --repo REPO                       # AWS vs Azure vs GCP, or --clouds all
+python $S compare   --repo REPO                       # AWS vs Azure vs GCP, or --clouds all (clouds your rules block are marked)
+python $S adr       --repo REPO                       # one decision record per service in docs/adr (also written by finish)
 python $S knowledge search "terraform state locking"
 python $S eol --repo REPO ; python $S mcp tools ; python $S run --repo REPO --cloud aws --compute server
 python solsarch-early-cloud-architect/scripts/eval_harness.py run --suite quick   # self-check of the whole pipeline
@@ -261,6 +335,7 @@ Every run ends with `docs/solsarch-quality.md`, the first file in the zip. It sc
 | 5 Cost reconciliation | Does every billable generated resource have a priced line, a free note or a named unpriced item? |
 | 6 Security and reliability | Wildcard permissions, secrets, log retention, health checks, backups. |
 | 7 Cross-artifact consistency | Do the plan, the code, the costs and the reports describe the same deployment? |
+| 8 Company rules | Does the result follow every rule you attached? (only when you attached rules) |
 
 Each check is PASS, FAIL, WARNING or NOT VERIFIED; a check that could not run never counts as passed. A score above 85 needs every acceptance criterion; otherwise it is capped at 84 and the report says which one is missing. A blocking finding stops "deploy ready" whatever the number. Limits and free allowances are kept as sourced records (`references/capabilities.json`) that name the official page and the exact sentence, and are re-read when older than 30 days (`solsarch.py capabilities check|refresh|add`).
 
@@ -275,6 +350,7 @@ What this tool can and cannot know, stated plainly. Where a limit was lowered, t
 - **Tools that are not installed** (TFLint, Checkov, ansible-lint on Windows ...) are reported as not run, never as passed. The validation report now says how to install each one, and a built-in check of the generated files runs without any of them; it earns half credit, and the quality score stays at 84 or below until a real validator has run.
 - **Diagrams** show the standard pattern for the chosen services; they are derived from files, not from tracing calls. Icons are simple glyphs, not the vendors' official packs, which cannot be redistributed; pass `--icon-dir` with the packs you downloaded to use them.
 - **Region** is no longer an open question: when the profile names none, the plan states the region the generated code uses as an assumption (for example `us-east-1`), tells you how to change it, and reminds you to check data-residency rules.
+- **Company rules** written as sentences are read with fixed patterns, so some are reported as not understood; write them as `rule:` lines or JSON to be sure. A rule is checked against the generated files, not against a live account, and a compliance name is a mapping to checks, not a certification.
 - **The quality score** measures this output under fixed checks. It is not a promise about what an outside reviewer will say, and no real deployment is run.
 
 ## Security

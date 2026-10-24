@@ -32,7 +32,7 @@ PROFILE_DEFAULTS = {"traffic_tier": "prototype", "account_type": "standard", "hi
                     "compliance": [], "region": None, "monthly_budget": None, "risk_appetite": "balanced",
                     "business_driver": None, "existing_cicd": None, "rto_minutes": None, "rpo_minutes": None,
                     "daily_requests": None, "peak_concurrent_users": None}
-COMPLIANCE_FRAMEWORKS = ("soc2", "hipaa", "pci-dss", "gdpr", "iso27001", "nist-csf", "fedramp", "eu-ai-act")
+COMPLIANCE_FRAMEWORKS = ("soc2", "hipaa", "pci-dss", "gdpr", "iso27001", "nist-csf", "fedramp", "eu-ai-act", "dora", "nis2")
 RISK_APPETITES = ("conservative", "balanced", "aggressive")
 
 # Estimated users and requests per day by tier. These are labelled assumptions, never measurements.
@@ -69,6 +69,11 @@ def load_profile(repo):
         if isinstance(saved, dict):
             profile.update({k: v for k, v in saved.items() if k in PROFILE_DEFAULTS})
     except (OSError, ValueError):
+        pass
+    try:  # company rules fill what the user left open (budget, region, compliance, recovery objectives)
+        import rules as company_rules
+        profile, _ = company_rules.overlay(repo, profile)
+    except (ImportError, OSError, ValueError, KeyError):
         pass
     return profile
 
