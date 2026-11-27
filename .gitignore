@@ -11,3 +11,9 @@ SolsArch_v0.1-merge-mvp.zip
 
 # Local agent state
 .claude/
+
+# Local secrets and main-app snapshots, never part of the skill
+.env
+.env.*
+!.env.example
+SolsArch-MVP-v0.1-*.zip

@@ -130,6 +130,18 @@ exceptions:
 
 You get `docs/solsarch-rules.md` (every rule with its source, result and the unread sentences), gate 8 "Company rules" in the quality report, `adr/`, one architecture decision record per service (evidence, alternatives, the rules that apply), and `policy/solsarch-company.rego`, an OPA policy for the rules that can be tested on a Terraform plan, so the pipeline keeps enforcing them after the first architecture. If the design breaks a rule (for example a private network that needs a NAT gateway when the rules forbid one), the report says so and names the file; it does not quietly change the design.
 
+## Proof and change control
+
+- **Evidence ledger.** `docs/solsarch-evidence.md` lists every decision, price, limit, rule and assumption with a status: **Observed** (read from your files or rule documents), **Verified** (a vendor page was read), **Estimated**, **Assumed** or **Unknown**, and the verification step reached (Generated, Statically validated, Tool validated).
+- **Architecture as a pull-request check.** Save the agreed design with `solsarch.py impact baseline`, commit `.solsarch/baseline/`, and `impact check` (run by the generated gate workflow) comments what a change does: services added or removed, streaming or scheduled work turning on, the timeout that implies, and the cost and score change, each with the file and line behind it. Try it in [examples/continuous-demo](examples/continuous-demo/README.md).
+- More on what ships and what is roadmap: [docs/positioning.md](docs/positioning.md).
+- Test the claims yourself with the 20-repository [benchmark](docs/benchmark.md) (`benchmark.py run`), and name who approved a design with `solsarch.py approve --by NAME`, which the gate then enforces.
+- Which real problems it solves, and its limits: [docs/problems-solved.md](docs/problems-solved.md). Rank clouds by your priority under your rules with `solsarch.py rank --priority cost|performance|reliability|portability|balanced`.
+
+## Work the way the SolsArch app does
+
+`solsarch.py app run --repo PROJECT --mode phase1` gives a staged analysis: intake questions, codebase and cloud decision, diagrams, a repository security checklist and consistency checks, with **analysis completeness** reported apart from **deployment readiness** (Blocked, Not verified, Ready). Phase 1 delivers no cost figures and no infrastructure code; `--mode full` adds them. The agent's part for each stage is in [references/app-pipeline.md](solsarch-early-cloud-architect/references/app-pipeline.md).
+
 ## The user journey
 
 1. **Install** once for your agent, or register the MCP server (see below).
@@ -186,7 +198,7 @@ An existing instruction file is extended, never replaced, and running the instal
 claude mcp add solsarch -- python /path/to/solsarch-early-cloud-architect/scripts/mcp_server.py   # Claude Code
 ```
 
-Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`. It exposes 22 tools: `solsarch_run`, `solsarch_questions`, `solsarch_profile`, `solsarch_rules`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`, `solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_costs`, `solsarch_iac`, `solsarch_deploy_guide`, `solsarch_validate`, `solsarch_gate`, `solsarch_scorecard`, `solsarch_export`, `solsarch_executive`, `solsarch_knowledge`, `solsarch_eol`, `solsarch_mcp` and `solsarch_guide`.
+Other hosts: add a stdio server with command `python` and the argument `/path/to/solsarch-early-cloud-architect/scripts/mcp_server.py`. It exposes 29 tools: `solsarch_run`, `solsarch_questions`, `solsarch_profile`, `solsarch_rules`, `solsarch_lookups`, `solsarch_ledger`, `solsarch_impact`, `solsarch_rank`, `solsarch_approve`, `solsarch_workload`, `solsarch_app`, `solsarch_scan`, `solsarch_plan`, `solsarch_compare`, `solsarch_facts`, `solsarch_finish`, `solsarch_verify`, `solsarch_costs`, `solsarch_iac`, `solsarch_deploy_guide`, `solsarch_validate`, `solsarch_gate`, `solsarch_scorecard`, `solsarch_export`, `solsarch_executive`, `solsarch_knowledge`, `solsarch_eol`, `solsarch_mcp` and `solsarch_guide`.
 
 ### Custom agents and scripts
 

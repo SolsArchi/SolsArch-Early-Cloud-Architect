@@ -66,6 +66,13 @@ import recommend  # noqa: E402
 import rules as company_rules  # noqa: E402
 import rules_ingest  # noqa: E402
 import verify_report  # noqa: E402
+import web_tasks  # noqa: E402
+import ledger  # noqa: E402
+import impact  # noqa: E402
+import ranking  # noqa: E402
+import approvals  # noqa: E402
+import workload  # noqa: E402
+import app_mode  # noqa: E402
 
 CLOUD_LABELS = {"aws": "AWS", "azure": "Azure", "gcp": "Google Cloud"}
 MAJOR_CLOUDS = tuple(CLOUD_LABELS)
@@ -503,6 +510,10 @@ def cmd_knowledge(args):
     return emit(knowledge.section(args.chapter, args.query) or {"error": "no such chapter"})
 
 
+def cmd_lookups(args):
+    return web_tasks.main(["--repo", str(args.repo)])
+
+
 def cmd_eol(args):
     return emit(eol_check.check(args.repo))
 
@@ -584,6 +595,8 @@ GUIDE = {
          "do": "Chooses services with fixed rules. Show the user the decisions."},
         {"id": "facts-auto", "command": "solsarch.py facts auto --repo REPO [--llm]", "optional": True,
          "do": "If a search API key is set (TAVILY_API_KEY, BRAVE_API_KEY, SERPER_API_KEY or GOOGLE_CSE_KEY), records the official sentences by itself; pages that say a service was retired or renamed are left for you to review."},
+        {"id": "lookups", "command": "solsarch.py lookups --repo REPO", "optional": True,
+         "do": "Lists EVERY open web lookup in one ordered list (service names to confirm, stale or unsourced limits and free allowances, unpriced lines, runtimes near end of life), each with the search to run, the official sites to take the answer from and the command that records it. Use your own web search and fetch tools, in parallel where you can."},
         {"id": "facts", "command": "solsarch.py facts queue --repo REPO", "optional": True,
          "do": "With a web search tool: search each query, then record one official sentence with 'facts add'. "
                "Without one: solsarch.py facts skip --repo REPO --reason \"no web search tool\"."},
@@ -795,6 +808,61 @@ def build_adr(repo):
     return {"status": "written", "files": len(written)} if written else {"status": "none"}
 
 
+def build_ledger(repo):
+    """Write the evidence ledger and docs/solsarch-evidence.md. Never raises."""
+    try:
+        data = ledger.build(repo)
+        if data is None:
+            return {"status": "none"}
+        path = ledger.write(repo, data)
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+    return {"status": "written", "file": path, "counts": data["counts"], "ladder": data["ladder"]["level"]}
+
+
+def cmd_ledger(args):
+    result = build_ledger(args.repo)
+    return emit(result, 0 if result.get("status") == "written" else 2)
+
+
+def cmd_impact(args):
+    argv = [args.action, "--repo", str(args.repo)] + (["--baseline", args.baseline] if args.baseline else []) + (["--fail-on-change"] if args.fail_on_change else [])
+    return impact.main(argv)
+
+
+def cmd_rank(args):
+    return ranking.main(["--repo", str(args.repo), "--clouds", args.clouds, "--priority", args.priority, "--compute", args.compute] + (["--offline"] if args.offline else []))
+
+
+def cmd_approve(args):
+    return approvals.main([args.action, "--repo", str(args.repo), "--by", args.by, "--note", args.note])
+
+
+def build_workload(repo):
+    """Write the cloud-neutral workload specification. Never raises."""
+    try:
+        data = workload.build(repo)
+        if data is None:
+            return {"status": "none"}
+        return {"status": "written", "file": workload.write(repo, data)}
+    except Exception as error:
+        return {"status": "error", "message": "%s: %s" % (type(error).__name__, error)}
+
+
+def cmd_workload(args):
+    result = build_workload(args.repo)
+    return emit(result, 0 if result.get("status") == "written" else 2)
+
+
+def cmd_app(args):
+    argv = [args.action, "--repo", str(args.repo)]
+    for flag, value in (("--mode", args.mode), ("--cloud", args.cloud), ("--compute", args.compute)):
+        argv += [flag, value] if value else []
+    for pair in args.set:
+        argv += ["--set", pair]
+    return app_mode.main(argv)
+
+
 def cmd_adr(args):
     result = build_adr(args.repo)
     return emit(result, 0 if result.get("status") == "written" else 2)
@@ -859,6 +927,9 @@ def cmd_finish(args):
     extras["quality"] = quality
     extras["company_rules"] = build_rules_docs(args.repo).get("status")
     extras["adr"] = build_adr(args.repo).get("status")
+    ledger_result = build_ledger(args.repo)
+    extras["evidence_ledger"] = ledger_result.get("status")
+    extras["workload"] = build_workload(args.repo).get("status")
     code, package = capture(package_outputs.main, base)
     if code != 0:
         return emit({"status": "error", "step": "zip", "detail": package}, code)
@@ -895,6 +966,33 @@ def main(argv=None):
     p.add_argument("--force", action="store_true")
     p.add_argument("--rules", action="append", metavar="PATH", help="Company rules documents (file or folder, repeatable)")
     sub.add_parser("guide")
+    p = sub.add_parser("ledger")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("impact")
+    p.add_argument("action", choices=("baseline", "check"))
+    p.add_argument("--repo", default=".")
+    p.add_argument("--baseline")
+    p.add_argument("--fail-on-change", action="store_true")
+    p = sub.add_parser("rank")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--clouds", default="auto", help="auto or all (every provider the rules allow), or a comma-separated list")
+    p.add_argument("--priority", choices=sorted(ranking.WEIGHTS), default="balanced")
+    p.add_argument("--compute", choices=("server", "serverless"), default="server")
+    p.add_argument("--offline", action="store_true")
+    p = sub.add_parser("approve")
+    p.add_argument("action", nargs="?", choices=("approve", "status"), default="approve")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--by", default="")
+    p.add_argument("--note", default="")
+    p = sub.add_parser("workload")
+    p.add_argument("--repo", default=".")
+    p = sub.add_parser("app", help="Work the way the SolsArch app does")
+    p.add_argument("action", choices=("stages", "intake", "run", "check"))
+    p.add_argument("--repo", default=".")
+    p.add_argument("--mode", choices=app_mode.MODES)
+    p.add_argument("--set", action="append", default=[])
+    p.add_argument("--cloud", choices=app_mode.APP_CLOUDS + ("not_sure",))
+    p.add_argument("--compute", choices=("server", "serverless", "not_sure"))
     p = sub.add_parser("adr")
     p.add_argument("--repo", default=".")
     p = sub.add_parser("rules")
@@ -947,6 +1045,8 @@ def main(argv=None):
     p.add_argument("--offline", action="store_true")
     p = sub.add_parser("deploy-guide")
     p.add_argument("--repo", default=".")
+    p = sub.add_parser("lookups")
+    p.add_argument("--repo", default=".")
     p = sub.add_parser("eol")
     p.add_argument("--repo", default=".")
     p = sub.add_parser("knowledge")
@@ -974,7 +1074,7 @@ def main(argv=None):
     handler = {"questions": cmd_questions, "scan": cmd_scan, "plan": cmd_plan, "facts": cmd_facts,
                "finish": cmd_finish, "evidence": cmd_evidence, "verify": cmd_verify, "compare": cmd_compare,
                "run": cmd_run, "guide": cmd_guide, "profile": cmd_profile, "design": cmd_design, "costs": cmd_costs,
-               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "contract": cmd_contract, "capabilities": cmd_capabilities, "export": cmd_export, "rules": cmd_rules, "adr": cmd_adr, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "eol": cmd_eol, "mcp": cmd_mcp}
+               "iac": cmd_iac, "executive": cmd_executive, "scorecard": cmd_scorecard, "contract": cmd_contract, "capabilities": cmd_capabilities, "export": cmd_export, "rules": cmd_rules, "adr": cmd_adr, "ledger": cmd_ledger, "impact": cmd_impact, "rank": cmd_rank, "approve": cmd_approve, "workload": cmd_workload, "app": cmd_app, "gate": cmd_gate, "validate": cmd_validate, "deploy-guide": cmd_deploy_guide, "knowledge": cmd_knowledge, "lookups": cmd_lookups, "eol": cmd_eol, "mcp": cmd_mcp}
     try:
         return handler[args.command](args)
     except (OSError, mh.MemoryError_) as error:

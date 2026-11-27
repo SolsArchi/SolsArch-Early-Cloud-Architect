@@ -13,6 +13,7 @@ import json
 import sys
 from pathlib import Path
 
+import approvals
 import qa_gates
 
 DEFAULTS = {
@@ -26,6 +27,7 @@ DEFAULTS = {
     "require_validation_pass": False,
     "require_costs": False,
     "min_readiness": 85,
+    "require_approval": False,
 }
 SEVERITY_LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
 
@@ -115,6 +117,14 @@ def evaluate(repo, config=None):
     over = len(eol)
     checks.append(check("End-of-life software", "fail" if over > config["max_end_of_life"] else "pass",
                         "past end of life: %s" % (eol[0]["detail"] if eol else "none found")))
+
+    approval = approvals.status(repo)
+    if approval["state"] == "stale" or (approval["state"] == "none" and config["require_approval"]):
+        checks.append(check("Human approval", "fail", approval["detail"]))
+    elif approval["state"] == "approved":
+        checks.append(check("Human approval", "pass", approval["detail"]))
+    else:
+        checks.append(check("Human approval", "skipped", "nobody has approved yet; run approve, or set require_approval in the gate config to demand it"))
 
     quality = qa_gates.evaluate(repo)
     for gate in quality["gates"]:

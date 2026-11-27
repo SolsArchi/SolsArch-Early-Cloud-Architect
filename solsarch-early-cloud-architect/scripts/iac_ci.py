@@ -84,12 +84,15 @@ def gate_files(model, provider, tf_dir, uses_terraform, env):
                    "SKILL=.solsarch-skill/solsarch-early-cloud-architect/scripts/solsarch.py",
                    "python $SKILL run --repo . --cloud %s --compute %s" % (provider, model.mode),
                    "python $SKILL scorecard --repo .",
-                   "python $SKILL gate --repo . --sarif solsarch.sarif --comment solsarch-comment.md"])
+                   "python $SKILL gate --repo . --sarif solsarch.sarif --comment solsarch-comment.md",
+                   "if [ -d .solsarch/baseline ]; then python $SKILL impact check --repo . || echo \"This SolsArch release has no impact check; raise the release tag.\"; fi"])
     steps = [dict(CHECKOUT), {"uses": use("actions/setup-python"), "with": {"python-version": "3.12"}},
              {"name": "Run the SolsArch checks", "id": "gate", "run": run, "env": {"SOLSARCH_OFFLINE": "1"}, "continue-on-error": True},
              {"name": "Show findings on the pull request", "uses": use("github/codeql-action/upload-sarif"), "if": "always()", "with": {"sarif_file": "solsarch.sarif"}},
              {"name": "Comment on the pull request", "if": "always() && github.event_name == 'pull_request'", "env": {"GH_TOKEN": "${{ github.token }}"},
               "run": "gh pr comment ${{ github.event.pull_request.number }} --body-file solsarch-comment.md"},
+             {"name": "Comment what this change does to the architecture (needs a committed .solsarch/baseline)", "if": "always() && github.event_name == 'pull_request' && hashFiles('.solsarch/impact-comment.md') != ''",
+              "env": {"GH_TOKEN": "${{ github.token }}"}, "run": "gh pr comment ${{ github.event.pull_request.number }} --body-file .solsarch/impact-comment.md"},
              {"name": "Fail when the gate failed", "if": "steps.gate.outcome == 'failure'", "run": "exit 1"}]
     if uses_terraform:
         steps.insert(5, {"name": "Set up Infracost (needs the INFRACOST_API_KEY secret)", "if": "env.INFRACOST_API_KEY != ''",

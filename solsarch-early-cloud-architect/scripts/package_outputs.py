@@ -29,6 +29,8 @@ README = """SolsArch Early Cloud Architect output
 
 solsarch-quality.md       START HERE. The quality score out of 100, the seven checks behind it, what failed or could not be
                           verified, and the official source for every limit and price the plan relies on.
+solsarch-evidence.md      Every claim with its proof: Observed, Verified, Estimated, Assumed or Unknown, and the
+                          verification step reached.
 solsarch-report.md        The full report: verdict, why each service was chosen, every diagram
                           with an explanation, security findings, web checks, cost drivers.
 solsarch-architecture.md  The diagrams with their explanations, on their own.
@@ -124,7 +126,7 @@ def deploy_files(repo, docs, state):
     if adr.is_dir():
         for path in sorted(adr.glob("*.md")):
             files["adr/" + path.name] = path.read_bytes()
-    for name in ("solsarch-quality.md", "solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md", "solsarch-rules.md"):
+    for name in ("solsarch-quality.md", "solsarch-deploy-guide.md", "solsarch-iac.md", "solsarch-costs.md", "solsarch-validation.md", "solsarch-ops-scorecard.md", "solsarch-rules.md", "solsarch-evidence.md", "solsarch-approvals.md", "solsarch-workload.md"):
         source = docs / name
         if source.exists():
             text = brand.watermark_markdown(source.read_text(encoding="utf-8"))

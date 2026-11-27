@@ -20,12 +20,13 @@ Step by step (what the skill expects an agent to do):
    serverless; account type). Record the account type: `solsarch.py profile --repo PROJECT --set account_type=free_trial|free_tier|pay_as_you_go|standard`.
 1b. Company rules: if the user has standards (docs, PDFs, Markdown, JSON, YAML in `.solsarch/rules/`, `docs/policies/`, `policies/`, or any path), run `solsarch.py rules ingest --repo PROJECT [--rules PATH]`, show the rules, the conflicts and the `not_enforced` sentences, and never invent a rule. `plan` refuses a cloud the rules forbid.
 2. `solsarch.py scan --repo PROJECT`, then `plan --repo PROJECT --cloud ID --compute server|serverless` (add `--also neon,cloudflare` to mix providers).
-3. Web check: with a search API key set run `facts auto`; otherwise `facts queue`, search each query, record one official
-   sentence with `facts add`; without any web search `facts skip --reason "no web search tool"`.
+3. Web check with YOUR OWN web search and fetch tools: run `solsarch.py lookups --repo PROJECT` for every open lookup (service names, limits and free allowances, prices, end-of-life), search each one on the official domains it lists, and record the answer with the command it shows (`facts add`, `capabilities add`, `costs add`). With a search API key set, `facts auto` does the service names alone. Without any web search: `facts skip --reason "no web search tool"`.
 4. `solsarch.py finish --repo PROJECT`: report, diagrams, cost estimate, infrastructure code, deploy guide, ops scorecard,
    exports, executive deck, verification gate, zip in `PROJECT/docs/`. Optional: `validate` and `gate`.
 5. Tell the user the verdict, a short summary, blockers, and where the zip and `docs/solsarch-deploy-guide.md` are. Offer to
    walk them through the guide one step at a time.
+
+After the design is agreed: `solsarch.py impact baseline --repo PROJECT` saves it; on later code changes `solsarch.py impact check --repo PROJECT` shows which services, timeouts and costs change (and writes a pull-request comment). `docs/solsarch-evidence.md` (from `finish`, or `ledger`) labels every claim Observed, Verified, Estimated, Assumed or Unknown; never call anything verified that it does not.
 
 `solsarch.py guide` prints this workflow as JSON. `solsarch.py compare --repo PROJECT` compares clouds.
 Do not choose, rename or remove services yourself, do not edit generated files, never print secrets, never ask the user to
